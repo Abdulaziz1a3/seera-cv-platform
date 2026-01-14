@@ -3,7 +3,9 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
+import { useSession, signOut } from 'next-auth/react';
 import { useLocale } from '@/components/providers/locale-provider';
+import { AdminAuthGuard } from '@/components/admin/admin-auth-guard';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -78,10 +80,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     const pathname = usePathname();
     const router = useRouter();
     const { locale, t } = useLocale();
+    const { data: session } = useSession();
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
+    const handleSignOut = async () => {
+        await signOut({ callbackUrl: '/login' });
+    };
+
     return (
-        <div className="min-h-screen flex bg-muted/30">
+        <AdminAuthGuard>
+            <div className="min-h-screen flex bg-muted/30">
             {/* Sidebar */}
             <aside
                 className={`fixed inset-y-0 start-0 z-50 flex flex-col bg-card border-e transition-all duration-300 ${isSidebarCollapsed ? 'w-16' : 'w-64'
@@ -171,8 +179,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                             <span className="absolute top-1 end-1 h-2 w-2 rounded-full bg-red-500" />
                         </Button>
                         <LanguageSwitcher variant="dropdown" showLabel={false} />
-                        <div className="h-9 w-9 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center text-sm font-medium text-white">
-                            A
+                        <div className="flex items-center gap-2">
+                            <Badge variant={session?.user?.role === 'SUPER_ADMIN' ? 'default' : 'secondary'}>
+                                {session?.user?.role === 'SUPER_ADMIN' ? 'Super Admin' : 'Admin'}
+                            </Badge>
+                            <div className="h-9 w-9 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center text-sm font-medium text-white">
+                                {session?.user?.name?.charAt(0).toUpperCase() || 'A'}
+                            </div>
                         </div>
                     </div>
                 </header>
@@ -181,5 +194,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 <main className="flex-1 p-6">{children}</main>
             </div>
         </div>
+        </AdminAuthGuard>
     );
 }

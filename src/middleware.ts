@@ -8,6 +8,9 @@ import { getToken } from 'next-auth/jwt';
 // Routes that require authentication
 const protectedRoutes = ['/dashboard', '/resumes', '/career', '/interview', '/settings'];
 
+// Admin routes that require ADMIN or SUPER_ADMIN role
+const adminRoutes = ['/admin'];
+
 // Routes that should redirect to dashboard if already authenticated
 const authRoutes = ['/login', '/register', '/forgot-password'];
 
@@ -116,12 +119,30 @@ export async function middleware(request: NextRequest) {
     // Check authentication for protected routes
     const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route));
     const isAuthRoute = authRoutes.some(route => pathname.startsWith(route));
+    const isAdminRoute = adminRoutes.some(route => pathname.startsWith(route));
 
-    if (isProtectedRoute || isAuthRoute) {
+    if (isProtectedRoute || isAuthRoute || isAdminRoute) {
         const token = await getToken({
             req: request,
             secret: process.env.NEXTAUTH_SECRET
         });
+
+        // Protect admin routes - require authentication AND admin role
+        if (isAdminRoute) {
+            if (!token) {
+                const loginUrl = new URL('/login', request.url);
+                loginUrl.searchParams.set('callbackUrl', pathname);
+                loginUrl.searchParams.set('admin', 'true');
+                return NextResponse.redirect(loginUrl);
+            }
+            
+            // Check if user has admin role
+            const userRole = (token as any)?.role;
+            if (userRole !== 'ADMIN' && userRole !== 'SUPER_ADMIN') {
+                // Redirect non-admin users to dashboard
+                return NextResponse.redirect(new URL('/dashboard?error=unauthorized', request.url));
+            }
+        }
 
         // Redirect unauthenticated users to login
         if (isProtectedRoute && !token) {
