@@ -9,15 +9,21 @@ let openaiClient: OpenAI | null = null;
 // Get or create OpenAI client (lazy initialization for serverless)
 export function getOpenAI(): OpenAI {
     if (!openaiClient) {
+        const apiKey = process.env.OPENAI_API_KEY;
+        if (!apiKey) {
+            throw new Error('OPENAI_API_KEY is not configured. Please set it in your environment variables.');
+        }
         openaiClient = new OpenAI({
-            apiKey: process.env.OPENAI_API_KEY,
+            apiKey,
         });
     }
     return openaiClient;
 }
 
-// Legacy: direct client access (for backward compatibility)
-const openai = getOpenAI();
+// Lazy getter for OpenAI client (only initialized when actually used)
+function getOpenAIClient(): OpenAI {
+    return getOpenAI();
+}
 
 export interface AIContentOptions {
     targetRole?: string;
@@ -39,6 +45,7 @@ export async function generateSummary(options: AIContentOptions): Promise<string
         ? `اكتب ملخصاً مهنياً لشخص يعمل كـ "${targetRole}" مع ${yearsExperience} سنوات خبرة. الملخص يجب أن يكون مناسباً للسوق السعودي/الخليجي.`
         : `Write a professional summary for someone working as "${targetRole}" with ${yearsExperience} years of experience. The summary should be suitable for the Saudi/GCC market.`;
 
+    const openai = getOpenAIClient();
     const response = await openai.chat.completions.create({
         model: 'gpt-4o-mini',
         messages: [
@@ -68,6 +75,7 @@ export async function generateBullets(
         ? `اكتب نقاط إنجازات لشخص عمل كـ "${position}" في شركة "${company}"${industry ? ` في مجال ${industry}` : ''}.`
         : `Write achievement bullet points for someone who worked as "${position}" at "${company}"${industry ? ` in the ${industry} industry` : ''}.`;
 
+    const openai = getOpenAIClient();
     const response = await openai.chat.completions.create({
         model: 'gpt-4o-mini',
         messages: [
@@ -98,6 +106,7 @@ export async function suggestSkills(
         ? `اقترح 10 مهارات مطلوبة لمنصب "${targetRole}"${existingSkills.length ? `. المهارات الموجودة: ${existingSkills.join(', ')}. لا تكرر الموجودة.` : '.'}`
         : `Suggest 10 in-demand skills for a "${targetRole}" position${existingSkills.length ? `. Existing skills: ${existingSkills.join(', ')}. Don't repeat existing ones.` : '.'}`;
 
+    const openai = getOpenAIClient();
     const response = await openai.chat.completions.create({
         model: 'gpt-4o-mini',
         messages: [
@@ -152,6 +161,7 @@ export async function improveContent(
     const promptKey = instructions[type] ? type : 'description';
     const prompt = locale === 'ar' ? instructions[promptKey].ar : instructions[promptKey].en;
 
+    const openai = getOpenAIClient();
     const response = await openai.chat.completions.create({
         model: 'gpt-4o-mini',
         messages: [
@@ -178,6 +188,7 @@ export async function analyzeJobDescription(
         ? `حلل وصف الوظيفة واستخرج: 1) الكلمات المفتاحية المهمة للـ ATS 2) المتطلبات الأساسية 3) المهارات المقترحة للسيرة الذاتية. أجب بصيغة JSON.`
         : `Analyze the job description and extract: 1) Important ATS keywords 2) Core requirements 3) Suggested skills for the resume. Reply in JSON format.`;
 
+    const openai = getOpenAIClient();
     const response = await openai.chat.completions.create({
         model: 'gpt-4o-mini',
         messages: [
@@ -222,6 +233,7 @@ export async function generateCoverLetter(
         ? `اكتب رسالة تغطية لـ ${resumeData.name} الذي يتقدم لمنصب ${resumeData.targetRole}. خبراته: ${resumeData.experience.map(e => `${e.position} في ${e.company}`).join(', ')}. مهاراته: ${resumeData.skills.join(', ')}.\n\nوصف الوظيفة:\n${jobDescription}`
         : `Write a cover letter for ${resumeData.name} applying for ${resumeData.targetRole}. Experience: ${resumeData.experience.map(e => `${e.position} at ${e.company}`).join(', ')}. Skills: ${resumeData.skills.join(', ')}.\n\nJob Description:\n${jobDescription}`;
 
+    const openai = getOpenAIClient();
     const response = await openai.chat.completions.create({
         model: 'gpt-4o-mini',
         messages: [
@@ -249,6 +261,7 @@ export async function calculateATSScore(
         ? `Analyze this resume against the job description.\n\nResume:\n${resumeText}\n\nJob Description:\n${jobDescription}`
         : `Analyze this resume for ATS compatibility.\n\nResume:\n${resumeText}`;
 
+    const openai = getOpenAIClient();
     const response = await openai.chat.completions.create({
         model: 'gpt-4o-mini',
         messages: [

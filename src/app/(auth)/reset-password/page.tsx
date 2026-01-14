@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useForm } from 'react-hook-form';
@@ -30,7 +30,7 @@ const resetPasswordSchema = z
 type ResetPasswordFormData = z.infer<typeof resetPasswordSchema>;
 type PageStatus = 'validating' | 'ready' | 'submitting' | 'success' | 'error';
 
-export default function ResetPasswordPage() {
+function ResetPasswordForm() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const token = searchParams.get('token');
@@ -297,5 +297,29 @@ export default function ResetPasswordPage() {
                 </div>
             )}
         </div>
+    );
+}
+
+export default function ResetPasswordPage() {
+    return (
+        <Suspense fallback={
+            <div className="space-y-6">
+                <div className="flex items-center gap-2 justify-center mb-8">
+                    <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center">
+                        <FileText className="h-5 w-5 text-white" />
+                    </div>
+                    <span className="text-xl font-bold">Seera AI</span>
+                </div>
+                <div className="text-center space-y-4">
+                    <div className="flex justify-center">
+                        <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center">
+                            <Loader2 className="h-8 w-8 text-primary animate-spin" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }>
+            <ResetPasswordForm />
+        </Suspense>
     );
 }

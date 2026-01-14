@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { signIn } from 'next-auth/react';
@@ -12,7 +12,7 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { useLocale } from '@/components/providers/locale-provider';
 
-export default function LoginPage() {
+function LoginForm() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const callbackUrl = searchParams.get('callbackUrl') || '/dashboard';
@@ -171,5 +171,19 @@ export default function LoginPage() {
                 </Link>
             </p>
         </div>
+    );
+}
+
+export default function LoginPage() {
+    return (
+        <Suspense fallback={
+            <div className="w-full max-w-md mx-auto">
+                <div className="text-center mb-8">
+                    <h1 className="text-2xl font-bold mb-2">Loading...</h1>
+                </div>
+            </div>
+        }>
+            <LoginForm />
+        </Suspense>
     );
 }

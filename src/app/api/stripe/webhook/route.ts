@@ -27,8 +27,6 @@ export async function POST(request: NextRequest) {
 }
 
 // Stripe requires raw body for webhook verification
-export const config = {
-    api: {
-        bodyParser: false,
-    },
-};
+// Use route segment config for Next.js App Router
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';

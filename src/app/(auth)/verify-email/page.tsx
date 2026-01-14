@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { FileText, Loader2, CheckCircle2, XCircle, Mail } from 'lucide-react';
@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 
 type VerificationStatus = 'loading' | 'success' | 'already_verified' | 'error';
 
-export default function VerifyEmailPage() {
+function VerifyEmailForm() {
     const searchParams = useSearchParams();
     const token = searchParams.get('token');
     const [status, setStatus] = useState<VerificationStatus>('loading');
@@ -144,5 +144,27 @@ export default function VerifyEmailPage() {
                 </>
             )}
         </div>
+    );
+}
+
+export default function VerifyEmailPage() {
+    return (
+        <Suspense fallback={
+            <div className="space-y-6 text-center">
+                <div className="flex items-center gap-2 justify-center mb-8">
+                    <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center">
+                        <FileText className="h-5 w-5 text-white" />
+                    </div>
+                    <span className="text-xl font-bold">Seera AI</span>
+                </div>
+                <div className="flex justify-center">
+                    <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center">
+                        <Loader2 className="h-8 w-8 text-primary animate-spin" />
+                    </div>
+                </div>
+            </div>
+        }>
+            <VerifyEmailForm />
+        </Suspense>
     );
 }

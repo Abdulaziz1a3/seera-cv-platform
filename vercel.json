@@ -2,12 +2,13 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "version": 2,
   "framework": "nextjs",
-  "buildCommand": "npm run build",
+  "buildCommand": "prisma generate && npm run build",
   "installCommand": "npm install",
   "outputDirectory": ".next",
-  "regions": ["bom1"],
+  "regions": ["iad1"],
   "env": {
-    "NODE_ENV": "production"
+    "NODE_ENV": "production",
+    "SKIP_ENV_VALIDATION": "true"
   },
   "headers": [
     {
@@ -72,7 +73,13 @@
     },
     "src/app/api/stripe/webhook/route.ts": {
       "maxDuration": 30
+    },
+    "src/app/api/resume/parse/route.ts": {
+      "maxDuration": 60
     }
   },
-  "crons": []
+  "crons": [],
+  "ignoreCommand": "git diff --quiet HEAD^ HEAD ./",
+  "cleanUrls": true,
+  "trailingSlash": false
 }
