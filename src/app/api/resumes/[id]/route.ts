@@ -83,7 +83,7 @@ export async function PATCH(
         const { title, targetRole, contact, summary, experience, education, skills, ...otherSections } = body;
 
         // Calculate ATS score
-        const lintResult = lintResume(body, resume.language || 'en');
+        const lintResult = lintResume(body, (resume.language || 'en') as 'ar' | 'en');
 
         // Update resume metadata
         await prisma.resume.update({

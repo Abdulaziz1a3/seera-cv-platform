@@ -3,10 +3,21 @@
 
 import OpenAI from 'openai';
 
-// Initialize OpenAI client
-const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-});
+// Singleton OpenAI client
+let openaiClient: OpenAI | null = null;
+
+// Get or create OpenAI client (lazy initialization for serverless)
+export function getOpenAI(): OpenAI {
+    if (!openaiClient) {
+        openaiClient = new OpenAI({
+            apiKey: process.env.OPENAI_API_KEY,
+        });
+    }
+    return openaiClient;
+}
+
+// Legacy: direct client access (for backward compatibility)
+const openai = getOpenAI();
 
 export interface AIContentOptions {
     targetRole?: string;

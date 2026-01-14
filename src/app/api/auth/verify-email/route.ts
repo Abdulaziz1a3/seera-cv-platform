@@ -21,7 +21,7 @@ export async function POST(request: Request) {
             where: {
                 token,
                 type: 'EMAIL_VERIFICATION',
-                expiresAt: {
+                expires: {
                     gt: new Date(),
                 },
             },
@@ -50,7 +50,7 @@ export async function POST(request: Request) {
         if (user.emailVerified) {
             // Clean up token
             await prisma.verificationToken.delete({
-                where: { id: verificationToken.id },
+                where: { token: verificationToken.token },
             });
 
             return NextResponse.json(
@@ -66,7 +66,7 @@ export async function POST(request: Request) {
                 data: { emailVerified: new Date() },
             }),
             prisma.verificationToken.delete({
-                where: { id: verificationToken.id },
+                where: { token: verificationToken.token },
             }),
             prisma.auditLog.create({
                 data: {
@@ -114,7 +114,7 @@ export async function GET(request: Request) {
 
         if (!token) {
             return NextResponse.redirect(
-                new URL('/auth/login?error=missing_token', request.url)
+                new URL('/login?error=missing_token', request.url)
             );
         }
 
@@ -123,7 +123,7 @@ export async function GET(request: Request) {
             where: {
                 token,
                 type: 'EMAIL_VERIFICATION',
-                expiresAt: {
+                expires: {
                     gt: new Date(),
                 },
             },
@@ -131,7 +131,7 @@ export async function GET(request: Request) {
 
         if (!verificationToken) {
             return NextResponse.redirect(
-                new URL('/auth/login?error=invalid_token', request.url)
+                new URL('/login?error=invalid_token', request.url)
             );
         }
 
@@ -142,18 +142,18 @@ export async function GET(request: Request) {
 
         if (!user) {
             return NextResponse.redirect(
-                new URL('/auth/login?error=user_not_found', request.url)
+                new URL('/login?error=user_not_found', request.url)
             );
         }
 
         // Check if already verified
         if (user.emailVerified) {
             await prisma.verificationToken.delete({
-                where: { id: verificationToken.id },
+                where: { token: verificationToken.token },
             });
 
             return NextResponse.redirect(
-                new URL('/auth/login?verified=already', request.url)
+                new URL('/login?verified=already', request.url)
             );
         }
 
@@ -164,7 +164,7 @@ export async function GET(request: Request) {
                 data: { emailVerified: new Date() },
             }),
             prisma.verificationToken.delete({
-                where: { id: verificationToken.id },
+                where: { token: verificationToken.token },
             }),
             prisma.auditLog.create({
                 data: {
@@ -184,12 +184,12 @@ export async function GET(request: Request) {
         logger.info('Email verified via link', { userId: user.id, email: user.email });
 
         return NextResponse.redirect(
-            new URL('/auth/login?verified=success', request.url)
+            new URL('/login?verified=success', request.url)
         );
     } catch (error) {
         logger.error('Email verification link error', { error: error as Error });
         return NextResponse.redirect(
-            new URL('/auth/login?error=verification_failed', request.url)
+            new URL('/login?error=verification_failed', request.url)
         );
     }
 }

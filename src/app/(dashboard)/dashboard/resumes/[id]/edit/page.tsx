@@ -314,25 +314,25 @@ export default function ResumeEditorPage() {
                     )}
                     {activeSection === 'summary' && (
                         <SummaryEditor
-                            data={resume.summary}
+                            data={resume.summary as any}
                             onChange={(data) => handleChange('summary', data)}
                         />
                     )}
                     {activeSection === 'experience' && (
                         <ExperienceEditor
-                            data={resume.experience}
+                            data={resume.experience as any}
                             onChange={(data) => handleChange('experience', data)}
                         />
                     )}
                     {activeSection === 'education' && (
                         <EducationEditor
-                            data={resume.education}
+                            data={resume.education as any}
                             onChange={(data) => handleChange('education', data)}
                         />
                     )}
                     {activeSection === 'skills' && (
                         <SkillsEditor
-                            data={resume.skills}
+                            data={resume.skills as any}
                             onChange={(data) => handleChange('skills', data)}
                         />
                     )}
@@ -365,10 +365,10 @@ export default function ResumeEditorPage() {
                                 <TabsTrigger value="ats">ATS Score</TabsTrigger>
                             </TabsList>
                             <TabsContent value="preview" className="flex-1 overflow-auto p-4">
-                                <ResumePreview resume={resume} />
+                                <ResumePreview resume={resume as any} />
                             </TabsContent>
                             <TabsContent value="ats" className="flex-1 overflow-auto p-4">
-                                <ATSScorePanel resume={resume} score={atsScore} />
+                                <ATSScorePanel resume={resume as any} score={atsScore} />
                             </TabsContent>
                         </Tabs>
                     </aside>

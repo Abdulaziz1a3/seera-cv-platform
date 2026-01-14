@@ -998,5 +998,5 @@ export async function downloadStyledPDF(
             renderModernTemplate(doc, resume, selectedTheme);
     }
 
-    doc.save(`Seera_${resume.contact.firstName || 'CV'}_${layout}.pdf`);
+    doc.save(`Seera_${resume.contact.fullName?.split(' ')[0] || 'CV'}_${layout}.pdf`);
 }

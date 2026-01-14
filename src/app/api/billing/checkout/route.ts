@@ -49,7 +49,7 @@ export async function POST(request: Request) {
 
         return NextResponse.json({ url: checkoutUrl });
     } catch (error) {
-        logger.error('Checkout error', { error });
+        logger.error('Checkout error', { error: error as Error });
 
         if (error instanceof z.ZodError) {
             return NextResponse.json(

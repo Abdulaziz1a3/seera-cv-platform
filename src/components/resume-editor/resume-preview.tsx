@@ -13,8 +13,8 @@ export function ResumePreview({ resume }: ResumePreviewProps) {
             {resume.contact && (
                 <div className="text-center border-b pb-4 mb-4">
                     <h1 className="text-xl font-bold">{resume.contact.fullName || 'Your Name'}</h1>
-                    {resume.contact.title && (
-                        <p className="text-gray-600 mt-1">{resume.contact.title}</p>
+                    {resume.targetRole && (
+                        <p className="text-gray-600 mt-1">{resume.targetRole}</p>
                     )}
                     <div className="flex flex-wrap justify-center gap-2 mt-2 text-xs text-gray-500">
                         {resume.contact.email && <span>{resume.contact.email}</span>}

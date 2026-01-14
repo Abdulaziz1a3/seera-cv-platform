@@ -1,11 +1,7 @@
 // AI Interview Service
 // Handles interview question generation, conversation, and feedback
 
-import OpenAI from 'openai';
-
-const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-});
+import { getOpenAI } from '@/lib/openai';
 
 export interface InterviewContext {
     targetRole: string;
@@ -65,7 +61,7 @@ ${skills?.length ? `Skills: ${skills.join(', ')}` : ''}
 Generate diverse questions: behavioral, technical, situational, experience, and culture fit.
 Reply in JSON format with: id, question, category, difficulty, tips.`;
 
-    const response = await openai.chat.completions.create({
+    const response = await getOpenAI().chat.completions.create({
         model: 'gpt-4o-mini',
         messages: [
             { role: 'system', content: systemPrompt },
@@ -152,7 +148,7 @@ export async function conductInterview(
         content: m.content,
     }));
 
-    const response = await openai.chat.completions.create({
+    const response = await getOpenAI().chat.completions.create({
         model: 'gpt-4o-mini',
         messages: [
             { role: 'system', content: systemPrompt },
@@ -212,7 +208,7 @@ Evaluate the answer and reply in JSON format:
   "revisedAnswer": "improved suggested answer"
 }`;
 
-    const response = await openai.chat.completions.create({
+    const response = await getOpenAI().chat.completions.create({
         model: 'gpt-4o-mini',
         messages: [
             { role: 'system', content: systemPrompt },
@@ -240,7 +236,7 @@ export async function generateInterviewerVoice(
     text: string,
     voice: 'alloy' | 'echo' | 'fable' | 'onyx' | 'nova' | 'shimmer' = 'onyx'
 ): Promise<ArrayBuffer> {
-    const response = await openai.audio.speech.create({
+    const response = await getOpenAI().audio.speech.create({
         model: 'tts-1',
         voice: voice,
         input: text,
@@ -287,7 +283,7 @@ export async function generateInterviewSummary(
         ? `أنت مستشار مهني. لخّص أداء المرشح في المقابلة التدريبية.`
         : `You are a career coach. Summarize the candidate's mock interview performance.`;
 
-    const response = await openai.chat.completions.create({
+    const response = await getOpenAI().chat.completions.create({
         model: 'gpt-4o-mini',
         messages: [
             { role: 'system', content: systemPrompt },

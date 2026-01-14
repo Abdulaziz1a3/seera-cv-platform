@@ -9,11 +9,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import type { Education, EducationItem } from '@/lib/resume-schema';
+import type { EducationSection, EducationItem } from '@/lib/resume-schema';
 
 interface EducationEditorProps {
-    data: Education | undefined;
-    onChange: (data: Education) => void;
+    data: EducationSection | undefined;
+    onChange: (data: EducationSection) => void;
 }
 
 function createEmptyEducation(): EducationItem {
@@ -26,29 +26,30 @@ function createEmptyEducation(): EducationItem {
         startDate: '',
         endDate: '',
         gpa: '',
-        highlights: [],
+        coursework: [],
+        activities: [],
     };
 }
 
 export function EducationEditor({ data, onChange }: EducationEditorProps) {
     const items = data?.items || [];
-    const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set(items.map(i => i.id)));
+    const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set(items.map((i: EducationItem) => i.id)));
 
     const handleAddEducation = () => {
         const newItem = createEmptyEducation();
         onChange({ items: [...items, newItem] });
-        setExpandedItems(new Set([...expandedItems, newItem.id]));
+        setExpandedItems(new Set([...Array.from(expandedItems), newItem.id]));
         toast.success('Education added');
     };
 
     const handleRemoveEducation = (id: string) => {
-        onChange({ items: items.filter(item => item.id !== id) });
+        onChange({ items: items.filter((item: EducationItem) => item.id !== id) });
         toast.success('Education removed');
     };
 
     const handleUpdateEducation = (id: string, updates: Partial<EducationItem>) => {
         onChange({
-            items: items.map(item =>
+            items: items.map((item: EducationItem) =>
                 item.id === id ? { ...item, ...updates } : item
             ),
         });
@@ -93,7 +94,7 @@ export function EducationEditor({ data, onChange }: EducationEditorProps) {
                 </Card>
             ) : (
                 <div className="space-y-4">
-                    {items.map((edu, index) => (
+                    {items.map((edu: EducationItem, index: number) => (
                         <Card key={edu.id}>
                             <CardHeader
                                 className="cursor-pointer"
@@ -198,17 +199,21 @@ export function EducationEditor({ data, onChange }: EducationEditorProps) {
                                     </div>
 
                                     <div className="space-y-2">
-                                        <Label>Highlights (Optional)</Label>
+                                        <Label>Coursework & Activities (Optional)</Label>
                                         <Textarea
                                             placeholder="Dean's List, Relevant coursework, Research projects, Student organizations..."
                                             className="min-h-[80px]"
-                                            value={edu.highlights?.join('\n') || ''}
-                                            onChange={(e) => handleUpdateEducation(edu.id, {
-                                                highlights: e.target.value.split('\n').filter(Boolean)
-                                            })}
+                                            value={[...(edu.coursework || []), ...(edu.activities || [])].join('\n') || ''}
+                                            onChange={(e) => {
+                                                const lines = e.target.value.split('\n').filter(Boolean);
+                                                handleUpdateEducation(edu.id, {
+                                                    coursework: lines.slice(0, Math.ceil(lines.length / 2)),
+                                                    activities: lines.slice(Math.ceil(lines.length / 2))
+                                                });
+                                            }}
                                         />
                                         <p className="text-xs text-muted-foreground">
-                                            Enter each highlight on a new line
+                                            Enter each item on a new line
                                         </p>
                                     </div>
                                 </CardContent>

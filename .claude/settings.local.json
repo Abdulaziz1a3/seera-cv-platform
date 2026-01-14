@@ -3,7 +3,19 @@
     "allow": [
       "Bash(find \"C:\\\\Users\\\\OSHCIO\\\\OneDrive - Olayan Financing Company\\\\Desktop\\\\CV-Arabia\\\\src\\\\app\\\\api\" -type f -name \"route.ts\" -exec sh -c 'echo \"\"=== {} ===\"\" && head -20 \"\"{}\"\"' ;)",
       "Bash(npm run lint)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(npm run dev:*)",
+      "Bash(timeout:*)",
+      "Bash(ping:*)",
+      "Bash(dir \"C:\\\\Users\\\\OSHCIO\\\\OneDrive - Olayan Financing Company\\\\Desktop\\\\CV-Arabia\\\\src\\\\lib\\\\auth*.ts\")",
+      "mcp__Neon__create_project",
+      "Bash(npx prisma db push)",
+      "Bash(set \"DATABASE_URL=postgresql://neondb_owner:npg_m10adTbWrQyw@ep-square-boat-aetkgq9c-pooler.c-2.us-east-2.aws.neon.tech/neondb?sslmode=require\")",
+      "Bash(npx dotenv:*)",
+      "Bash(powershell -Command \"$env:DATABASE_URL=''postgresql://neondb_owner:npg_m10adTbWrQyw@ep-square-boat-aetkgq9c-pooler.c-2.us-east-2.aws.neon.tech/neondb?sslmode=require''; npx prisma db push\")",
+      "Bash(npx prisma generate:*)",
+      "Bash(npm run build:*)",
+      "Bash(dir:*)"
     ]
   }
 }

@@ -61,15 +61,6 @@ export function ContactEditor({ data, onChange }: ContactEditorProps) {
                             </div>
                         </div>
 
-                        <div className="space-y-2">
-                            <Label htmlFor="title">Professional Title</Label>
-                            <Input
-                                id="title"
-                                placeholder="Software Engineer"
-                                defaultValue={data.title || ''}
-                                onChange={(e) => handleFieldChange('title', e.target.value)}
-                            />
-                        </div>
                     </div>
 
                     <div className="grid gap-4 sm:grid-cols-2">

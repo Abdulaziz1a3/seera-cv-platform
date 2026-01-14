@@ -26,4 +26,9 @@ export async function POST(request: NextRequest) {
     }
 }
 
-
+// Stripe requires raw body for webhook verification
+export const config = {
+    api: {
+        bodyParser: false,
+    },
+};

@@ -1,12 +1,8 @@
 // AI Career GPS Service
 // Comprehensive career path analysis, skill gaps, and action planning
 
-import OpenAI from 'openai';
+import { getOpenAI } from '@/lib/openai';
 import type { ResumeData } from '@/components/providers/resume-provider';
-
-const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-});
 
 // Types
 export interface CareerPath {
@@ -228,7 +224,7 @@ Provide a comprehensive career analysis in JSON format:
 
 Generate 3-4 realistic career paths with 4-5 milestones each. Include 5-8 skill gaps, 5 strengths, and 5-7 weekly actions.`;
 
-    const response = await openai.chat.completions.create({
+    const response = await getOpenAI().chat.completions.create({
         model: 'gpt-4o-mini',
         messages: [
             { role: 'system', content: systemPrompt },
@@ -366,7 +362,7 @@ Generate ${weeks * 3} specific actions in JSON format:
   ]
 }`;
 
-    const response = await openai.chat.completions.create({
+    const response = await getOpenAI().chat.completions.create({
         model: 'gpt-4o-mini',
         messages: [
             { role: 'system', content: systemPrompt },
@@ -405,7 +401,7 @@ export async function getIndustryInsights(
         ? `أنت خبير في سوق العمل السعودي. قدم رؤى حول صناعة محددة.`
         : `You are a Saudi job market expert. Provide insights about a specific industry.`;
 
-    const response = await openai.chat.completions.create({
+    const response = await getOpenAI().chat.completions.create({
         model: 'gpt-4o-mini',
         messages: [
             { role: 'system', content: systemPrompt },

@@ -85,7 +85,7 @@ export default function AdminFeatureFlagsPage() {
     const [searchQuery, setSearchQuery] = useState('');
     const [flags, setFlags] = useState(mockFlags);
 
-    const categories = [...new Set(flags.map((f) => f.category))];
+    const categories = Array.from(new Set(flags.map((f) => f.category)));
 
     const getCategoryIcon = (category: string) => {
         switch (category) {

@@ -2,7 +2,7 @@
 // Server-side PDF generation with puppeteer or client-side with html2pdf
 
 import { jsPDF } from 'jspdf';
-import type { Resume } from './resume-schema';
+import type { ResumeData } from '@/components/providers/resume-provider';
 
 // ATS-safe fonts
 const FONTS = {
@@ -19,7 +19,7 @@ const COLORS = {
 };
 
 // Export resume to PDF (client-side)
-export async function exportToPDF(resume: Resume, template: string = 'professional'): Promise<Blob> {
+export async function exportToPDF(resume: ResumeData, template: string = 'professional'): Promise<Blob> {
     const doc = new jsPDF({
         orientation: 'portrait',
         unit: 'mm',
@@ -198,7 +198,7 @@ export async function exportToPDF(resume: Resume, template: string = 'profession
 }
 
 // Export to plain text (ATS-safe)
-export function exportToText(resume: Resume): string {
+export function exportToText(resume: ResumeData): string {
     let text = '';
     const divider = '\n' + '='.repeat(50) + '\n\n';
 
@@ -258,7 +258,7 @@ export function exportToText(resume: Resume): string {
 }
 
 // Generate filename
-export function getExportFilename(resume: Resume, format: 'pdf' | 'docx' | 'txt'): string {
+export function getExportFilename(resume: ResumeData, format: 'pdf' | 'docx' | 'txt'): string {
     const sanitizedName = resume.contact.fullName
         .toLowerCase()
         .replace(/[^a-z0-9]/g, '_')

@@ -9,11 +9,11 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import type { Skills, SkillCategory } from '@/lib/resume-schema';
+import type { SkillsSection, SkillCategory } from '@/lib/resume-schema';
 
 interface SkillsEditorProps {
-    data: Skills | undefined;
-    onChange: (data: Skills) => void;
+    data: SkillsSection | undefined;
+    onChange: (data: SkillsSection) => void;
 }
 
 const suggestedSkills = {
@@ -39,12 +39,12 @@ export function SkillsEditor({ data, onChange }: SkillsEditorProps) {
             toast.error('Skill already added');
             return;
         }
-        onChange({ ...data, simpleList: [...simpleList, newSkill.trim()] });
+        onChange({ categories: categories, simpleList: [...simpleList, newSkill.trim()] });
         setNewSkill('');
     };
 
     const handleRemoveSkill = (skill: string) => {
-        onChange({ ...data, simpleList: simpleList.filter(s => s !== skill) });
+        onChange({ categories: categories, simpleList: simpleList.filter((s: string) => s !== skill) });
     };
 
     const handleAddSuggestedSkill = (skill: string) => {
@@ -52,7 +52,7 @@ export function SkillsEditor({ data, onChange }: SkillsEditorProps) {
             toast.error('Skill already added');
             return;
         }
-        onChange({ ...data, simpleList: [...simpleList, skill] });
+        onChange({ categories: categories, simpleList: [...simpleList, skill] });
         toast.success(`Added: ${skill}`);
     };
 
@@ -63,22 +63,22 @@ export function SkillsEditor({ data, onChange }: SkillsEditorProps) {
             name: '',
             skills: [],
         };
-        onChange({ ...data, categories: [...categories, newCategory] });
+        onChange({ categories: [...categories, newCategory], simpleList });
     };
 
     const handleRemoveCategory = (id: string) => {
-        onChange({ ...data, categories: categories.filter(c => c.id !== id) });
+        onChange({ categories: categories.filter((c: SkillCategory) => c.id !== id), simpleList });
     };
 
     const handleUpdateCategory = (id: string, updates: Partial<SkillCategory>) => {
         onChange({
-            ...data,
-            categories: categories.map(c => (c.id === id ? { ...c, ...updates } : c)),
+            categories: categories.map((c: SkillCategory) => (c.id === id ? { ...c, ...updates } : c)),
+            simpleList,
         });
     };
 
     const handleAddSkillToCategory = (categoryId: string, skill: string) => {
-        const category = categories.find(c => c.id === categoryId);
+        const category = categories.find((c: SkillCategory) => c.id === categoryId);
         if (!category) return;
         if (category.skills.includes(skill)) {
             toast.error('Skill already in category');
@@ -88,9 +88,9 @@ export function SkillsEditor({ data, onChange }: SkillsEditorProps) {
     };
 
     const handleRemoveSkillFromCategory = (categoryId: string, skill: string) => {
-        const category = categories.find(c => c.id === categoryId);
+        const category = categories.find((c: SkillCategory) => c.id === categoryId);
         if (!category) return;
-        handleUpdateCategory(categoryId, { skills: category.skills.filter(s => s !== skill) });
+        handleUpdateCategory(categoryId, { skills: category.skills.filter((s: string) => s !== skill) });
     };
 
     // Extract skills from job description
@@ -110,9 +110,9 @@ export function SkillsEditor({ data, onChange }: SkillsEditorProps) {
                 throw new Error('Failed to extract skills');
             }
 
-            const { skills } = await response.json();
-            const newSkills = skills.filter((s: string) => !simpleList.includes(s));
-            onChange({ ...data, simpleList: [...simpleList, ...newSkills] });
+            const { skills: extractedSkills } = await response.json();
+            const newSkills = extractedSkills.filter((s: string) => !simpleList.includes(s));
+            onChange({ categories, simpleList: [...simpleList, ...newSkills] });
             toast.success(`Extracted ${newSkills.length} new skills!`);
         } catch (error) {
             toast.error('Failed to extract skills');
@@ -171,7 +171,7 @@ export function SkillsEditor({ data, onChange }: SkillsEditorProps) {
                             </div>
 
                             <div className="flex flex-wrap gap-2">
-                                {simpleList.map((skill) => (
+                                {simpleList.map((skill: string) => (
                                     <Badge key={skill} variant="secondary" className="text-sm">
                                         {skill}
                                         <button
@@ -249,7 +249,7 @@ export function SkillsEditor({ data, onChange }: SkillsEditorProps) {
                 </TabsContent>
 
                 <TabsContent value="categorized" className="space-y-4 mt-6">
-                    {categories.map((category) => (
+                    {categories.map((category: SkillCategory) => (
                         <Card key={category.id}>
                             <CardHeader className="pb-3">
                                 <div className="flex items-center gap-3">
@@ -270,7 +270,7 @@ export function SkillsEditor({ data, onChange }: SkillsEditorProps) {
                             </CardHeader>
                             <CardContent>
                                 <div className="flex flex-wrap gap-2 mb-3">
-                                    {category.skills.map((skill) => (
+                                    {category.skills.map((skill: string) => (
                                         <Badge key={skill} variant="secondary">
                                             {skill}
                                             <button

@@ -27,7 +27,7 @@ export async function POST(request: Request) {
             where: {
                 token,
                 type: 'PASSWORD_RESET',
-                expiresAt: {
+                expires: {
                     gt: new Date(),
                 },
             },
@@ -66,7 +66,7 @@ export async function POST(request: Request) {
                 },
             }),
             prisma.verificationToken.delete({
-                where: { id: resetToken.id },
+                where: { token: resetToken.token },
             }),
             prisma.auditLog.create({
                 data: {
@@ -119,7 +119,7 @@ export async function GET(request: Request) {
             where: {
                 token,
                 type: 'PASSWORD_RESET',
-                expiresAt: {
+                expires: {
                     gt: new Date(),
                 },
             },

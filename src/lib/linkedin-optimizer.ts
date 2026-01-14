@@ -1,12 +1,8 @@
 // LinkedIn Profile Optimizer AI Service
 // Transforms resume data into optimized LinkedIn profile content
 
-import OpenAI from 'openai';
+import { getOpenAI } from '@/lib/openai';
 import type { ResumeData } from '@/components/providers/resume-provider';
-
-const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-});
 
 export interface LinkedInProfile {
     headline: string;
@@ -48,7 +44,7 @@ export async function generateHeadlines(
         ? `اكتب 5 عناوين LinkedIn لشخص يعمل كـ "${currentRole}" مع خبرة في: ${skills}. اللهجة: ${tone === 'creative' ? 'إبداعية' : tone === 'executive' ? 'تنفيذية' : 'مهنية'}.`
         : `Write 5 LinkedIn headlines for a "${currentRole}" with expertise in: ${skills}. Tone: ${tone}.`;
 
-    const response = await openai.chat.completions.create({
+    const response = await getOpenAI().chat.completions.create({
         model: 'gpt-4o-mini',
         messages: [
             { role: 'system', content: systemPrompt },
@@ -104,7 +100,7 @@ Current summary: ${resume.summary}
 Skills: ${resume.skills.join(', ')}
 Target audience: ${targetAudience}`;
 
-    const response = await openai.chat.completions.create({
+    const response = await getOpenAI().chat.completions.create({
         model: 'gpt-4o-mini',
         messages: [
             { role: 'system', content: systemPrompt },
@@ -140,7 +136,7 @@ Position: ${exp.position}
 Company: ${exp.company}
 Bullets: ${exp.bullets.join('; ')}`;
 
-            const response = await openai.chat.completions.create({
+            const response = await getOpenAI().chat.completions.create({
                 model: 'gpt-4o-mini',
                 messages: [
                     { role: 'system', content: systemPrompt },
@@ -180,7 +176,7 @@ ${resume.skills.join(', ')}
 ${resume.skills.join(', ')}
 Reply in JSON: { "ranked": [...], "featured": ["top1", "top2", "top3"] }`;
 
-    const response = await openai.chat.completions.create({
+    const response = await getOpenAI().chat.completions.create({
         model: 'gpt-4o-mini',
         messages: [
             { role: 'system', content: systemPrompt },

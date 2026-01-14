@@ -16,6 +16,8 @@ export const contactSchema = z.object({
 });
 
 export type ContactSection = z.infer<typeof contactSchema>;
+// Backwards compatibility alias
+export type Contact = ContactSection;
 
 // ===========================================
 // SUMMARY SECTION
@@ -81,6 +83,8 @@ export const educationSchema = z.object({
 
 export type EducationItem = z.infer<typeof educationItemSchema>;
 export type EducationSection = z.infer<typeof educationSchema>;
+// Backwards compatibility alias
+export type Education = EducationItem;
 
 // ===========================================
 // SKILLS SECTION
@@ -100,6 +104,8 @@ export const skillsSchema = z.object({
 
 export type SkillCategory = z.infer<typeof skillCategorySchema>;
 export type SkillsSection = z.infer<typeof skillsSchema>;
+// Backwards compatibility alias
+export type Skills = SkillsSection;
 
 // ===========================================
 // PROJECTS SECTION
