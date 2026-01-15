@@ -402,20 +402,20 @@ export default function ResumeEditorPage() {
                     )}
                     {activeSection === 'projects' && (
                         <ProjectsEditor
-                            data={resume.projects || []}
-                            onChange={(data) => handleChange('projects', data)}
+                            data={resume.projects?.items ?? []}
+                            onChange={(data) => handleChange('projects', { items: data })}
                         />
                     )}
                     {activeSection === 'certifications' && (
                         <CertificationsEditor
-                            data={resume.certifications || []}
-                            onChange={(data) => handleChange('certifications', data)}
+                            data={resume.certifications?.items ?? []}
+                            onChange={(data) => handleChange('certifications', { items: data })}
                         />
                     )}
                     {activeSection === 'languages' && (
                         <LanguagesEditor
-                            data={resume.languages || []}
-                            onChange={(data) => handleChange('languages', data)}
+                            data={resume.languages?.items ?? []}
+                            onChange={(data) => handleChange('languages', { items: data })}
                         />
                     )}
                 </main>
