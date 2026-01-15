@@ -108,8 +108,8 @@ export default function ResumesPage() {
         if (!resume) return;
 
         try {
-            const { downloadPDF } = await import('@/lib/pdf-generator');
-            await downloadPDF(resume, { template: resume.template as any || 'professional' });
+            const { downloadPDF } = await import('@/lib/templates/renderer');
+            await downloadPDF(resume as any);
         } catch (error) {
             console.error('Download failed:', error);
         }

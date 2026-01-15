@@ -1,63 +1,43 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import type { Resume, ExperienceItem, EducationItem, ProjectItem, CertificationItem } from '@/lib/resume-schema';
+// Import unified types from the new type system
+import {
+    type ResumeData,
+    type TemplateId,
+    type ThemeId,
+    createEmptyResume as createEmptyResumeFromTypes,
+    calculateATSScore as calculateATSScoreFromTypes,
+    DEFAULT_TEMPLATE,
+    DEFAULT_THEME,
+    DEFAULT_LOCALE,
+    DEFAULT_SETTINGS,
+} from '@/lib/resume-types';
 
-// Simple resume type for the store
-export interface ResumeData {
-    id: string;
-    title: string;
-    template: string;
-    contact: {
-        fullName: string;
-        email: string;
-        phone: string;
-        location: string;
-        linkedin: string;
-        website: string;
+// Re-export for backwards compatibility
+export type { ResumeData } from '@/lib/resume-types';
+
+// Migration function for existing resumes without new fields
+function migrateResume(resume: any): ResumeData {
+    // Map old template names to new ones
+    const templateMapping: Record<string, TemplateId> = {
+        'executive': 'prestige-executive',
+        'modern': 'metropolitan-split',
+        'creative': 'impact-modern',
+        'minimalist': 'nordic-minimal',
+        'professional': 'classic-professional',
+        'startup': 'impact-modern',
     };
-    summary: string;
-    experience: Array<{
-        id: string;
-        company: string;
-        position: string;
-        location: string;
-        startDate: string;
-        endDate: string;
-        current: boolean;
-        bullets: string[];
-    }>;
-    education: Array<{
-        id: string;
-        institution: string;
-        degree: string;
-        field: string;
-        location: string;
-        graduationDate: string;
-        gpa: string;
-    }>;
-    skills: string[];
-    projects: Array<{
-        id: string;
-        name: string;
-        description: string;
-        url: string;
-        technologies: string[];
-    }>;
-    certifications: Array<{
-        id: string;
-        name: string;
-        issuer: string;
-        date: string;
-        credentialId: string;
-    }>;
-    languages: Array<{
-        id: string;
-        name: string;
-        proficiency: string;
-    }>;
-    createdAt: string;
-    updatedAt: string;
+
+    return {
+        ...resume,
+        // Migrate template name
+        template: templateMapping[resume.template] || resume.template || DEFAULT_TEMPLATE,
+        // Add missing fields
+        theme: resume.theme || DEFAULT_THEME,
+        locale: resume.locale || DEFAULT_LOCALE,
+        settings: resume.settings || DEFAULT_SETTINGS,
+    };
 }
 
 interface ResumeContextType {
@@ -75,31 +55,9 @@ const ResumeContext = createContext<ResumeContextType | null>(null);
 
 const STORAGE_KEY = 'seera-ai-resumes';
 
-// Create empty resume
+// Use the unified factory function
 function createEmptyResume(title: string = 'Untitled Resume'): ResumeData {
-    return {
-        id: crypto.randomUUID(),
-        title,
-        // Default to one of the 3 main templates users can pick
-        template: 'executive',
-        contact: {
-            fullName: '',
-            email: '',
-            phone: '',
-            location: '',
-            linkedin: '',
-            website: '',
-        },
-        summary: '',
-        experience: [],
-        education: [],
-        skills: [],
-        projects: [],
-        certifications: [],
-        languages: [],
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-    };
+    return createEmptyResumeFromTypes(title);
 }
 
 export function ResumeProvider({ children }: { children: ReactNode }) {
@@ -107,13 +65,15 @@ export function ResumeProvider({ children }: { children: ReactNode }) {
     const [currentResumeId, setCurrentResumeId] = useState<string | null>(null);
     const [isLoaded, setIsLoaded] = useState(false);
 
-    // Load from localStorage on mount
+    // Load from localStorage on mount and migrate old resumes
     useEffect(() => {
         const stored = localStorage.getItem(STORAGE_KEY);
         if (stored) {
             try {
                 const parsed = JSON.parse(stored);
-                setResumes(parsed);
+                // Migrate each resume to ensure all new fields exist
+                const migrated = parsed.map(migrateResume);
+                setResumes(migrated);
             } catch (e) {
                 console.error('Failed to parse stored resumes:', e);
             }
@@ -200,46 +160,7 @@ export function useResumes() {
     return context;
 }
 
-// Helper to calculate ATS score
+// Use the unified ATS score calculator
 export function calculateATSScore(resume: ResumeData): number {
-    let score = 0;
-
-    // Contact (15 points)
-    if (resume.contact?.fullName) score += 3;
-    if (resume.contact?.email) score += 3;
-    if (resume.contact?.phone) score += 3;
-    if (resume.contact?.location) score += 3;
-    if (resume.contact?.linkedin) score += 3;
-
-    // Summary (15 points) - with defensive type checking
-    const summaryText = typeof resume.summary === 'string' ? resume.summary : '';
-    if (summaryText) {
-        const words = summaryText.split(/\s+/).length;
-        if (words >= 30) score += 15;
-        else if (words > 10) score += 10;
-        else score += 5;
-    }
-
-    // Experience (30 points)
-    const experiences = Array.isArray(resume.experience) ? resume.experience : [];
-    if (experiences.length > 0) {
-        score += Math.min(10, experiences.length * 4);
-        const bullets = experiences.reduce((acc, exp) => acc + (Array.isArray(exp.bullets) ? exp.bullets.length : 0), 0);
-        score += Math.min(20, bullets * 2);
-    }
-
-    // Education (15 points)
-    if (Array.isArray(resume.education) && resume.education.length > 0) {
-        score += 15;
-    }
-
-    // Skills (15 points)
-    const skills = Array.isArray(resume.skills) ? resume.skills : [];
-    score += Math.min(15, skills.length * 3);
-
-    // Projects & Certs (10 points)
-    if (Array.isArray(resume.projects) && resume.projects.length > 0) score += 5;
-    if (Array.isArray(resume.certifications) && resume.certifications.length > 0) score += 5;
-
-    return Math.min(100, score);
+    return calculateATSScoreFromTypes(resume);
 }

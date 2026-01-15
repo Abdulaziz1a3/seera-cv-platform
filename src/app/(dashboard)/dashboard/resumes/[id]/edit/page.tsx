@@ -42,10 +42,13 @@ import { SkillsEditor } from '@/components/resume-editor/skills-editor';
 import { ProjectsEditor } from '@/components/resume-editor/projects-editor';
 import { CertificationsEditor } from '@/components/resume-editor/certifications-editor';
 import { LanguagesEditor } from '@/components/resume-editor/languages-editor';
-import { ResumePreview } from '@/components/resume-editor/resume-preview';
 import { ATSScorePanel } from '@/components/resume-editor/ats-score-panel';
+import { TemplateSelector } from '@/components/resume-editor/template-selector';
+import { LivePreview } from '@/components/resume-editor/live-preview';
 import { useResumes, calculateATSScore, type ResumeData } from '@/components/providers/resume-provider';
 import { useLocale } from '@/components/providers/locale-provider';
+import { downloadPDF } from '@/lib/templates/renderer';
+import type { TemplateId, ThemeId } from '@/lib/resume-types';
 
 const sections = [
     { id: 'contact', label: 'Contact', icon: User },
@@ -118,15 +121,25 @@ export default function ResumeEditorPage() {
         }
     };
 
+    // Template and theme change handlers
+    const handleTemplateChange = (templateId: TemplateId) => {
+        if (!resume) return;
+        handleChange('template', templateId);
+    };
+
+    const handleThemeChange = (themeId: ThemeId) => {
+        if (!resume) return;
+        handleChange('theme', themeId);
+    };
+
     // Export resume (client-side for now)
     const handleExport = async (format: 'pdf' | 'docx' | 'txt') => {
         if (!resume) return;
 
         try {
             if (format === 'pdf') {
-                // Import and use the beautiful styled PDF templates
-                const { downloadStyledPDF } = await import('@/lib/pdf-templates');
-                await downloadStyledPDF(resume, (resume.template as any) || 'modern');
+                // Use the new premium template PDF generator
+                await downloadPDF(resume as ResumeData);
                 toast.success(locale === 'ar' ? 'تم تصدير PDF' : 'PDF exported successfully');
             } else if (format === 'txt') {
                 // Generate plain text
@@ -219,6 +232,14 @@ export default function ResumeEditorPage() {
                 </div>
 
                 <div className="flex items-center gap-2">
+                    {/* Template Selector */}
+                    <TemplateSelector
+                        selectedTemplate={(resume.template as TemplateId) || 'prestige-executive'}
+                        selectedTheme={(resume.theme as ThemeId) || 'obsidian'}
+                        onTemplateChange={handleTemplateChange}
+                        onThemeChange={handleThemeChange}
+                    />
+
                     {/* ATS Score */}
                     {atsScore !== null && (
                         <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-muted">
@@ -358,14 +379,16 @@ export default function ResumeEditorPage() {
 
                 {/* Right Panel - Preview & ATS */}
                 {showPreview && (
-                    <aside className="w-[400px] border-l bg-muted/30 overflow-hidden flex flex-col">
+                    <aside className="w-[420px] border-l bg-muted/30 overflow-hidden flex flex-col">
                         <Tabs defaultValue="preview" className="flex-1 flex flex-col">
                             <TabsList className="mx-4 mt-4">
                                 <TabsTrigger value="preview">Preview</TabsTrigger>
                                 <TabsTrigger value="ats">ATS Score</TabsTrigger>
                             </TabsList>
                             <TabsContent value="preview" className="flex-1 overflow-auto p-4">
-                                <ResumePreview resume={resume as any} />
+                                <div className="flex justify-center">
+                                    <LivePreview resume={resume as ResumeData} scale={0.52} />
+                                </div>
                             </TabsContent>
                             <TabsContent value="ats" className="flex-1 overflow-auto p-4">
                                 <ATSScorePanel resume={resume as any} score={atsScore} />
