@@ -40,9 +40,11 @@ interface BasicInfo {
 }
 
 const templates = [
-    { id: 'executive', name: 'Master Executive', nameAr: 'ماستر تنفيذي', description: 'Executive layout with clean sections', descriptionAr: 'قالب تنفيذي مع أقسام مرتبة' },
-    { id: 'modern', name: 'Master Split', nameAr: 'ماستر مقسّم', description: 'Split layout with dark sidebar', descriptionAr: 'قالب مقسّم مع شريط جانبي داكن' },
-    { id: 'creative', name: 'Master Creative', nameAr: 'ماستر إبداعي', description: 'Bold hero header + modern layout', descriptionAr: 'ترويسة جريئة مع تخطيط حديث' },
+    { id: 'prestige-executive', name: 'Prestige Executive', nameAr: 'المدير التنفيذي', description: 'Luxury corporate design with bold header', descriptionAr: 'تصميم فاخر للشركات مع رأس بارز' },
+    { id: 'metropolitan-split', name: 'Metropolitan Split', nameAr: 'المتروبوليتان', description: 'Two-column layout with dark sidebar', descriptionAr: 'تخطيط عمودين مع شريط جانبي داكن' },
+    { id: 'nordic-minimal', name: 'Nordic Minimal', nameAr: 'الشمالي المبسط', description: 'Ultra-clean Scandinavian design', descriptionAr: 'تصميم اسكندنافي فائق النظافة' },
+    { id: 'classic-professional', name: 'Classic Professional', nameAr: 'الكلاسيكي المحترف', description: 'Traditional ATS-optimized layout', descriptionAr: 'تخطيط تقليدي محسّن للأنظمة' },
+    { id: 'impact-modern', name: 'Impact Modern', nameAr: 'التأثير الحديث', description: 'Bold hero header with skill tags', descriptionAr: 'ترويسة جريئة مع علامات المهارات' },
 ];
 
 export default function NewResumePage() {
@@ -62,7 +64,7 @@ export default function NewResumePage() {
         title: '',
         targetRole: '',
         language: 'en',
-        template: 'executive',
+        template: 'prestige-executive',
     });
 
     // Handle file upload
