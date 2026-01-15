@@ -21,6 +21,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { useLocale } from '@/components/providers/locale-provider';
 import {
     Select,
     SelectContent,
@@ -31,6 +32,7 @@ import {
 
 export default function NewJobTargetPage() {
     const router = useRouter();
+    const { locale } = useLocale();
     const [step, setStep] = useState<1 | 2 | 3>(1);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
