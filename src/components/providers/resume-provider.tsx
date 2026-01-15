@@ -1,150 +1,143 @@
 'use client';
 
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-// Import unified types from the new type system
-import {
-    type ResumeData,
-    type TemplateId,
-    type ThemeId,
-    createEmptyResume as createEmptyResumeFromTypes,
-    calculateATSScore as calculateATSScoreFromTypes,
-    DEFAULT_TEMPLATE,
-    DEFAULT_THEME,
-    DEFAULT_LOCALE,
-    DEFAULT_SETTINGS,
-} from '@/lib/resume-types';
+import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 
-// Re-export for backwards compatibility
-export type { ResumeData } from '@/lib/resume-types';
-
-// Migration function for existing resumes without new fields
-function migrateResume(resume: any): ResumeData {
-    // Map old template names to new ones
-    const templateMapping: Record<string, TemplateId> = {
-        'executive': 'prestige-executive',
-        'modern': 'metropolitan-split',
-        'creative': 'impact-modern',
-        'minimalist': 'nordic-minimal',
-        'professional': 'classic-professional',
-        'startup': 'impact-modern',
-    };
-
-    return {
-        ...resume,
-        // Migrate template name
-        template: templateMapping[resume.template] || resume.template || DEFAULT_TEMPLATE,
-        // Add missing fields
-        theme: resume.theme || DEFAULT_THEME,
-        locale: resume.locale || DEFAULT_LOCALE,
-        settings: resume.settings || DEFAULT_SETTINGS,
-    };
+export interface ResumeSummary {
+    id: string;
+    title: string;
+    targetRole?: string | null;
+    updatedAt?: string | null;
+    atsScore?: number | null;
 }
 
 interface ResumeContextType {
-    resumes: ResumeData[];
-    currentResume: ResumeData | null;
-    createResume: (title?: string) => ResumeData;
-    updateResume: (id: string, data: Partial<ResumeData>) => void;
-    deleteResume: (id: string) => void;
-    setCurrentResume: (id: string | null) => void;
-    getResume: (id: string) => ResumeData | undefined;
-    duplicateResume: (id: string) => ResumeData;
+    resumes: ResumeSummary[];
+    isLoading: boolean;
+    refreshResumes: () => Promise<void>;
+    createResume: (data: {
+        title: string;
+        targetRole?: string;
+        language?: 'en' | 'ar';
+        template?: string;
+        theme?: string;
+    }) => Promise<string>;
+    deleteResume: (id: string) => Promise<void>;
+    duplicateResume: (id: string) => Promise<string | null>;
 }
 
 const ResumeContext = createContext<ResumeContextType | null>(null);
 
-const STORAGE_KEY = 'seera-ai-resumes';
-
-// Use the unified factory function
-function createEmptyResume(title: string = 'Untitled Resume'): ResumeData {
-    return createEmptyResumeFromTypes(title);
-}
-
 export function ResumeProvider({ children }: { children: ReactNode }) {
-    const [resumes, setResumes] = useState<ResumeData[]>([]);
-    const [currentResumeId, setCurrentResumeId] = useState<string | null>(null);
-    const [isLoaded, setIsLoaded] = useState(false);
+    const [resumes, setResumes] = useState<ResumeSummary[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
 
-    // Load from localStorage on mount and migrate old resumes
-    useEffect(() => {
-        const stored = localStorage.getItem(STORAGE_KEY);
-        if (stored) {
-            try {
-                const parsed = JSON.parse(stored);
-                // Migrate each resume to ensure all new fields exist
-                const migrated = parsed.map(migrateResume);
-                setResumes(migrated);
-            } catch (e) {
-                console.error('Failed to parse stored resumes:', e);
+    const refreshResumes = async () => {
+        try {
+            const response = await fetch('/api/resumes');
+            if (!response.ok) {
+                throw new Error('Failed to fetch resumes');
             }
+            const data = await response.json();
+            setResumes(
+                Array.isArray(data)
+                    ? data.map((resume) => ({
+                        id: resume.id,
+                        title: resume.title,
+                        targetRole: resume.targetRole,
+                        updatedAt: resume.updatedAt,
+                        atsScore: resume.atsScore,
+                    }))
+                    : []
+            );
+        } catch (error) {
+            console.error('Failed to load resumes:', error);
+            setResumes([]);
+        } finally {
+            setIsLoading(false);
         }
-        setIsLoaded(true);
+    };
+
+    useEffect(() => {
+        refreshResumes();
     }, []);
 
-    // Save to localStorage whenever resumes change
-    useEffect(() => {
-        if (isLoaded) {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(resumes));
+    const createResume: ResumeContextType['createResume'] = async (data) => {
+        const response = await fetch('/api/resumes', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data),
+        });
+
+        if (!response.ok) {
+            const payload = await response.json().catch(() => ({}));
+            throw new Error(payload?.error || 'Failed to create resume');
         }
-    }, [resumes, isLoaded]);
 
-    const createResume = (title?: string): ResumeData => {
-        const newResume = createEmptyResume(title);
-        setResumes(prev => [...prev, newResume]);
-        setCurrentResumeId(newResume.id);
-        return newResume;
+        const payload = await response.json();
+        await refreshResumes();
+        return payload.id as string;
     };
 
-    const updateResume = (id: string, data: Partial<ResumeData>) => {
-        setResumes(prev => prev.map(resume =>
-            resume.id === id
-                ? { ...resume, ...data, updatedAt: new Date().toISOString() }
-                : resume
-        ));
-    };
+    const deleteResume: ResumeContextType['deleteResume'] = async (id) => {
+        const response = await fetch(`/api/resumes/${id}`, {
+            method: 'DELETE',
+        });
 
-    const deleteResume = (id: string) => {
-        setResumes(prev => prev.filter(resume => resume.id !== id));
-        if (currentResumeId === id) {
-            setCurrentResumeId(null);
+        if (!response.ok) {
+            const payload = await response.json().catch(() => ({}));
+            throw new Error(payload?.error || 'Failed to delete resume');
         }
+
+        await refreshResumes();
     };
 
-    const setCurrentResume = (id: string | null) => {
-        setCurrentResumeId(id);
-    };
-
-    const getResume = (id: string): ResumeData | undefined => {
-        return resumes.find(r => r.id === id);
-    };
-
-    const duplicateResume = (id: string): ResumeData => {
-        const original = resumes.find(r => r.id === id);
-        if (!original) {
-            return createResume();
+    const duplicateResume: ResumeContextType['duplicateResume'] = async (id) => {
+        const response = await fetch(`/api/resumes/${id}`);
+        if (!response.ok) {
+            return null;
         }
-        const duplicate: ResumeData = {
-            ...JSON.parse(JSON.stringify(original)),
-            id: crypto.randomUUID(),
-            title: `${original.title} (Copy)`,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-        };
-        setResumes(prev => [...prev, duplicate]);
-        return duplicate;
-    };
 
-    const currentResume = currentResumeId ? resumes.find(r => r.id === currentResumeId) || null : null;
+        const original = await response.json();
+        const title = original.title ? `${original.title} (Copy)` : 'Untitled Resume (Copy)';
+
+        const newId = await createResume({
+            title,
+            targetRole: original.targetRole,
+            language: original.language || 'en',
+            template: original.template,
+            theme: original.theme,
+        });
+
+        await fetch(`/api/resumes/${newId}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                title,
+                targetRole: original.targetRole,
+                contact: original.contact,
+                summary: original.summary,
+                experience: original.experience,
+                education: original.education,
+                skills: original.skills,
+                projects: original.projects,
+                certifications: original.certifications,
+                languages: original.languages,
+                template: original.template,
+                theme: original.theme,
+            }),
+        });
+
+        await refreshResumes();
+        return newId;
+    };
 
     return (
         <ResumeContext.Provider value={{
             resumes,
-            currentResume,
+            isLoading,
+            refreshResumes,
             createResume,
-            updateResume,
             deleteResume,
-            setCurrentResume,
-            getResume,
             duplicateResume,
         }}>
             {children}
@@ -158,9 +151,4 @@ export function useResumes() {
         throw new Error('useResumes must be used within a ResumeProvider');
     }
     return context;
-}
-
-// Use the unified ATS score calculator
-export function calculateATSScore(resume: ResumeData): number {
-    return calculateATSScoreFromTypes(resume);
 }

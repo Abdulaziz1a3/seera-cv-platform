@@ -3,7 +3,8 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useLocale } from '@/components/providers/locale-provider';
-import { useResumes, calculateATSScore } from '@/components/providers/resume-provider';
+import { useResumes } from '@/components/providers/resume-provider';
+import { mapResumeRecordToResumeData } from '@/lib/resume-normalizer';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -35,55 +36,32 @@ import {
 } from 'lucide-react';
 import { EmptyState } from '@/components/ui/empty-state';
 
-// Mock data
-const mockResumes = [
-    {
-        id: '1',
-        title: 'Software Engineer Resume',
-        targetRole: 'Senior Software Engineer',
-        atsScore: 92,
-        updatedAt: new Date('2024-01-10'),
-        template: 'professional',
-    },
-    {
-        id: '2',
-        title: 'Product Manager Resume',
-        targetRole: 'Product Manager',
-        atsScore: 78,
-        updatedAt: new Date('2024-01-08'),
-        template: 'modern',
-    },
-    {
-        id: '3',
-        title: 'Data Analyst Resume',
-        targetRole: 'Senior Data Analyst',
-        atsScore: 65,
-        updatedAt: new Date('2024-01-05'),
-        template: 'minimalist',
-    },
-];
-
 export default function ResumesPage() {
     const { t, locale } = useLocale();
-    const { resumes, deleteResume, duplicateResume, getResume } = useResumes();
+    const { resumes, isLoading, deleteResume, duplicateResume } = useResumes();
     const [searchQuery, setSearchQuery] = useState('');
     const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
-    // Combine real resumes with calculated ATS scores
-    const resumesWithScores = resumes.map(resume => ({
+    const resumesWithScores = resumes.map((resume) => ({
         ...resume,
-        atsScore: calculateATSScore(resume),
-        targetRole: resume.contact.fullName ? `${resume.template} template` : 'No target role',
+        atsScore: resume.atsScore ?? 0,
+        targetRole: resume.targetRole || (locale === 'ar' ? 'بدون مسمى وظيفي' : 'No target role'),
     }));
 
     const filteredResumes = resumesWithScores.filter(
-        (resume) =>
-            resume.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            resume.targetRole.toLowerCase().includes(searchQuery.toLowerCase())
+        (resume) => {
+            const targetRole = resume.targetRole || '';
+            return (
+                resume.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                targetRole.toLowerCase().includes(searchQuery.toLowerCase())
+            );
+        }
     );
 
-    const formatDate = (dateStr: string) => {
+    const formatDate = (dateStr?: string | null) => {
+        if (!dateStr) return locale === 'ar' ? 'غير محدد' : 'Unknown';
         const date = new Date(dateStr);
+        if (Number.isNaN(date.getTime())) return locale === 'ar' ? 'غير محدد' : 'Unknown';
         return date.toLocaleDateString(locale === 'ar' ? 'ar-SA' : 'en-US', {
             month: 'short',
             day: 'numeric',
@@ -92,28 +70,49 @@ export default function ResumesPage() {
     };
 
     // Action handlers
-    const handleDuplicate = (id: string) => {
-        const newResume = duplicateResume(id);
-        // Toast notification would go here
+    const handleDuplicate = async (id: string) => {
+        try {
+            const newId = await duplicateResume(id);
+            if (!newId) {
+                throw new Error('Failed to duplicate');
+            }
+        } catch (error) {
+            console.error('Duplicate failed:', error);
+        }
     };
 
-    const handleDelete = (id: string) => {
-        if (confirm(locale === 'ar' ? 'هل أنت متأكد من الحذف?' : 'Are you sure you want to delete this resume?')) {
-            deleteResume(id);
+    const handleDelete = async (id: string) => {
+        if (confirm(locale === 'ar' ? 'هل أنت متأكد من الحذف؟' : 'Are you sure you want to delete this resume?')) {
+            try {
+                await deleteResume(id);
+            } catch (error) {
+                console.error('Delete failed:', error);
+            }
         }
     };
 
     const handleDownload = async (id: string) => {
-        const resume = getResume(id);
-        if (!resume) return;
-
         try {
+            const response = await fetch(`/api/resumes/${id}`);
+            if (!response.ok) {
+                throw new Error('Failed to load resume');
+            }
+            const resume = await response.json();
+            const exportResume = mapResumeRecordToResumeData(resume);
             const { downloadPDF } = await import('@/lib/templates/renderer');
-            await downloadPDF(resume as any);
+            await downloadPDF(exportResume);
         } catch (error) {
             console.error('Download failed:', error);
         }
     };
+
+    if (isLoading) {
+        return (
+            <div className="flex items-center justify-center h-64">
+                <p className="text-muted-foreground">{locale === 'ar' ? 'جار التحميل...' : 'Loading...'}</p>
+            </div>
+        );
+    }
 
     const getScoreColor = (score: number) => {
         if (score >= 80) return 'text-green-500';

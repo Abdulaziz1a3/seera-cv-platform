@@ -1,13 +1,10 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { auth } from '@/lib/auth';
-import { generateBulletPoints } from '@/lib/ai';
+import { extractSkillsFromJobDescription } from '@/lib/ai';
 
 const requestSchema = z.object({
-    company: z.string(),
-    position: z.string(),
-    description: z.string().optional(),
-    existingBullets: z.array(z.string()).optional(),
+    jobDescription: z.string().min(20, 'Job description is too short'),
 });
 
 export async function POST(request: Request) {
@@ -18,14 +15,13 @@ export async function POST(request: Request) {
         }
 
         const body = await request.json();
-        const { company, position, description = '', existingBullets = [] } = requestSchema.parse(body);
+        const { jobDescription } = requestSchema.parse(body);
 
-        // Generate bullet points
-        const bullets = await generateBulletPoints(company, position, description, existingBullets);
+        const skills = await extractSkillsFromJobDescription(jobDescription);
 
-        return NextResponse.json({ bullets });
+        return NextResponse.json({ skills });
     } catch (error) {
-        console.error('Generate bullets error:', error);
+        console.error('Extract skills error:', error);
 
         if (error instanceof z.ZodError) {
             return NextResponse.json(
@@ -34,7 +30,7 @@ export async function POST(request: Request) {
             );
         }
 
-        const message = error instanceof Error ? error.message : 'Failed to generate bullet points';
+        const message = error instanceof Error ? error.message : 'Failed to extract skills';
         const status = /API_KEY|API key|OpenAI API/i.test(message) ? 503 : 500;
 
         return NextResponse.json(

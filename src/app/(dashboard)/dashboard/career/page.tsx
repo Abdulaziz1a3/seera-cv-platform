@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useLocale } from '@/components/providers/locale-provider';
 import { useResumes } from '@/components/providers/resume-provider';
+import { normalizeResumeForCareer } from '@/lib/resume-normalizer';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -109,20 +110,26 @@ export default function CareerGPSPage() {
     const [selectedPathIndex, setSelectedPathIndex] = useState(0);
     const [completedActions, setCompletedActions] = useState<Set<string>>(new Set());
 
-    const selectedResume = resumes.find(r => r.id === selectedResumeId);
-
     // Analyze career
     const analyzeCareer = async () => {
-        if (!selectedResume) return;
+        if (!selectedResumeId) return;
 
         setIsAnalyzing(true);
         try {
+            const resumeResponse = await fetch(`/api/resumes/${selectedResumeId}`);
+            if (!resumeResponse.ok) {
+                throw new Error('Failed to load resume');
+            }
+
+            const resumeData = await resumeResponse.json();
+            const normalizedResume = normalizeResumeForCareer(resumeData);
+
             const response = await fetch('/api/career', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     action: 'analyze',
-                    resume: selectedResume,
+                    resume: normalizedResume,
                     options: { locale },
                 }),
             });
@@ -131,7 +138,7 @@ export default function CareerGPSPage() {
             if (error) throw new Error(error);
 
             setAnalysis(result);
-            toast.success(locale === 'ar' ? 'تم تحليل المسار المهني!' : 'Career analysis complete!');
+            toast.success(locale === 'ar' ? 'تم تحليل المسار الوظيفي!' : 'Career analysis complete!');
         } catch (error: any) {
             toast.error(error.message || (locale === 'ar' ? 'فشل التحليل' : 'Analysis failed'));
         } finally {
@@ -238,7 +245,7 @@ export default function CareerGPSPage() {
                                         <SelectContent>
                                             {resumes.map((resume) => (
                                                 <SelectItem key={resume.id} value={resume.id}>
-                                                    {resume.title} — {resume.contact.fullName || 'No name'}
+                                                    {resume.title}
                                                 </SelectItem>
                                             ))}
                                         </SelectContent>

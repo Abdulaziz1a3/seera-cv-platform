@@ -6,6 +6,7 @@ import {
     optimizeSkills,
     optimizeFullProfile,
 } from '@/lib/linkedin-optimizer';
+import { normalizeResumeForAI } from '@/lib/resume-normalizer';
 
 export async function POST(request: NextRequest) {
     try {
@@ -15,7 +16,7 @@ export async function POST(request: NextRequest) {
         if (!process.env.OPENAI_API_KEY) {
             return NextResponse.json(
                 { error: 'OpenAI API not configured' },
-                { status: 500 }
+                { status: 503 }
             );
         }
 
@@ -26,27 +27,29 @@ export async function POST(request: NextRequest) {
             );
         }
 
+        const normalizedResume = normalizeResumeForAI(resume);
+
         let result;
 
         switch (action) {
             case 'headlines':
-                result = await generateHeadlines(resume, options);
+                result = await generateHeadlines(normalizedResume, options);
                 break;
 
             case 'about':
-                result = await generateAboutSection(resume, options);
+                result = await generateAboutSection(normalizedResume, options);
                 break;
 
             case 'experience':
-                result = await optimizeExperience(resume, options);
+                result = await optimizeExperience(normalizedResume, options);
                 break;
 
             case 'skills':
-                result = await optimizeSkills(resume, options);
+                result = await optimizeSkills(normalizedResume, options);
                 break;
 
             case 'full':
-                result = await optimizeFullProfile(resume, options);
+                result = await optimizeFullProfile(normalizedResume, options);
                 break;
 
             default:
@@ -56,9 +59,11 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ result });
     } catch (error: any) {
         console.error('LinkedIn API Error:', error);
+        const message = error?.message || 'LinkedIn optimization failed';
+        const status = /API_KEY|API key|OpenAI API/i.test(message) ? 503 : 500;
         return NextResponse.json(
-            { error: error.message || 'LinkedIn optimization failed' },
-            { status: 500 }
+            { error: message },
+            { status }
         );
     }
 }

@@ -8,7 +8,8 @@ const createResumeSchema = z.object({
     title: z.string().min(1).max(100),
     targetRole: z.string().max(100).optional(),
     language: z.enum(['en', 'ar']).default('en'),
-    template: z.string().default('classic'),
+    template: z.string().default('prestige-executive'),
+    theme: z.string().optional(),
 });
 
 // GET /api/resumes - Get all resumes for the current user
@@ -81,6 +82,8 @@ export async function POST(request: Request) {
                 title: data.title,
                 targetRole: data.targetRole,
                 language: data.language,
+                template: data.template,
+                theme: data.theme || 'obsidian',
                 sections: {
                     create: [
                         {
@@ -93,7 +96,7 @@ export async function POST(request: Request) {
                             type: 'SUMMARY',
                             title: data.language === 'ar' ? 'الملخص المهني' : 'Professional Summary',
                             order: 1,
-                            content: {},
+                            content: { content: '' },
                         },
                         {
                             type: 'EXPERIENCE',
@@ -111,7 +114,25 @@ export async function POST(request: Request) {
                             type: 'SKILLS',
                             title: data.language === 'ar' ? 'المهارات' : 'Skills',
                             order: 4,
-                            content: { categories: [] },
+                            content: { categories: [], simpleList: [] },
+                        },
+                        {
+                            type: 'PROJECTS',
+                            title: data.language === 'ar' ? 'المشاريع' : 'Projects',
+                            order: 5,
+                            content: { items: [] },
+                        },
+                        {
+                            type: 'CERTIFICATIONS',
+                            title: data.language === 'ar' ? 'الشهادات' : 'Certifications',
+                            order: 6,
+                            content: { items: [] },
+                        },
+                        {
+                            type: 'LANGUAGES',
+                            title: data.language === 'ar' ? 'اللغات' : 'Languages',
+                            order: 7,
+                            content: { items: [] },
                         },
                     ],
                 },

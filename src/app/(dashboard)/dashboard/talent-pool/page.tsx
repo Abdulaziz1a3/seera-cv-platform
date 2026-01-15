@@ -159,7 +159,7 @@ export default function TalentPoolPage() {
                                             <SelectContent>
                                                 {resumes.map((resume) => (
                                                     <SelectItem key={resume.id} value={resume.id}>
-                                                        {resume.title} — {resume.contact.fullName || 'No name'}
+                                                        {resume.title}
                                                     </SelectItem>
                                                 ))}
                                             </SelectContent>

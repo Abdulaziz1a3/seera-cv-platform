@@ -6,7 +6,7 @@ import { improveContent } from '@/lib/openai';
 // Schema for request validation
 const requestSchema = z.object({
     content: z.string().min(1, "Content cannot be empty").max(2000, "Content too long"),
-    instruction: z.enum(['fix_grammar', 'professional', 'concise', 'expand', 'active_voice']).default('professional'),
+    instruction: z.enum(['fix_grammar', 'professional', 'concise', 'make_concise', 'expand', 'active_voice']).default('professional'),
     type: z.enum(['summary', 'bullet', 'description']).default('description')
 });
 
@@ -39,18 +39,30 @@ export async function POST(request: Request) {
         // Since `improveContent` currently accepts specific types, let's use it as is for now
         // and send the formatted request.
 
-        let polishedText = await improveContent(content, type as any, {
+        const instructionMap: Record<string, string> = {
+            fix_grammar: 'fix_grammar',
+            professional: 'make_professional',
+            concise: 'make_concise',
+            make_concise: 'make_concise',
+            expand: 'expand',
+            active_voice: 'active_voice',
+        };
+
+        const promptType = instructionMap[instruction] || type;
+
+        let polishedText = await improveContent(content, promptType as any, {
             locale: 'en', // Default to EN for now, can be passed from body later
-            tone: instruction === 'professional' ? 'professional' : 'confident'
         });
 
         return NextResponse.json({ polishedText });
 
     } catch (error) {
         console.error('AI Polisher API Error:', error);
+        const message = error instanceof Error ? error.message : 'Failed to polish content';
+        const status = /API_KEY|API key|OpenAI API/i.test(message) ? 503 : 500;
         return NextResponse.json(
-            { error: 'Failed to polish content' },
-            { status: 500 }
+            { error: message },
+            { status }
         );
     }
 }

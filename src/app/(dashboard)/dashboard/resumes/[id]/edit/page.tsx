@@ -9,7 +9,6 @@ import {
     Save,
     Download,
     Eye,
-    Settings,
     Sparkles,
     AlertTriangle,
     CheckCircle2,
@@ -22,7 +21,6 @@ import {
     FolderKanban,
     Award,
     Languages,
-    MoreHorizontal,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -33,7 +31,6 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
 import { ContactEditor } from '@/components/resume-editor/contact-editor';
 import { SummaryEditor } from '@/components/resume-editor/summary-editor';
 import { ExperienceEditor } from '@/components/resume-editor/experience-editor';
@@ -45,10 +42,11 @@ import { LanguagesEditor } from '@/components/resume-editor/languages-editor';
 import { ATSScorePanel } from '@/components/resume-editor/ats-score-panel';
 import { TemplateSelector } from '@/components/resume-editor/template-selector';
 import { LivePreview } from '@/components/resume-editor/live-preview';
-import { useResumes, calculateATSScore, type ResumeData } from '@/components/providers/resume-provider';
 import { useLocale } from '@/components/providers/locale-provider';
 import { downloadPDF } from '@/lib/templates/renderer';
 import type { TemplateId, ThemeId } from '@/lib/resume-types';
+import type { ResumeRecord } from '@/lib/resume-data';
+import { mapResumeRecordToResumeData } from '@/lib/resume-normalizer';
 
 const sections = [
     { id: 'contact', label: 'Contact', icon: User },
@@ -65,10 +63,9 @@ export default function ResumeEditorPage() {
     const params = useParams();
     const router = useRouter();
     const { locale } = useLocale();
-    const { getResume, updateResume: saveResume } = useResumes();
     const resumeId = params.id as string;
 
-    const [resume, setResume] = useState<ResumeData | null>(null);
+    const [resume, setResume] = useState<ResumeRecord | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
     const [activeSection, setActiveSection] = useState('contact');
@@ -76,18 +73,42 @@ export default function ResumeEditorPage() {
     const [atsScore, setAtsScore] = useState<number | null>(null);
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
-    // Load resume from localStorage
+    const normalizeResume = (data: ResumeRecord): ResumeRecord => ({
+        ...data,
+        contact: data.contact || { fullName: '', email: '' },
+        template: data.template || 'prestige-executive',
+        theme: data.theme || 'obsidian',
+        summary: data.summary || { content: '' },
+        experience: data.experience || { items: [] },
+        education: data.education || { items: [] },
+        skills: data.skills || { categories: [], simpleList: [] },
+        projects: data.projects || { items: [] },
+        certifications: data.certifications || { items: [] },
+        languages: data.languages || { items: [] },
+    });
+
+    // Load resume from API
     useEffect(() => {
-        const storedResume = getResume(resumeId);
-        if (storedResume) {
-            setResume(storedResume);
-            setAtsScore(calculateATSScore(storedResume));
-        } else {
-            toast.error(locale === 'ar' ? 'السيرة غير موجودة' : 'Resume not found');
-            router.push('/dashboard/resumes');
-        }
-        setIsLoading(false);
-    }, [resumeId, getResume, router, locale]);
+        const loadResume = async () => {
+            try {
+                const response = await fetch(`/api/resumes/${resumeId}`);
+                if (!response.ok) {
+                    throw new Error('Resume not found');
+                }
+                const data = await response.json();
+                const normalized = normalizeResume(data);
+                setResume(normalized);
+                setAtsScore(normalized.atsScore ?? null);
+            } catch (error) {
+                toast.error(locale === 'ar' ? 'السيرة غير موجودة' : 'Resume not found');
+                router.push('/dashboard/resumes');
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        loadResume();
+    }, [resumeId, router, locale]);
 
     // Auto-save handler
     const handleChange = (section: string, data: any) => {
@@ -100,18 +121,37 @@ export default function ResumeEditorPage() {
         setHasUnsavedChanges(true);
     };
 
-    // Save resume to localStorage
+    // Save resume to API
     const handleSave = async () => {
         if (!resume) return;
 
         setIsSaving(true);
         try {
-            // Save to localStorage via context
-            saveResume(resumeId, resume);
+            const response = await fetch(`/api/resumes/${resumeId}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    title: resume.title,
+                    targetRole: resume.targetRole,
+                    contact: resume.contact,
+                    summary: resume.summary,
+                    experience: resume.experience,
+                    education: resume.education,
+                    skills: resume.skills,
+                    projects: resume.projects,
+                    certifications: resume.certifications,
+                    languages: resume.languages,
+                    template: resume.template,
+                    theme: resume.theme,
+                }),
+            });
 
-            // Recalculate ATS score
-            const newScore = calculateATSScore(resume);
-            setAtsScore(newScore);
+            if (!response.ok) {
+                throw new Error('Failed to save');
+            }
+
+            const payload = await response.json();
+            setAtsScore(payload.atsScore ?? null);
             setHasUnsavedChanges(false);
             toast.success(locale === 'ar' ? 'تم الحفظ' : 'Resume saved');
         } catch (error) {
@@ -137,46 +177,46 @@ export default function ResumeEditorPage() {
         if (!resume) return;
 
         try {
+            const exportResume = mapResumeRecordToResumeData(resume);
+
             if (format === 'pdf') {
-                // Use the new premium template PDF generator
-                await downloadPDF(resume as ResumeData);
+                await downloadPDF(exportResume);
                 toast.success(locale === 'ar' ? 'تم تصدير PDF' : 'PDF exported successfully');
             } else if (format === 'txt') {
-                // Generate plain text
-                let text = `${resume.contact.fullName}\n`;
-                text += `${resume.contact.email} | ${resume.contact.phone}\n`;
-                if (resume.contact.location) text += `${resume.contact.location}\n`;
+                let text = `${exportResume.contact.fullName}\n`;
+                text += `${exportResume.contact.email} | ${exportResume.contact.phone}\n`;
+                if (exportResume.contact.location) text += `${exportResume.contact.location}\n`;
                 text += '\n';
-                if (resume.summary) text += `SUMMARY\n${resume.summary}\n\n`;
-                if (resume.experience.length) {
+                if (exportResume.summary) text += `SUMMARY\n${exportResume.summary}\n\n`;
+                if (exportResume.experience.length) {
                     text += 'EXPERIENCE\n';
-                    resume.experience.forEach(exp => {
+                    exportResume.experience.forEach(exp => {
                         text += `${exp.position} at ${exp.company}\n`;
                         exp.bullets.forEach(b => text += `• ${b}\n`);
                         text += '\n';
                     });
                 }
-                if (resume.education.length) {
+                if (exportResume.education.length) {
                     text += 'EDUCATION\n';
-                    resume.education.forEach(edu => {
+                    exportResume.education.forEach(edu => {
                         text += `${edu.degree}${edu.field ? ' in ' + edu.field : ''}\n`;
                         text += `${edu.institution}\n\n`;
                     });
                 }
-                if (resume.skills.length) {
-                    text += `SKILLS\n${resume.skills.join(', ')}\n`;
+                if (exportResume.skills.length) {
+                    text += `SKILLS\n${exportResume.skills.join(', ')}\n`;
                 }
 
                 const blob = new Blob([text], { type: 'text/plain' });
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `${resume.title}.txt`;
+                a.download = `${exportResume.title}.txt`;
                 a.click();
                 URL.revokeObjectURL(url);
                 toast.success(locale === 'ar' ? 'تم تصدير النص' : 'TXT exported successfully');
             } else {
-                toast.info(locale === 'ar' ? 'DOCX قريباً' : 'DOCX export coming soon');
+                toast.info(locale === 'ar' ? 'تصدير DOCX قريبًا' : 'DOCX export coming soon');
             }
         } catch (error) {
             console.error('Export error:', error);
@@ -202,6 +242,9 @@ export default function ResumeEditorPage() {
             </div>
         );
     }
+
+
+    const previewResume = resume ? mapResumeRecordToResumeData(resume) : null;
 
     return (
         <div className="flex flex-col h-full -m-6">
@@ -387,7 +430,7 @@ export default function ResumeEditorPage() {
                             </TabsList>
                             <TabsContent value="preview" className="flex-1 overflow-auto p-4">
                                 <div className="flex justify-center">
-                                    <LivePreview resume={resume as ResumeData} scale={0.52} />
+                                    <LivePreview resume={previewResume as any} scale={0.52} />
                                 </div>
                             </TabsContent>
                             <TabsContent value="ats" className="flex-1 overflow-auto p-4">

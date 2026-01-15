@@ -2,7 +2,7 @@
 // Server-side PDF generation with puppeteer or client-side with html2pdf
 
 import { jsPDF } from 'jspdf';
-import type { ResumeData } from '@/components/providers/resume-provider';
+import type { ResumeData } from '@/lib/resume-types';
 
 // ATS-safe fonts
 const FONTS = {

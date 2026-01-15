@@ -119,9 +119,35 @@ Generate 3-5 questions as a JSON array of strings.`,
 
 class AIClient {
     private provider: AIProvider;
+    private requestTimeoutMs = 20000;
+    private maxRetries = 2;
 
     constructor() {
         this.provider = (process.env.AI_PROVIDER as AIProvider) || 'openai';
+    }
+
+    private getOpenAIKey(): string {
+        const apiKey = process.env.OPENAI_API_KEY;
+        if (!apiKey) {
+            throw new Error('OPENAI_API_KEY is not configured');
+        }
+        return apiKey;
+    }
+
+    private getAnthropicKey(): string {
+        const apiKey = process.env.ANTHROPIC_API_KEY;
+        if (!apiKey) {
+            throw new Error('ANTHROPIC_API_KEY is not configured');
+        }
+        return apiKey;
+    }
+
+    private getGoogleKey(): string {
+        const apiKey = process.env.GOOGLE_AI_API_KEY;
+        if (!apiKey) {
+            throw new Error('GOOGLE_AI_API_KEY is not configured');
+        }
+        return apiKey;
     }
 
     async complete(
@@ -147,11 +173,12 @@ class AIClient {
         temperature: number,
         maxTokens: number
     ): Promise<AIResponse> {
-        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        const apiKey = this.getOpenAIKey();
+        const response = await this.fetchWithRetry('https://api.openai.com/v1/chat/completions', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+                Authorization: `Bearer ${apiKey}`,
             },
             body: JSON.stringify({
                 model: 'gpt-4o-mini',
@@ -181,14 +208,15 @@ class AIClient {
         temperature: number,
         maxTokens: number
     ): Promise<AIResponse> {
+        const apiKey = this.getAnthropicKey();
         const systemMessage = messages.find(m => m.role === 'system');
         const userMessages = messages.filter(m => m.role !== 'system');
 
-        const response = await fetch('https://api.anthropic.com/v1/messages', {
+        const response = await this.fetchWithRetry('https://api.anthropic.com/v1/messages', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'x-api-key': process.env.ANTHROPIC_API_KEY!,
+                'x-api-key': apiKey,
                 'anthropic-version': '2024-01-01',
             },
             body: JSON.stringify({
@@ -223,8 +251,9 @@ class AIClient {
         temperature: number,
         maxTokens: number
     ): Promise<AIResponse> {
-        const response = await fetch(
-            `https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=${process.env.GOOGLE_AI_API_KEY}`,
+        const apiKey = this.getGoogleKey();
+        const response = await this.fetchWithRetry(
+            `https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=${apiKey}`,
             {
                 method: 'POST',
                 headers: {
@@ -260,6 +289,47 @@ class AIClient {
             result = result.replace(new RegExp(`{{${key}}}`, 'g'), value);
         }
         return result;
+    }
+
+    private async fetchWithRetry(url: string, options: RequestInit): Promise<Response> {
+        for (let attempt = 0; attempt <= this.maxRetries; attempt++) {
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), this.requestTimeoutMs);
+            try {
+                const response = await fetch(url, {
+                    ...options,
+                    signal: controller.signal,
+                });
+
+                if (!response.ok && this.shouldRetry(response.status) && attempt < this.maxRetries) {
+                    await this.sleep(this.getBackoffMs(attempt));
+                    continue;
+                }
+
+                return response;
+            } catch (error) {
+                if (attempt >= this.maxRetries) {
+                    throw error;
+                }
+                await this.sleep(this.getBackoffMs(attempt));
+            } finally {
+                clearTimeout(timeout);
+            }
+        }
+
+        throw new Error('AI request failed');
+    }
+
+    private shouldRetry(status: number): boolean {
+        return status === 429 || status === 500 || status === 502 || status === 503 || status === 504;
+    }
+
+    private getBackoffMs(attempt: number): number {
+        return 500 * Math.pow(2, attempt);
+    }
+
+    private sleep(ms: number): Promise<void> {
+        return new Promise(resolve => setTimeout(resolve, ms));
     }
 }
 
@@ -386,6 +456,43 @@ export async function generateCoverLetter(
     ]);
 
     return response.content.trim();
+}
+
+export async function extractSkillsFromJobDescription(
+    jobDescription: string
+): Promise<string[]> {
+    const response = await aiClient.complete([
+        {
+            role: 'system',
+            content: AIClient.fillTemplate(PROMPT_TEMPLATES.skillsExtractor, {
+                jobDescription,
+            }),
+        },
+        {
+            role: 'user',
+            content: 'Extract relevant skills.',
+        },
+    ]);
+
+    try {
+        const parsed = JSON.parse(response.content);
+        if (Array.isArray(parsed)) {
+            return parsed.filter((skill) => typeof skill === 'string' && skill.trim().length > 0);
+        }
+
+        if (parsed && typeof parsed === 'object') {
+            const values = Object.values(parsed).flat();
+            const skills = values.filter((skill) => typeof skill === 'string' && skill.trim().length > 0);
+            return Array.from(new Set(skills));
+        }
+    } catch {
+        // Fall through to basic parsing below.
+    }
+
+    return response.content
+        .split('\n')
+        .map((line) => line.replace(/^[-*\d.]\s*/, '').trim())
+        .filter((line) => line.length > 0);
 }
 
 // Re-export usage tracking functions from stripe module

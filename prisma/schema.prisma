@@ -142,6 +142,8 @@ model Resume {
   targetRole  String?
   description String?
   language    String   @default("en")
+  template    String?
+  theme       String?
   isDefault   Boolean  @default(false)
   isPublic    Boolean  @default(false)
   publicSlug  String?  @unique

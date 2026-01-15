@@ -50,7 +50,7 @@ const templates = [
 export default function NewResumePage() {
     const router = useRouter();
     const { locale } = useLocale();
-    const { createResume, updateResume } = useResumes();
+    const { createResume } = useResumes();
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const [step, setStep] = useState<1 | 2 | 3>(1);
@@ -142,17 +142,20 @@ export default function NewResumePage() {
 
         setIsLoading(true);
         try {
-            // Create resume using local storage
-            const newResume = createResume(basicInfo.title);
+            const resumeId = await createResume({
+                title: basicInfo.title,
+                targetRole: basicInfo.targetRole || undefined,
+                language: basicInfo.language,
+                template: basicInfo.template,
+            });
 
-            // Update with additional info including parsed data
             const updateData: any = {
+                title: basicInfo.title,
+                targetRole: basicInfo.targetRole || undefined,
                 template: basicInfo.template,
             };
 
-            // If we have parsed data, map it to the correct structure
             if (parsedData) {
-                // Map contact info (uses 'contact' not 'personalInfo')
                 updateData.contact = {
                     fullName: parsedData.name || '',
                     email: parsedData.email || '',
@@ -162,48 +165,66 @@ export default function NewResumePage() {
                     website: '',
                 };
 
-                // Map summary
                 if (parsedData.summary) {
-                    updateData.summary = parsedData.summary;
+                    updateData.summary = { content: parsedData.summary };
                 }
 
-                // Map experience with proper structure and IDs
                 if (parsedData.experience && Array.isArray(parsedData.experience)) {
-                    updateData.experience = parsedData.experience.map((exp: any, index: number) => ({
-                        id: `exp-${Date.now()}-${index}`,
-                        company: exp.company || '',
-                        position: exp.position || exp.title || '',
-                        location: exp.location || '',
-                        startDate: exp.startDate || '',
-                        endDate: exp.endDate || '',
-                        current: exp.endDate?.toLowerCase() === 'present' || exp.current || false,
-                        bullets: exp.achievements || exp.bullets || (exp.description ? [exp.description] : []),
-                    }));
+                    updateData.experience = {
+                        items: parsedData.experience.map((exp: any, index: number) => ({
+                            id: `exp-${Date.now()}-${index}`,
+                            company: exp.company || '',
+                            position: exp.position || exp.title || '',
+                            location: exp.location || '',
+                            startDate: exp.startDate || '',
+                            endDate: exp.endDate || '',
+                            isCurrent: exp.endDate?.toLowerCase() === 'present' || exp.current || false,
+                            description: exp.description || '',
+                            bullets: (exp.achievements || exp.bullets || (exp.description ? [exp.description] : [])).map((bullet: string, bIndex: number) => ({
+                                id: `bullet-${Date.now()}-${index}-${bIndex}`,
+                                content: bullet,
+                                isAIGenerated: false,
+                            })),
+                            skills: [],
+                        })),
+                    };
                 }
 
-                // Map education with proper structure and IDs
                 if (parsedData.education && Array.isArray(parsedData.education)) {
-                    updateData.education = parsedData.education.map((edu: any, index: number) => ({
-                        id: `edu-${Date.now()}-${index}`,
-                        institution: edu.institution || edu.school || '',
-                        degree: edu.degree || '',
-                        field: edu.field || edu.major || '',
-                        location: edu.location || '',
-                        graduationDate: edu.graduationYear || edu.graduationDate || '',
-                        gpa: edu.gpa || '',
-                    }));
+                    updateData.education = {
+                        items: parsedData.education.map((edu: any, index: number) => ({
+                            id: `edu-${Date.now()}-${index}`,
+                            institution: edu.institution || edu.school || '',
+                            degree: edu.degree || '',
+                            field: edu.field || edu.major || '',
+                            location: edu.location || '',
+                            startDate: '',
+                            endDate: edu.graduationYear || edu.graduationDate || '',
+                            gpa: edu.gpa || '',
+                            honors: '',
+                            coursework: [],
+                            activities: [],
+                        })),
+                    };
                 }
 
-                // Map skills (array of strings)
                 if (parsedData.skills && Array.isArray(parsedData.skills)) {
-                    updateData.skills = parsedData.skills;
+                    updateData.skills = { categories: [], simpleList: parsedData.skills };
                 }
             }
 
-            updateResume(newResume.id, updateData);
+            const patchResponse = await fetch(`/api/resumes/${resumeId}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(updateData),
+            });
+
+            if (!patchResponse.ok) {
+                throw new Error('Failed to update resume');
+            }
 
             toast.success(locale === 'ar' ? 'تم إنشاء السيرة الذاتية بنجاح!' : 'Resume created successfully!');
-            router.push(`/dashboard/resumes/${newResume.id}/edit`);
+            router.push(`/dashboard/resumes/${resumeId}/edit`);
         } catch (error) {
             toast.error(locale === 'ar' ? 'فشل إنشاء السيرة الذاتية' : 'Failed to create resume');
         } finally {

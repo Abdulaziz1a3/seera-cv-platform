@@ -26,9 +26,11 @@ export async function POST(request: NextRequest) {
         });
     } catch (error: any) {
         console.error('TTS Error:', error);
+        const message = error?.message || 'TTS failed';
+        const status = /API_KEY|API key|OpenAI API/i.test(message) ? 503 : 500;
         return NextResponse.json(
-            { error: error.message || 'TTS failed' },
-            { status: 500 }
+            { error: message },
+            { status }
         );
     }
 }

@@ -60,8 +60,6 @@ export default function LinkedInOptimizerPage() {
     const [selectedHeadlineIndex, setSelectedHeadlineIndex] = useState(0);
     const [copiedSection, setCopiedSection] = useState<string | null>(null);
 
-    const selectedResume = resumes.find(r => r.id === selectedResumeId);
-
     // Copy to clipboard
     const copyToClipboard = async (text: string, section: string) => {
         await navigator.clipboard.writeText(text);
@@ -72,16 +70,23 @@ export default function LinkedInOptimizerPage() {
 
     // Optimize profile
     const optimizeProfile = async () => {
-        if (!selectedResume) return;
+        if (!selectedResumeId) return;
 
         setIsOptimizing(true);
         try {
+            const resumeResponse = await fetch(`/api/resumes/${selectedResumeId}`);
+            if (!resumeResponse.ok) {
+                throw new Error('Failed to load resume');
+            }
+
+            const resumeData = await resumeResponse.json();
+
             const response = await fetch('/api/linkedin', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     action: 'full',
-                    resume: selectedResume,
+                    resume: resumeData,
                     options: { locale, tone, targetAudience },
                 }),
             });
@@ -100,15 +105,22 @@ export default function LinkedInOptimizerPage() {
 
     // Regenerate section
     const regenerateSection = async (section: 'headlines' | 'about') => {
-        if (!selectedResume) return;
+        if (!selectedResumeId) return;
 
         try {
+            const resumeResponse = await fetch(`/api/resumes/${selectedResumeId}`);
+            if (!resumeResponse.ok) {
+                throw new Error('Failed to load resume');
+            }
+
+            const resumeData = await resumeResponse.json();
+
             const response = await fetch('/api/linkedin', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     action: section,
-                    resume: selectedResume,
+                    resume: resumeData,
                     options: { locale, tone, targetAudience },
                 }),
             });
@@ -182,7 +194,7 @@ export default function LinkedInOptimizerPage() {
                                         <SelectContent>
                                             {resumes.map((resume) => (
                                                 <SelectItem key={resume.id} value={resume.id}>
-                                                    {resume.title} — {resume.contact.fullName || 'No name'}
+                                                    {resume.title}
                                                 </SelectItem>
                                             ))}
                                         </SelectContent>

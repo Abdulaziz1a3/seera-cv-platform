@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
         if (!process.env.OPENAI_API_KEY) {
             return NextResponse.json(
                 { error: 'OpenAI API not configured' },
-                { status: 500 }
+                { status: 503 }
             );
         }
 
@@ -53,9 +53,11 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ result });
     } catch (error: any) {
         console.error('Interview API Error:', error);
+        const message = error?.message || 'Interview API failed';
+        const status = /API_KEY|API key|OpenAI API/i.test(message) ? 503 : 500;
         return NextResponse.json(
-            { error: error.message || 'Interview API failed' },
-            { status: 500 }
+            { error: message },
+            { status }
         );
     }
 }

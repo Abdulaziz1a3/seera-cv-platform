@@ -4,6 +4,7 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import Link from 'next/link';
 import { useLocale } from '@/components/providers/locale-provider';
 import { useResumes } from '@/components/providers/resume-provider';
+import { normalizeResumeForAI } from '@/lib/resume-normalizer';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -189,7 +190,18 @@ export default function InterviewPrepPage() {
     const generateQuestions = async () => {
         setIsLoading(true);
         try {
-            const selectedResume = resumes.find(r => r.id === selectedResumeId);
+            let resumeSummary: string | undefined;
+            let resumeSkills: string[] | undefined;
+
+            if (selectedResumeId) {
+                const resumeResponse = await fetch(`/api/resumes/${selectedResumeId}`);
+                if (resumeResponse.ok) {
+                    const resumeData = await resumeResponse.json();
+                    const normalized = normalizeResumeForAI(resumeData);
+                    resumeSummary = normalized.summary;
+                    resumeSkills = normalized.skills;
+                }
+            }
 
             const response = await fetch('/api/interview', {
                 method: 'POST',
@@ -199,8 +211,8 @@ export default function InterviewPrepPage() {
                     context: {
                         targetRole,
                         experienceLevel,
-                        resumeSummary: selectedResume?.summary,
-                        skills: selectedResume?.skills,
+                        resumeSummary,
+                        skills: resumeSkills,
                         locale,
                     },
                     count: questionCount,

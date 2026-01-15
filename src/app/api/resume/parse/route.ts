@@ -3,11 +3,33 @@ import { getOpenAI } from '@/lib/openai';
 
 export async function POST(request: NextRequest) {
     try {
+        if (!process.env.OPENAI_API_KEY) {
+            return NextResponse.json(
+                { error: 'OpenAI API not configured' },
+                { status: 503 }
+            );
+        }
+
         const formData = await request.formData();
         const file = formData.get('file') as File;
 
         if (!file) {
             return NextResponse.json({ error: 'No file provided' }, { status: 400 });
+        }
+
+        const maxSizeBytes = 10 * 1024 * 1024;
+        if (file.size > maxSizeBytes) {
+            return NextResponse.json({ error: 'File too large (max 10MB)' }, { status: 400 });
+        }
+
+        const allowedTypes = new Set([
+            'application/pdf',
+            'application/msword',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        ]);
+
+        if (file.type && !allowedTypes.has(file.type)) {
+            return NextResponse.json({ error: 'Unsupported file type' }, { status: 400 });
         }
 
         // Read file content
@@ -99,6 +121,7 @@ RULES:
             ],
             max_tokens: 4000,
             temperature: 0.1,
+            response_format: { type: 'json_object' },
         });
 
         const content = response.choices[0]?.message?.content || '{}';
@@ -123,6 +146,8 @@ RULES:
 
     } catch (error: any) {
         console.error('Resume parse error:', error);
-        return NextResponse.json({ error: error.message || 'Failed to parse' }, { status: 500 });
+        const message = error?.message || 'Failed to parse';
+        const status = /API_KEY|API key|OpenAI API/i.test(message) ? 503 : 500;
+        return NextResponse.json({ error: message }, { status });
     }
 }

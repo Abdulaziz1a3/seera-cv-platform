@@ -39,6 +39,8 @@ export async function GET(
             targetRole: resume.targetRole,
             language: resume.language,
             atsScore: resume.atsScore,
+            template: resume.template,
+            theme: resume.theme,
         };
 
         resume.sections.forEach((section) => {
@@ -80,7 +82,7 @@ export async function PATCH(
         }
 
         const body = await request.json();
-        const { title, targetRole, contact, summary, experience, education, skills, ...otherSections } = body;
+        const { title, targetRole, contact, summary, experience, education, skills, projects, certifications, languages, template, theme, ...otherSections } = body;
 
         // Calculate ATS score
         const lintResult = lintResume(body, (resume.language || 'en') as 'ar' | 'en');
@@ -91,6 +93,8 @@ export async function PATCH(
             data: {
                 title: title || resume.title,
                 targetRole: targetRole || resume.targetRole,
+                template: template || resume.template,
+                theme: theme || resume.theme,
                 atsScore: lintResult.score,
                 updatedAt: new Date(),
             },
@@ -103,6 +107,9 @@ export async function PATCH(
             { type: 'EXPERIENCE', content: experience },
             { type: 'EDUCATION', content: education },
             { type: 'SKILLS', content: skills },
+            { type: 'PROJECTS', content: projects },
+            { type: 'CERTIFICATIONS', content: certifications },
+            { type: 'LANGUAGES', content: languages },
         ];
 
         for (const update of sectionUpdates) {

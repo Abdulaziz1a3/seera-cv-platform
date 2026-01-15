@@ -2,7 +2,7 @@
 // Comprehensive career path analysis, skill gaps, and action planning
 
 import { getOpenAI } from '@/lib/openai';
-import type { ResumeData } from '@/components/providers/resume-provider';
+import type { ResumeCareerProfile } from '@/lib/resume-normalizer';
 
 // Types
 export interface CareerPath {
@@ -121,7 +121,7 @@ function getSalaryRange(role: string, level: string): { min: number; max: number
 }
 
 // Calculate years of experience from resume
-function calculateYearsExperience(resume: ResumeData): number {
+function calculateYearsExperience(resume: ResumeCareerProfile): number {
     if (!resume.experience || resume.experience.length === 0) return 0;
 
     let totalMonths = 0;
@@ -148,7 +148,7 @@ function determineLevel(yearsExp: number): 'entry' | 'junior' | 'mid' | 'senior'
 
 // Main career analysis function
 export async function analyzeCareer(
-    resume: ResumeData,
+    resume: ResumeCareerProfile,
     options: { locale?: 'ar' | 'en'; targetIndustry?: string } = {}
 ): Promise<CareerAnalysis> {
     const { locale = 'en', targetIndustry } = options;
@@ -293,7 +293,7 @@ Generate 3-4 realistic career paths with 4-5 milestones each. Include 5-8 skill 
 }
 
 // Calculate career score based on resume completeness and skills
-function calculateCareerScore(resume: ResumeData, skillGaps: SkillGap[]): number {
+function calculateCareerScore(resume: ResumeCareerProfile, skillGaps: SkillGap[]): number {
     let score = 0;
 
     // Experience depth (25 pts)
@@ -331,7 +331,7 @@ function calculateCareerScore(resume: ResumeData, skillGaps: SkillGap[]): number
 
 // Generate specific action plan for a career path
 export async function generateActionPlan(
-    resume: ResumeData,
+    resume: ResumeCareerProfile,
     targetPath: CareerPath,
     options: { locale?: 'ar' | 'en'; weeks?: number } = {}
 ): Promise<WeeklyAction[]> {

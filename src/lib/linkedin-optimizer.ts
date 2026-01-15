@@ -2,7 +2,7 @@
 // Transforms resume data into optimized LinkedIn profile content
 
 import { getOpenAI } from '@/lib/openai';
-import type { ResumeData } from '@/components/providers/resume-provider';
+import type { ResumeAIProfile } from '@/lib/resume-normalizer';
 
 export interface LinkedInProfile {
     headline: string;
@@ -28,7 +28,7 @@ export interface OptimizationOptions {
 
 // Generate optimized LinkedIn headline options
 export async function generateHeadlines(
-    resume: ResumeData,
+    resume: ResumeAIProfile,
     options: OptimizationOptions = {}
 ): Promise<string[]> {
     const { locale = 'en', tone = 'professional' } = options;
@@ -63,7 +63,7 @@ export async function generateHeadlines(
 
 // Generate optimized LinkedIn About/Summary section
 export async function generateAboutSection(
-    resume: ResumeData,
+    resume: ResumeAIProfile,
     options: OptimizationOptions = {}
 ): Promise<string> {
     const { locale = 'en', tone = 'professional', targetAudience = 'recruiters' } = options;
@@ -115,7 +115,7 @@ Target audience: ${targetAudience}`;
 
 // Optimize experience descriptions for LinkedIn
 export async function optimizeExperience(
-    resume: ResumeData,
+    resume: ResumeAIProfile,
     options: OptimizationOptions = {}
 ): Promise<Array<{ title: string; company: string; description: string }>> {
     const { locale = 'en' } = options;
@@ -159,7 +159,7 @@ Bullets: ${exp.bullets.join('; ')}`;
 
 // Suggest optimized skills ordering
 export async function optimizeSkills(
-    resume: ResumeData,
+    resume: ResumeAIProfile,
     options: OptimizationOptions = {}
 ): Promise<{ skills: string[]; featured: string[] }> {
     const { locale = 'en', industry = '' } = options;
@@ -203,7 +203,7 @@ Reply in JSON: { "ranked": [...], "featured": ["top1", "top2", "top3"] }`;
 
 // Calculate LinkedIn profile optimization score
 export function calculateProfileScore(
-    resume: ResumeData,
+    resume: ResumeAIProfile,
     optimizedProfile: Partial<LinkedInProfile>
 ): { score: number; improvements: string[] } {
     let score = 0;
@@ -271,7 +271,7 @@ export function calculateProfileScore(
 
 // Full profile optimization
 export async function optimizeFullProfile(
-    resume: ResumeData,
+    resume: ResumeAIProfile,
     options: OptimizationOptions = {}
 ): Promise<LinkedInProfile> {
     const [headlines, summary, experience, skillsData] = await Promise.all([

@@ -15,6 +15,8 @@ export function getOpenAI(): OpenAI {
         }
         openaiClient = new OpenAI({
             apiKey,
+            maxRetries: 2,
+            timeout: 20000,
         });
     }
     return openaiClient;
@@ -126,7 +128,7 @@ export async function suggestSkills(
 // Improve existing content
 export async function improveContent(
     content: string,
-    type: 'summary' | 'bullet' | 'description' | 'fix_grammar' | 'make_concise' | 'make_professional',
+    type: 'summary' | 'bullet' | 'description' | 'fix_grammar' | 'make_concise' | 'make_professional' | 'expand' | 'active_voice',
     options: AIContentOptions = {}
 ): Promise<string> {
     const { locale = 'ar' } = options;
@@ -155,7 +157,15 @@ export async function improveContent(
         make_professional: {
             ar: 'أعد صياغة هذا النص بأسلوب مهني رسمي.',
             en: 'Rewrite this text in a formal, professional tone.',
-        }
+        },
+        expand: {
+            ar: 'وسع هذا النص بإضافة تفاصيل مفيدة مع الحفاظ على وضوحه ومهنيته.',
+            en: 'Expand this text with more detail while keeping it professional and concise.',
+        },
+        active_voice: {
+            ar: 'أعد صياغة هذا النص بصيغة المبني للمعلوم.',
+            en: 'Rewrite this text in active voice.',
+        },
     };
 
     const promptKey = instructions[type] ? type : 'description';

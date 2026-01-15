@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
@@ -33,10 +33,18 @@ export default function NewJobTargetPage() {
     const router = useRouter();
     const [step, setStep] = useState<1 | 2 | 3>(1);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
+    const [savedTargetId, setSavedTargetId] = useState<string | null>(null);
+    const [isLoadingResumes, setIsLoadingResumes] = useState(false);
     const [jobDescription, setJobDescription] = useState('');
     const [company, setCompany] = useState('');
     const [position, setPosition] = useState('');
     const [selectedResume, setSelectedResume] = useState('');
+    const [resumes, setResumes] = useState<Array<{ id: string; title: string }>>([]);
+    useEffect(() => {
+        setSavedTargetId(null);
+    }, [selectedResume]);
+
     const [analysis, setAnalysis] = useState<{
         matchScore: number;
         matchingKeywords: string[];
@@ -44,13 +52,43 @@ export default function NewJobTargetPage() {
         suggestions: string[];
     } | null>(null);
 
+    useEffect(() => {
+        const loadResumes = async () => {
+            setIsLoadingResumes(true);
+            try {
+                const response = await fetch('/api/resumes');
+                if (!response.ok) {
+                    throw new Error('Failed to load resumes');
+                }
+                const data = await response.json();
+                setResumes(
+                    Array.isArray(data)
+                        ? data.map((resume) => ({ id: resume.id, title: resume.title }))
+                        : []
+                );
+            } catch (error) {
+                console.error('Failed to load resumes:', error);
+                toast.error('Failed to load resumes. Please refresh.');
+            } finally {
+                setIsLoadingResumes(false);
+            }
+        };
+
+        loadResumes();
+    }, []);
+
     const handleAnalyze = async () => {
         if (!jobDescription.trim()) {
             toast.error('Please paste a job description');
             return;
         }
+        if (!selectedResume) {
+            toast.error(locale === 'ar' ? 'يرجى اختيار سيرة ذاتية' : 'Please select a resume');
+            return;
+        }
 
         setIsAnalyzing(true);
+        setSavedTargetId(null);
         try {
             const response = await fetch('/api/ai/analyze-match', {
                 method: 'POST',
@@ -74,6 +112,45 @@ export default function NewJobTargetPage() {
             setIsAnalyzing(false);
         }
     };
+    const handleSaveJobTarget = async () => {
+        if (!analysis) return;
+        if (!selectedResume) {
+            toast.error(locale === 'ar' ? 'يرجى اختيار سيرة ذاتية' : 'Please select a resume');
+            return;
+        }
+
+        setIsSaving(true);
+        try {
+            const response = await fetch('/api/job-targets', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    title: position || 'Untitled Role',
+                    company: company || undefined,
+                    description: jobDescription,
+                    resumeId: selectedResume,
+                    matchScore: analysis.matchScore,
+                    matchingKeywords: analysis.matchingKeywords,
+                    missingKeywords: analysis.missingKeywords,
+                    suggestions: analysis.suggestions,
+                }),
+            });
+
+            if (!response.ok) {
+                const payload = await response.json().catch(() => ({}));
+                throw new Error(payload?.error || 'Failed to save job target');
+            }
+
+            const payload = await response.json();
+            setSavedTargetId(payload.id);
+            toast.success(locale === 'ar' ? 'تم حفظ الهدف' : 'Job target saved');
+        } catch (error) {
+            toast.error(locale === 'ar' ? 'فشل حفظ الهدف' : 'Failed to save job target');
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
 
     return (
         <div className="max-w-4xl mx-auto space-y-8">
@@ -174,16 +251,31 @@ export default function NewJobTargetPage() {
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                        <Select value={selectedResume} onValueChange={setSelectedResume}>
-                            <SelectTrigger>
-                                <SelectValue placeholder="Select a resume" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {/* TODO: Fetch user's resumes */}
-                                <SelectItem value="resume-1">Software Engineer Resume</SelectItem>
-                                <SelectItem value="resume-2">Product Manager Resume</SelectItem>
-                            </SelectContent>
-                        </Select>
+                        {isLoadingResumes ? (
+                            <p className="text-sm text-muted-foreground">Loading resumes...</p>
+                        ) : resumes.length === 0 ? (
+                            <div className="rounded-lg border border-dashed p-6 text-center">
+                                <p className="text-sm text-muted-foreground">
+                                    You need at least one resume before running an analysis.
+                                </p>
+                                <Button className="mt-4" asChild>
+                                    <Link href="/dashboard/resumes/new">Create Resume</Link>
+                                </Button>
+                            </div>
+                        ) : (
+                            <Select value={selectedResume} onValueChange={setSelectedResume}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select a resume" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {resumes.map((resume) => (
+                                        <SelectItem key={resume.id} value={resume.id}>
+                                            {resume.title}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        )}
 
                         <div className="rounded-lg border p-4 bg-muted/30">
                             <div className="flex items-start gap-3">
@@ -336,9 +428,18 @@ export default function NewJobTargetPage() {
                                         Edit Resume with Suggestions
                                     </Link>
                                 </Button>
-                                <Button variant="outline" className="flex-1">
-                                    <Target className="h-4 w-4 mr-2" />
-                                    Save Job Target
+                                <Button
+                                    variant="outline"
+                                    className="flex-1"
+                                    onClick={handleSaveJobTarget}
+                                    disabled={isSaving || !!savedTargetId}
+                                >
+                                    {isSaving ? (
+                                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                    ) : (
+                                        <Target className="h-4 w-4 mr-2" />
+                                    )}
+                                    {savedTargetId ? (locale === 'ar' ? 'تم الحفظ' : 'Saved') : (locale === 'ar' ? 'حفظ الهدف' : 'Save Job Target')}
                                 </Button>
                             </div>
                         </CardContent>
@@ -375,7 +476,7 @@ export default function NewJobTargetPage() {
                                 handleAnalyze();
                             }
                         }}
-                        disabled={isAnalyzing}
+                        disabled={isAnalyzing || (step === 2 && (isLoadingResumes || resumes.length === 0))}
                     >
                         {isAnalyzing ? (
                             <>

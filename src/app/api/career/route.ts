@@ -4,6 +4,7 @@ import {
     generateActionPlan,
     getIndustryInsights,
 } from '@/lib/career-gps';
+import { normalizeResumeForCareer } from '@/lib/resume-normalizer';
 
 export async function POST(request: NextRequest) {
     try {
@@ -13,25 +14,27 @@ export async function POST(request: NextRequest) {
         if (!process.env.OPENAI_API_KEY) {
             return NextResponse.json(
                 { error: 'OpenAI API not configured' },
-                { status: 500 }
+                { status: 503 }
             );
         }
+
+        const normalizedResume = resume ? normalizeResumeForCareer(resume) : null;
 
         let result;
 
         switch (action) {
             case 'analyze':
-                if (!resume) {
+                if (!normalizedResume) {
                     return NextResponse.json({ error: 'Resume required' }, { status: 400 });
                 }
-                result = await analyzeCareer(resume, options);
+                result = await analyzeCareer(normalizedResume, options);
                 break;
 
             case 'action-plan':
-                if (!resume || !body.targetPath) {
+                if (!normalizedResume || !body.targetPath) {
                     return NextResponse.json({ error: 'Resume and target path required' }, { status: 400 });
                 }
-                result = await generateActionPlan(resume, body.targetPath, options);
+                result = await generateActionPlan(normalizedResume, body.targetPath, options);
                 break;
 
             case 'industry-insights':
@@ -48,9 +51,11 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ result });
     } catch (error: any) {
         console.error('Career GPS API Error:', error);
+        const message = error?.message || 'Career analysis failed';
+        const status = /API_KEY|API key|OpenAI API/i.test(message) ? 503 : 500;
         return NextResponse.json(
-            { error: error.message || 'Career analysis failed' },
-            { status: 500 }
+            { error: message },
+            { status }
         );
     }
 }

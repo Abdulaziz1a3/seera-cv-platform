@@ -34,9 +34,12 @@ export async function POST(request: Request) {
             );
         }
 
+        const message = error instanceof Error ? error.message : 'Failed to generate summary';
+        const status = /API_KEY|API key|OpenAI API/i.test(message) ? 503 : 500;
+
         return NextResponse.json(
-            { error: 'Failed to generate summary' },
-            { status: 500 }
+            { error: message },
+            { status }
         );
     }
 }
