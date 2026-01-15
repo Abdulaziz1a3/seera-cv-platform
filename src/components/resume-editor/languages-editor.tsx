@@ -4,6 +4,7 @@ import { useLocale } from '@/components/providers/locale-provider';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
+import type { LanguageItem } from '@/lib/resume-schema';
 import {
     Select,
     SelectContent,
@@ -13,11 +14,7 @@ import {
 } from '@/components/ui/select';
 import { Plus, Trash2, Languages as LanguagesIcon } from 'lucide-react';
 
-interface Language {
-    id: string;
-    name: string;
-    proficiency: string;
-}
+type Language = LanguageItem;
 
 interface LanguagesEditorProps {
     data: Language[];
@@ -27,9 +24,9 @@ interface LanguagesEditorProps {
 const proficiencyLevels = [
     { value: 'native', labelEn: 'Native', labelAr: 'اللغة الأم' },
     { value: 'fluent', labelEn: 'Fluent', labelAr: 'طلاقة' },
-    { value: 'advanced', labelEn: 'Advanced', labelAr: 'متقدم' },
+    { value: 'professional', labelEn: 'Professional', labelAr: 'متقدم' },
     { value: 'intermediate', labelEn: 'Intermediate', labelAr: 'متوسط' },
-    { value: 'beginner', labelEn: 'Beginner', labelAr: 'مبتدئ' },
+    { value: 'basic', labelEn: 'Basic', labelAr: 'مبتدئ' },
 ];
 
 const commonLanguages = [
@@ -49,12 +46,12 @@ export function LanguagesEditor({ data, onChange }: LanguagesEditorProps) {
     const { locale } = useLocale();
 
     const addLanguage = (langName?: string) => {
-        const name = langName || '';
+        const language = langName || '';
         onChange([
             ...data,
             {
                 id: crypto.randomUUID(),
-                name,
+                language,
                 proficiency: 'intermediate',
             },
         ]);
@@ -72,7 +69,7 @@ export function LanguagesEditor({ data, onChange }: LanguagesEditorProps) {
         onChange(data.filter((lang) => lang.id !== id));
     };
 
-    const existingNames = data.map((l) => l.name.toLowerCase());
+    const existingNames = data.map((l) => l.language.toLowerCase());
     const availableLanguages = commonLanguages.filter(
         (l) => !existingNames.includes(l.name.toLowerCase())
     );
@@ -130,8 +127,8 @@ export function LanguagesEditor({ data, onChange }: LanguagesEditorProps) {
                                         <div className="space-y-2">
                                             <Label>{locale === 'ar' ? 'اللغة' : 'Language'}</Label>
                                             <Select
-                                                value={lang.name}
-                                                onValueChange={(value) => updateLanguage(lang.id, 'name', value)}
+                                                value={lang.language}
+                                                onValueChange={(value) => updateLanguage(lang.id, 'language', value)}
                                             >
                                                 <SelectTrigger>
                                                     <SelectValue placeholder={locale === 'ar' ? 'اختر لغة' : 'Select language'} />

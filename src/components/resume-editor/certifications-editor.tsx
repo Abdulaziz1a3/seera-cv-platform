@@ -5,15 +5,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
-import { Plus, Trash2, Award, Link as LinkIcon, Calendar } from 'lucide-react';
+import type { CertificationItem } from '@/lib/resume-schema';
+import { Plus, Trash2, Award } from 'lucide-react';
 
-interface Certification {
-    id: string;
-    name: string;
-    issuer: string;
-    date: string;
-    credentialId: string;
-}
+type Certification = CertificationItem;
 
 interface CertificationsEditorProps {
     data: Certification[];
@@ -30,8 +25,10 @@ export function CertificationsEditor({ data, onChange }: CertificationsEditorPro
                 id: crypto.randomUUID(),
                 name: '',
                 issuer: '',
-                date: '',
+                issueDate: '',
+                expirationDate: '',
                 credentialId: '',
+                credentialUrl: '',
             },
         ]);
     };
@@ -98,8 +95,10 @@ export function CertificationsEditor({ data, onChange }: CertificationsEditorPro
                                                 id: crypto.randomUUID(),
                                                 name: cert.name,
                                                 issuer: cert.issuer,
-                                                date: '',
+                                                issueDate: '',
+                                                expirationDate: '',
                                                 credentialId: '',
+                                                credentialUrl: '',
                                             },
                                         ]);
                                     }}
@@ -132,38 +131,56 @@ export function CertificationsEditor({ data, onChange }: CertificationsEditorPro
 
                                 <div className="grid gap-4 sm:grid-cols-2">
                                     <div className="space-y-2">
-                                        <Label>{locale === 'ar' ? 'اسم الشهادة *' : 'Certification Name *'}</Label>
+                                        <Label>{locale === 'ar' ? '??? ??????? *' : 'Certification Name *'}</Label>
                                         <Input
-                                            value={cert.name}
+                                            value={cert.name ?? ''}
                                             onChange={(e) => updateCertification(cert.id, 'name', e.target.value)}
-                                            placeholder={locale === 'ar' ? 'اسم الشهادة' : 'Certification Name'}
+                                            placeholder={locale === 'ar' ? '??? ???????' : 'Certification Name'}
                                         />
                                     </div>
 
                                     <div className="space-y-2">
-                                        <Label>{locale === 'ar' ? 'الجهة المانحة' : 'Issuing Organization'}</Label>
+                                        <Label>{locale === 'ar' ? '????? ???????' : 'Issuing Organization'}</Label>
                                         <Input
-                                            value={cert.issuer}
+                                            value={cert.issuer ?? ''}
                                             onChange={(e) => updateCertification(cert.id, 'issuer', e.target.value)}
-                                            placeholder={locale === 'ar' ? 'الجهة المانحة' : 'e.g., Google, AWS'}
+                                            placeholder={locale === 'ar' ? '????? ???????' : 'e.g., Google, AWS'}
                                         />
                                     </div>
-
                                     <div className="space-y-2">
-                                        <Label>{locale === 'ar' ? 'تاريخ الحصول' : 'Date Obtained'}</Label>
+                                        <Label>{locale === 'ar' ? '????? ??????' : 'Issue Date'}</Label>
                                         <Input
                                             type="month"
-                                            value={cert.date}
-                                            onChange={(e) => updateCertification(cert.id, 'date', e.target.value)}
+                                            value={cert.issueDate ?? ''}
+                                            onChange={(e) => updateCertification(cert.id, 'issueDate', e.target.value)}
                                         />
                                     </div>
 
                                     <div className="space-y-2">
-                                        <Label>{locale === 'ar' ? 'رقم الشهادة' : 'Credential ID'}</Label>
+                                        <Label>{locale === 'ar' ? '????? ??????' : 'Expiration Date'}</Label>
                                         <Input
-                                            value={cert.credentialId}
+                                            type="month"
+                                            value={cert.expirationDate ?? ''}
+                                            onChange={(e) => updateCertification(cert.id, 'expirationDate', e.target.value)}
+                                        />
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <Label>{locale === 'ar' ? '??? ???????' : 'Credential ID'}</Label>
+                                        <Input
+                                            value={cert.credentialId ?? ''}
                                             onChange={(e) => updateCertification(cert.id, 'credentialId', e.target.value)}
-                                            placeholder={locale === 'ar' ? 'رقم التعريف' : 'Credential ID'}
+                                            placeholder={locale === 'ar' ? '??? ???????' : 'Credential ID'}
+                                        />
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <Label>{locale === 'ar' ? '???? ???????' : 'Credential URL'}</Label>
+                                        <Input
+                                            type="url"
+                                            value={cert.credentialUrl ?? ''}
+                                            onChange={(e) => updateCertification(cert.id, 'credentialUrl', e.target.value)}
+                                            placeholder="https://..."
                                         />
                                     </div>
                                 </div>

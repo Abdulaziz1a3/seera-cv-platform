@@ -7,15 +7,10 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Trash2, Sparkles, Link as LinkIcon } from 'lucide-react';
+import type { ProjectItem } from '@/lib/resume-schema';
+import { Plus, Trash2, Link as LinkIcon } from 'lucide-react';
 
-interface Project {
-    id: string;
-    name: string;
-    description: string;
-    url: string;
-    technologies: string[];
-}
+type Project = ProjectItem;
 
 interface ProjectsEditorProps {
     data: Project[];
@@ -31,8 +26,10 @@ export function ProjectsEditor({ data, onChange }: ProjectsEditorProps) {
             {
                 id: crypto.randomUUID(),
                 name: '',
+                role: '',
                 description: '',
                 url: '',
+                bullets: [],
                 technologies: [],
             },
         ]);
@@ -53,18 +50,20 @@ export function ProjectsEditor({ data, onChange }: ProjectsEditorProps) {
     const addTechnology = (id: string, tech: string) => {
         if (!tech.trim()) return;
         const project = data.find((p) => p.id === id);
-        if (project && !project.technologies.includes(tech.trim())) {
-            updateProject(id, 'technologies', [...project.technologies, tech.trim()]);
+        const technologies = project?.technologies ?? [];
+        if (project && !technologies.includes(tech.trim())) {
+            updateProject(id, 'technologies', [...technologies, tech.trim()]);
         }
     };
 
     const removeTechnology = (id: string, tech: string) => {
         const project = data.find((p) => p.id === id);
+        const technologies = project?.technologies ?? [];
         if (project) {
             updateProject(
                 id,
                 'technologies',
-                project.technologies.filter((t) => t !== tech)
+                technologies.filter((t) => t !== tech)
             );
         }
     };
@@ -133,7 +132,7 @@ export function ProjectsEditor({ data, onChange }: ProjectsEditorProps) {
                                     <div className="space-y-2 sm:col-span-2">
                                         <Label>{locale === 'ar' ? 'الوصف' : 'Description'}</Label>
                                         <Textarea
-                                            value={project.description}
+                                            value={project.description ?? ''}
                                             onChange={(e) => updateProject(project.id, 'description', e.target.value)}
                                             placeholder={locale === 'ar' ? 'وصف المشروع...' : 'Describe your project...'}
                                             rows={3}
@@ -146,7 +145,7 @@ export function ProjectsEditor({ data, onChange }: ProjectsEditorProps) {
                                             <div className="relative flex-1">
                                                 <LinkIcon className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                                                 <Input
-                                                    value={project.url}
+                                                    value={project.url ?? ''}
                                                     onChange={(e) => updateProject(project.id, 'url', e.target.value)}
                                                     placeholder="https://..."
                                                     className="ps-10"
@@ -181,9 +180,9 @@ export function ProjectsEditor({ data, onChange }: ProjectsEditorProps) {
                                                 <Plus className="h-4 w-4" />
                                             </Button>
                                         </div>
-                                        {project.technologies.length > 0 && (
+                                        {(project.technologies ?? []).length > 0 && (
                                             <div className="flex flex-wrap gap-2 mt-2">
-                                                {project.technologies.map((tech) => (
+                                                {(project.technologies ?? []).map((tech) => (
                                                     <Badge
                                                         key={tech}
                                                         variant="secondary"
