@@ -5,15 +5,6 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { getToken } from 'next-auth/jwt';
 
-// Routes that require authentication
-const protectedRoutes = ['/dashboard', '/resumes', '/career', '/interview', '/settings'];
-
-// Admin routes that require ADMIN or SUPER_ADMIN role
-const adminRoutes = ['/admin'];
-
-// Routes that should redirect to dashboard if already authenticated
-const authRoutes = ['/login', '/register', '/forgot-password'];
-
 // API routes that need rate limiting (requests per minute)
 const rateLimitConfig: Record<string, number> = {
     '/api/ai': 20,
@@ -23,11 +14,10 @@ const rateLimitConfig: Record<string, number> = {
     '/api': 100,
 };
 
-// Simple in-memory rate limiting for Edge (use Redis in production for distributed)
+// Simple in-memory rate limiting for Edge
 const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
 
 function getRateLimitKey(ip: string, path: string): string {
-    // Get the most specific rate limit path
     for (const route of Object.keys(rateLimitConfig)) {
         if (path.startsWith(route)) {
             return `${ip}:${route}`;
@@ -39,9 +29,8 @@ function getRateLimitKey(ip: string, path: string): string {
 function checkRateLimit(ip: string, path: string): { allowed: boolean; remaining: number } {
     const key = getRateLimitKey(ip, path);
     const now = Date.now();
-    const windowMs = 60000; // 1 minute
+    const windowMs = 60000;
 
-    // Get limit for this path
     let limit = 100;
     for (const [route, routeLimit] of Object.entries(rateLimitConfig)) {
         if (path.startsWith(route)) {
@@ -52,7 +41,6 @@ function checkRateLimit(ip: string, path: string): { allowed: boolean; remaining
 
     const existing = rateLimitMap.get(key);
 
-    // Clean up old entries periodically
     if (rateLimitMap.size > 10000) {
         const entries = Array.from(rateLimitMap.entries());
         for (const [k, v] of entries) {
@@ -89,7 +77,7 @@ export async function middleware(request: NextRequest) {
         return NextResponse.next();
     }
 
-    // Rate limiting for API routes
+    // Rate limiting for API routes only
     if (pathname.startsWith('/api')) {
         const ip = request.headers.get('x-forwarded-for')?.split(',')[0] ||
                    request.headers.get('x-real-ip') ||
@@ -110,36 +98,47 @@ export async function middleware(request: NextRequest) {
             );
         }
 
-        // Add rate limit headers to response
         const response = NextResponse.next();
         response.headers.set('X-RateLimit-Remaining', String(remaining));
         return response;
     }
 
-    // Check authentication for protected routes
+    // For auth checking, use AUTH_SECRET (NextAuth v5) with fallback to NEXTAUTH_SECRET
+    const secret = process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET;
+
+    // Routes configuration
+    const protectedRoutes = ['/dashboard', '/resumes', '/career', '/interview', '/settings'];
+    const adminRoutes = ['/admin'];
+    const authRoutes = ['/login', '/register', '/forgot-password'];
+
     const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route));
     const isAuthRoute = authRoutes.some(route => pathname.startsWith(route));
     const isAdminRoute = adminRoutes.some(route => pathname.startsWith(route));
+    const isAdminLogin = pathname === '/admin/login';
+
+    // Skip auth check for admin login page
+    if (isAdminLogin) {
+        return NextResponse.next();
+    }
 
     if (isProtectedRoute || isAuthRoute || isAdminRoute) {
         const token = await getToken({
             req: request,
-            secret: process.env.NEXTAUTH_SECRET
+            secret: secret,
+            cookieName: process.env.NODE_ENV === 'production'
+                ? '__Secure-authjs.session-token'
+                : 'authjs.session-token',
         });
 
-        // Protect admin routes - require authentication AND admin role
+        // Protect admin routes
         if (isAdminRoute) {
             if (!token) {
-                const loginUrl = new URL('/login', request.url);
-                loginUrl.searchParams.set('callbackUrl', pathname);
-                loginUrl.searchParams.set('admin', 'true');
+                const loginUrl = new URL('/admin/login', request.url);
                 return NextResponse.redirect(loginUrl);
             }
-            
-            // Check if user has admin role
+
             const userRole = (token as any)?.role;
             if (userRole !== 'ADMIN' && userRole !== 'SUPER_ADMIN') {
-                // Redirect non-admin users to dashboard
                 return NextResponse.redirect(new URL('/dashboard?error=unauthorized', request.url));
             }
         }
@@ -159,23 +158,12 @@ export async function middleware(request: NextRequest) {
 
     // Add security headers
     const response = NextResponse.next();
-
-    // Request ID for tracing
-    const requestId = crypto.randomUUID();
-    response.headers.set('X-Request-ID', requestId);
-
+    response.headers.set('X-Request-ID', crypto.randomUUID());
     return response;
 }
 
 export const config = {
     matcher: [
-        /*
-         * Match all request paths except:
-         * - _next/static (static files)
-         * - _next/image (image optimization files)
-         * - favicon.ico (favicon file)
-         * - public folder
-         */
         '/((?!_next/static|_next/image|favicon.ico|public/).*)',
     ],
 };

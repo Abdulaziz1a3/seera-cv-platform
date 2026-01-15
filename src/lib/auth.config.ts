@@ -27,6 +27,9 @@ declare module 'next-auth/jwt' {
     }
 }
 
+const useSecureCookies = process.env.NEXTAUTH_URL?.startsWith('https://');
+const cookiePrefix = useSecureCookies ? '__Secure-' : '';
+
 export const authConfig: NextAuthConfig = {
     pages: {
         signIn: '/login',
@@ -38,6 +41,18 @@ export const authConfig: NextAuthConfig = {
         strategy: 'jwt',
         maxAge: 30 * 24 * 60 * 60, // 30 days
     },
+    cookies: {
+        sessionToken: {
+            name: `${cookiePrefix}authjs.session-token`,
+            options: {
+                httpOnly: true,
+                sameSite: 'lax',
+                path: '/',
+                secure: useSecureCookies,
+            },
+        },
+    },
+    trustHost: true,
     callbacks: {
         authorized({ auth, request: { nextUrl } }) {
             const isLoggedIn = !!auth?.user;

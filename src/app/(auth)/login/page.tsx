@@ -35,6 +35,8 @@ function LoginForm() {
                 redirect: false,
             });
 
+            console.log('Sign in result:', result);
+
             if (result?.error) {
                 // Show friendly error message based on error type
                 if (result.error === 'CredentialsSignin') {
@@ -47,8 +49,9 @@ function LoginForm() {
                     toast.error('Invalid email or password');
                 }
             } else if (result?.ok) {
-                router.push(callbackUrl);
-                router.refresh();
+                toast.success('Login successful! Redirecting...');
+                // Use hard redirect instead of router.push
+                window.location.href = callbackUrl;
             } else {
                 toast.error('Something went wrong. Please try again.');
             }

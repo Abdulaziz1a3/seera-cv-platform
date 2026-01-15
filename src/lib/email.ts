@@ -90,7 +90,7 @@ export async function sendVerificationEmail(
         return { success: false, error: 'Email service not configured' };
     }
 
-    const verifyUrl = `${APP_URL}/auth/verify-email?token=${token}`;
+    const verifyUrl = `${APP_URL}/verify-email?token=${token}`;
     const greeting = name ? `Hi ${name.split(' ')[0]},` : 'Hi there,';
 
     const content = `

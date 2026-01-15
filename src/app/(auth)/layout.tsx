@@ -1,7 +1,8 @@
 'use client';
 
+import { useEffect } from 'react';
 import Link from 'next/link';
-import { redirect } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { FileText, Check } from 'lucide-react';
 import { LanguageSwitcher } from '@/components/language-switcher';
@@ -12,13 +13,16 @@ export default function AuthLayout({
 }: {
     children: React.ReactNode;
 }) {
-    const { data: session } = useSession();
+    const router = useRouter();
+    const { data: session, status } = useSession();
     const { t, dir } = useLocale();
 
     // Redirect if already authenticated
-    if (session) {
-        redirect('/dashboard');
-    }
+    useEffect(() => {
+        if (status !== 'loading' && session) {
+            router.push('/dashboard');
+        }
+    }, [session, status, router]);
 
     const features = [
         t.auth.branding.feature1,

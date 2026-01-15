@@ -8,15 +8,21 @@ import { authConfig } from './auth.config';
 // Super admin email - has full access to all features
 const SUPER_ADMIN_EMAIL = process.env.SUPER_ADMIN_EMAIL || 'info@seera-ai.com';
 
-export const { handlers, signIn, signOut, auth } = NextAuth({
-    ...authConfig,
-    providers: [
+// Only include Google provider if credentials are configured
+const providers: any[] = [];
+
+if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
+    providers.push(
         Google({
-            clientId: process.env.GOOGLE_CLIENT_ID || '',
-            clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
+            clientId: process.env.GOOGLE_CLIENT_ID,
+            clientSecret: process.env.GOOGLE_CLIENT_SECRET,
             allowDangerousEmailAccountLinking: true,
-        }),
-        Credentials({
+        })
+    );
+}
+
+providers.push(
+    Credentials({
             name: 'credentials',
             credentials: {
                 email: { label: 'Email', type: 'email' },
@@ -24,7 +30,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             },
             async authorize(credentials) {
                 try {
+                    console.log('[AUTH] Authorize called with email:', credentials?.email);
+
                     if (!credentials?.email || !credentials?.password) {
+                        console.log('[AUTH] Missing credentials');
                         return null;
                     }
 
@@ -73,18 +82,25 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                     }
 
                     if (!user || !user.passwordHash) {
+                        console.log('[AUTH] User not found or no password hash');
                         return null;
                     }
 
+                    console.log('[AUTH] User found:', user.email, 'emailVerified:', !!user.emailVerified);
+
                     const isValid = await bcrypt.compare(password, user.passwordHash);
                     if (!isValid) {
+                        console.log('[AUTH] Invalid password');
                         return null;
                     }
 
                     // Super admin bypasses email verification
                     if (!user.emailVerified && !isSuperAdmin) {
+                        console.log('[AUTH] Email not verified');
                         return null;
                     }
+
+                    console.log('[AUTH] Login successful for:', user.email);
 
                     // Ensure super admin always has SUPER_ADMIN role
                     const role = isSuperAdmin ? 'SUPER_ADMIN' : user.role;
@@ -109,8 +125,12 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                     return null;
                 }
             },
-        }),
-    ],
+        })
+);
+
+export const { handlers, signIn, signOut, auth } = NextAuth({
+    ...authConfig,
+    providers,
     // We already defined callbacks in auth.config, but we need to override/extend the signIn callback
     // because it uses Prisma, which is not available in auth.config (Edge)
     callbacks: {

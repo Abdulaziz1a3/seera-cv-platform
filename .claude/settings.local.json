@@ -15,7 +15,17 @@
       "Bash(powershell -Command \"$env:DATABASE_URL=''postgresql://neondb_owner:npg_m10adTbWrQyw@ep-square-boat-aetkgq9c-pooler.c-2.us-east-2.aws.neon.tech/neondb?sslmode=require''; npx prisma db push\")",
       "Bash(npx prisma generate:*)",
       "Bash(npm run build:*)",
-      "Bash(dir:*)"
+      "Bash(dir:*)",
+      "Bash(vercel --version:*)",
+      "Bash(vercel:*)",
+      "WebFetch(domain:vercel.com)",
+      "Bash(openssl rand:*)",
+      "Bash(ls:*)",
+      "Bash(curl:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(npx vercel:*)"
     ]
   }
 }
