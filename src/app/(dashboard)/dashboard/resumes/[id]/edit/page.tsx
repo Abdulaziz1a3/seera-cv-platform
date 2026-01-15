@@ -372,7 +372,7 @@ export default function ResumeEditorPage() {
                 <main className="flex-1 overflow-y-auto p-6">
                     {activeSection === 'contact' && (
                         <ContactEditor
-                            data={resume.contact}
+                            data={resume.contact ?? { fullName: '', email: '' }}
                             onChange={(data) => handleChange('contact', data)}
                         />
                     )}
