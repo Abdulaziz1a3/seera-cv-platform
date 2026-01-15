@@ -220,15 +220,29 @@ export default function NewResumePage() {
             });
 
             if (!patchResponse.ok) {
-                throw new Error('Failed to update resume');
+                const raw = await patchResponse.text();
+                let message = 'Failed to update resume';
+                try {
+                    const payload = JSON.parse(raw || '{}');
+                    message = payload?.error || message;
+                } catch {
+                    if (raw.trim().length > 0) {
+                        message = raw.trim();
+                    } else if (patchResponse.status) {
+                        message = `Failed to update resume (HTTP ${patchResponse.status})`;
+                    }
+                }
+                throw new Error(message);
             }
 
             toast.success(locale === 'ar' ? 'تم إنشاء السيرة الذاتية بنجاح!' : 'Resume created successfully!');
             router.push(`/dashboard/resumes/${resumeId}/edit`);
         } catch (error) {
-            const message = error instanceof Error && error.message
-                ? error.message
-                : (locale === 'ar' ? 'فشل إنشاء السيرة الذاتية' : 'Failed to create resume');
+            const message = typeof error === 'string'
+                ? error
+                : error instanceof Error && error.message
+                    ? error.message
+                    : (locale === 'ar' ? 'فشل إنشاء السيرة الذاتية' : 'Failed to create resume');
             toast.error(message);
         } finally {
             setIsLoading(false);
