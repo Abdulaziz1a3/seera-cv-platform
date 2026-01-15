@@ -69,8 +69,19 @@ export function ResumeProvider({ children }: { children: ReactNode }) {
         });
 
         if (!response.ok) {
-            const payload = await response.json().catch(() => ({}));
-            throw new Error(payload?.error || 'Failed to create resume');
+            const raw = await response.text();
+            let message = 'Failed to create resume';
+            try {
+                const payload = JSON.parse(raw || '{}');
+                message = payload?.error || message;
+            } catch {
+                if (raw.trim().length > 0) {
+                    message = raw.trim();
+                } else if (response.status) {
+                    message = `Failed to create resume (HTTP ${response.status})`;
+                }
+            }
+            throw new Error(message);
         }
 
         const payload = await response.json();
