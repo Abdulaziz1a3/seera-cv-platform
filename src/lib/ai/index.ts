@@ -482,7 +482,9 @@ export async function extractSkillsFromJobDescription(
 
         if (parsed && typeof parsed === 'object') {
             const values = Object.values(parsed).flat();
-            const skills = values.filter((skill) => typeof skill === 'string' && skill.trim().length > 0);
+            const skills = values.filter(
+                (skill): skill is string => typeof skill === 'string' && skill.trim().length > 0
+            );
             return Array.from(new Set(skills));
         }
     } catch {
