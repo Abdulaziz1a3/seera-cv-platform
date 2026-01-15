@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { Prisma } from '@prisma/client';
 import { z } from 'zod';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db';
@@ -142,10 +143,22 @@ export async function PATCH(
         });
     } catch (error) {
         console.error('Update resume error:', error);
-        return NextResponse.json(
-            { error: 'Failed to update resume' },
-            { status: 500 }
-        );
+
+        if (error instanceof Prisma.PrismaClientKnownRequestError) {
+            const code = error.code;
+            const message = code === 'P2022'
+                ? 'Database schema is missing required columns. Please run migrations.'
+                : code === 'P2021'
+                    ? 'Database schema is missing required tables. Please run migrations.'
+                    : 'Database error while updating resume.';
+            return NextResponse.json({ error: message }, { status: 500 });
+        }
+
+        if (error instanceof Error && error.message) {
+            return NextResponse.json({ error: error.message }, { status: 500 });
+        }
+
+        return NextResponse.json({ error: 'Failed to update resume' }, { status: 500 });
     }
 }
 
