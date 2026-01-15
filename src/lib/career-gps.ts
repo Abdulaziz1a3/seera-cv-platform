@@ -308,7 +308,7 @@ function calculateCareerScore(resume: ResumeCareerProfile, skillGaps: SkillGap[]
     // Education (15 pts)
     if (resume.education.length > 0) {
         score += 10;
-        if (resume.education.some(e => e.degree.toLowerCase().includes('master') || e.degree.toLowerCase().includes('mba'))) {
+        if (resume.education.some(e => (e.degree ?? '').toLowerCase().includes('master') || (e.degree ?? '').toLowerCase().includes('mba'))) {
             score += 5;
         }
     }
