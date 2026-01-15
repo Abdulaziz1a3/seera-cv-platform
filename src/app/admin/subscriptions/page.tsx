@@ -1,11 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useLocale } from '@/components/providers/locale-provider';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
     Table,
     TableBody,
@@ -28,11 +29,13 @@ import {
     TrendingDown,
     Users,
     DollarSign,
-    Calendar,
     MoreVertical,
     Eye,
     Mail,
     Ban,
+    RefreshCw,
+    Loader2,
+    CheckCircle,
 } from 'lucide-react';
 import {
     DropdownMenu,
@@ -40,127 +43,201 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { toast } from 'sonner';
+import { format } from 'date-fns';
+import { ar, enUS } from 'date-fns/locale';
+import { AdminServerGuard } from '../_components/admin-server-guard';
 
-// Mock subscriptions data
-const mockSubscriptions = [
-    {
-        id: '1',
-        user: 'Ahmed Al-Mansouri',
-        email: 'ahmed@example.com',
-        plan: 'Pro',
-        status: 'active',
-        amount: 29.99,
-        startDate: new Date('2024-01-01'),
-        nextBilling: new Date('2024-02-01'),
-    },
-    {
-        id: '2',
-        user: 'Emma Wilson',
-        email: 'emma@example.com',
-        plan: 'Enterprise',
-        status: 'active',
-        amount: 99.99,
-        startDate: new Date('2023-11-15'),
-        nextBilling: new Date('2024-02-15'),
-    },
-    {
-        id: '3',
-        user: 'Mohammed Ali',
-        email: 'mohammed@example.com',
-        plan: 'Pro',
-        status: 'canceled',
-        amount: 29.99,
-        startDate: new Date('2023-08-20'),
-        nextBilling: null,
-    },
-    {
-        id: '4',
-        user: 'Sarah Johnson',
-        email: 'sarah@example.com',
-        plan: 'Pro',
-        status: 'past_due',
-        amount: 29.99,
-        startDate: new Date('2023-12-05'),
-        nextBilling: new Date('2024-01-05'),
-    },
-];
+interface Subscription {
+    id: string;
+    user: {
+        id: string;
+        name: string;
+        email: string;
+        image: string | null;
+    };
+    plan: string;
+    status: string;
+    amount: number;
+    stripeSubscriptionId: string | null;
+    currentPeriodStart: string | null;
+    currentPeriodEnd: string | null;
+    cancelAtPeriodEnd: boolean;
+    createdAt: string;
+    updatedAt: string;
+}
 
-export default function AdminSubscriptionsPage() {
+interface SubscriptionStats {
+    monthlyRevenue: string;
+    activeSubscribers: number;
+    churnRate: string;
+    arpu: string;
+    proCount: number;
+    enterpriseCount: number;
+    newThisMonth: number;
+}
+
+interface SubscriptionsData {
+    subscriptions: Subscription[];
+    stats: SubscriptionStats;
+    pagination: {
+        page: number;
+        limit: number;
+        total: number;
+        totalPages: number;
+    };
+}
+
+function AdminSubscriptionsContent() {
     const { locale } = useLocale();
+    const [data, setData] = useState<SubscriptionsData | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [actionLoading, setActionLoading] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
+    const [page, setPage] = useState(1);
 
-    const stats = [
+    const fetchSubscriptions = useCallback(async () => {
+        setLoading(true);
+        try {
+            const params = new URLSearchParams({
+                page: page.toString(),
+                limit: '20',
+                search: searchQuery,
+                status: statusFilter,
+            });
+            const res = await fetch(`/api/admin/subscriptions?${params}`);
+            if (!res.ok) throw new Error('Failed to fetch subscriptions');
+            const json = await res.json();
+            setData(json);
+        } catch (error) {
+            toast.error('Failed to load subscriptions');
+            console.error(error);
+        } finally {
+            setLoading(false);
+        }
+    }, [page, searchQuery, statusFilter]);
+
+    useEffect(() => {
+        const debounce = setTimeout(() => {
+            fetchSubscriptions();
+        }, 300);
+        return () => clearTimeout(debounce);
+    }, [fetchSubscriptions]);
+
+    const handleAction = async (subscriptionId: string, action: string, actionData?: any) => {
+        setActionLoading(subscriptionId);
+        try {
+            const res = await fetch('/api/admin/subscriptions', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ subscriptionId, action, data: actionData }),
+            });
+            if (!res.ok) throw new Error('Action failed');
+            toast.success(`Subscription ${action} successful`);
+            fetchSubscriptions();
+        } catch (error) {
+            toast.error(`Failed to ${action} subscription`);
+        } finally {
+            setActionLoading(null);
+        }
+    };
+
+    const formatDate = (dateString: string | null) => {
+        if (!dateString) return '-';
+        return format(new Date(dateString), 'MMM d, yyyy', {
+            locale: locale === 'ar' ? ar : enUS,
+        });
+    };
+
+    const getStatusBadge = (status: string) => {
+        switch (status) {
+            case 'ACTIVE':
+                return <Badge className="bg-green-500/10 text-green-600">{locale === 'ar' ? 'نشط' : 'Active'}</Badge>;
+            case 'CANCELED':
+                return <Badge variant="secondary">{locale === 'ar' ? 'ملغي' : 'Canceled'}</Badge>;
+            case 'PAST_DUE':
+                return <Badge className="bg-red-500/10 text-red-600">{locale === 'ar' ? 'متأخر' : 'Past Due'}</Badge>;
+            case 'TRIALING':
+                return <Badge className="bg-blue-500/10 text-blue-600">{locale === 'ar' ? 'تجريبي' : 'Trialing'}</Badge>;
+            default:
+                return <Badge variant="outline">{status}</Badge>;
+        }
+    };
+
+    const stats = data?.stats ? [
         {
             label: locale === 'ar' ? 'الإيرادات الشهرية' : 'Monthly Revenue',
-            value: '$12,847',
+            value: `$${Number(data.stats.monthlyRevenue).toLocaleString()}`,
             change: '+15.2%',
             trend: 'up',
             icon: DollarSign,
         },
         {
             label: locale === 'ar' ? 'المشتركين النشطين' : 'Active Subscribers',
-            value: '2,847',
-            change: '+8.1%',
+            value: data.stats.activeSubscribers.toLocaleString(),
+            change: `+${data.stats.newThisMonth}`,
             trend: 'up',
             icon: Users,
         },
         {
             label: locale === 'ar' ? 'معدل الإلغاء' : 'Churn Rate',
-            value: '2.3%',
+            value: `${data.stats.churnRate}%`,
             change: '-0.5%',
             trend: 'down',
             icon: TrendingDown,
         },
         {
             label: locale === 'ar' ? 'متوسط العائد' : 'ARPU',
-            value: '$34.50',
+            value: `$${data.stats.arpu}`,
             change: '+3.2%',
             trend: 'up',
             icon: TrendingUp,
         },
-    ];
+    ] : [];
 
-    const filteredSubscriptions = mockSubscriptions.filter((sub) => {
-        const matchesSearch =
-            sub.user.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            sub.email.toLowerCase().includes(searchQuery.toLowerCase());
-        const matchesStatus = statusFilter === 'all' || sub.status === statusFilter;
-        return matchesSearch && matchesStatus;
-    });
-
-    const formatDate = (date: Date | null) => {
-        if (!date) return '-';
-        return date.toLocaleDateString(locale === 'ar' ? 'ar-SA' : 'en-US', {
-            month: 'short',
-            day: 'numeric',
-            year: 'numeric',
-        });
-    };
-
-    const getStatusBadge = (status: string) => {
-        switch (status) {
-            case 'active':
-                return <Badge className="bg-green-500/10 text-green-600">{locale === 'ar' ? 'نشط' : 'Active'}</Badge>;
-            case 'canceled':
-                return <Badge variant="secondary">{locale === 'ar' ? 'ملغي' : 'Canceled'}</Badge>;
-            case 'past_due':
-                return <Badge className="bg-red-500/10 text-red-600">{locale === 'ar' ? 'متأخر' : 'Past Due'}</Badge>;
-            default:
-                return <Badge variant="outline">{status}</Badge>;
-        }
-    };
+    if (loading && !data) {
+        return (
+            <div className="space-y-6">
+                <Skeleton className="h-10 w-64" />
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                    {[1, 2, 3, 4].map((i) => (
+                        <Card key={i}>
+                            <CardContent className="pt-6">
+                                <Skeleton className="h-20 w-full" />
+                            </CardContent>
+                        </Card>
+                    ))}
+                </div>
+                <Card>
+                    <CardContent className="p-6">
+                        <div className="space-y-4">
+                            {[1, 2, 3, 4, 5].map((i) => (
+                                <Skeleton key={i} className="h-16 w-full" />
+                            ))}
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-6">
             {/* Header */}
-            <div>
-                <h1 className="text-2xl md:text-3xl font-bold">
-                    {locale === 'ar' ? 'إدارة الاشتراكات' : 'Subscription Management'}
-                </h1>
-                <p className="text-muted-foreground mt-1">
-                    {locale === 'ar' ? 'إدارة وتتبع اشتراكات المستخدمين' : 'Manage and track user subscriptions'}
-                </p>
+            <div className="flex items-center justify-between">
+                <div>
+                    <h1 className="text-2xl md:text-3xl font-bold">
+                        {locale === 'ar' ? 'إدارة الاشتراكات' : 'Subscription Management'}
+                    </h1>
+                    <p className="text-muted-foreground mt-1">
+                        {locale === 'ar' ? 'إدارة وتتبع اشتراكات المستخدمين' : 'Manage and track user subscriptions'}
+                    </p>
+                </div>
+                <Button variant="outline" onClick={fetchSubscriptions} disabled={loading}>
+                    <RefreshCw className={`h-4 w-4 me-2 ${loading ? 'animate-spin' : ''}`} />
+                    {locale === 'ar' ? 'تحديث' : 'Refresh'}
+                </Button>
             </div>
 
             {/* Stats */}
@@ -201,10 +278,19 @@ export default function AdminSubscriptionsPage() {
                                 placeholder={locale === 'ar' ? 'بحث بالاسم أو البريد...' : 'Search by name or email...'}
                                 className="ps-10"
                                 value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
+                                onChange={(e) => {
+                                    setSearchQuery(e.target.value);
+                                    setPage(1);
+                                }}
                             />
                         </div>
-                        <Select value={statusFilter} onValueChange={setStatusFilter}>
+                        <Select
+                            value={statusFilter}
+                            onValueChange={(v) => {
+                                setStatusFilter(v);
+                                setPage(1);
+                            }}
+                        >
                             <SelectTrigger className="w-[150px]">
                                 <SelectValue placeholder={locale === 'ar' ? 'الحالة' : 'Status'} />
                             </SelectTrigger>
@@ -235,57 +321,135 @@ export default function AdminSubscriptionsPage() {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {filteredSubscriptions.map((sub) => (
-                                <TableRow key={sub.id}>
-                                    <TableCell>
-                                        <div className="flex items-center gap-3">
-                                            <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center text-sm font-medium text-primary">
-                                                {sub.user.charAt(0)}
-                                            </div>
-                                            <div>
-                                                <p className="font-medium">{sub.user}</p>
-                                                <p className="text-sm text-muted-foreground">{sub.email}</p>
-                                            </div>
-                                        </div>
-                                    </TableCell>
-                                    <TableCell>
-                                        <Badge variant={sub.plan === 'Enterprise' ? 'secondary' : 'default'}>
-                                            {sub.plan}
-                                        </Badge>
-                                    </TableCell>
-                                    <TableCell>{getStatusBadge(sub.status)}</TableCell>
-                                    <TableCell>${sub.amount}/mo</TableCell>
-                                    <TableCell>{formatDate(sub.startDate)}</TableCell>
-                                    <TableCell>{formatDate(sub.nextBilling)}</TableCell>
-                                    <TableCell>
-                                        <DropdownMenu>
-                                            <DropdownMenuTrigger asChild>
-                                                <Button variant="ghost" size="icon">
-                                                    <MoreVertical className="h-4 w-4" />
-                                                </Button>
-                                            </DropdownMenuTrigger>
-                                            <DropdownMenuContent align="end">
-                                                <DropdownMenuItem>
-                                                    <Eye className="h-4 w-4 me-2" />
-                                                    {locale === 'ar' ? 'عرض التفاصيل' : 'View Details'}
-                                                </DropdownMenuItem>
-                                                <DropdownMenuItem>
-                                                    <Mail className="h-4 w-4 me-2" />
-                                                    {locale === 'ar' ? 'إرسال فاتورة' : 'Send Invoice'}
-                                                </DropdownMenuItem>
-                                                <DropdownMenuItem className="text-destructive">
-                                                    <Ban className="h-4 w-4 me-2" />
-                                                    {locale === 'ar' ? 'إلغاء الاشتراك' : 'Cancel Subscription'}
-                                                </DropdownMenuItem>
-                                            </DropdownMenuContent>
-                                        </DropdownMenu>
+                            {data?.subscriptions.length === 0 ? (
+                                <TableRow>
+                                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                                        {locale === 'ar' ? 'لا يوجد اشتراكات' : 'No subscriptions found'}
                                     </TableCell>
                                 </TableRow>
-                            ))}
+                            ) : (
+                                data?.subscriptions.map((sub) => (
+                                    <TableRow key={sub.id}>
+                                        <TableCell>
+                                            <div className="flex items-center gap-3">
+                                                {sub.user.image ? (
+                                                    <img
+                                                        src={sub.user.image}
+                                                        alt={sub.user.name}
+                                                        className="h-9 w-9 rounded-full object-cover"
+                                                    />
+                                                ) : (
+                                                    <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center text-sm font-medium text-primary">
+                                                        {sub.user.name.charAt(0).toUpperCase()}
+                                                    </div>
+                                                )}
+                                                <div>
+                                                    <p className="font-medium">{sub.user.name}</p>
+                                                    <p className="text-sm text-muted-foreground">{sub.user.email}</p>
+                                                </div>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell>
+                                            <Badge variant={sub.plan === 'ENTERPRISE' ? 'secondary' : 'default'}>
+                                                {sub.plan}
+                                            </Badge>
+                                        </TableCell>
+                                        <TableCell>{getStatusBadge(sub.status)}</TableCell>
+                                        <TableCell>${sub.amount}/mo</TableCell>
+                                        <TableCell>{formatDate(sub.currentPeriodStart)}</TableCell>
+                                        <TableCell>
+                                            {sub.cancelAtPeriodEnd ? (
+                                                <span className="text-red-500">
+                                                    {locale === 'ar' ? 'ينتهي ' : 'Ends '}
+                                                    {formatDate(sub.currentPeriodEnd)}
+                                                </span>
+                                            ) : (
+                                                formatDate(sub.currentPeriodEnd)
+                                            )}
+                                        </TableCell>
+                                        <TableCell>
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <Button variant="ghost" size="icon" disabled={actionLoading === sub.id}>
+                                                        {actionLoading === sub.id ? (
+                                                            <Loader2 className="h-4 w-4 animate-spin" />
+                                                        ) : (
+                                                            <MoreVertical className="h-4 w-4" />
+                                                        )}
+                                                    </Button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end">
+                                                    <DropdownMenuItem>
+                                                        <Eye className="h-4 w-4 me-2" />
+                                                        {locale === 'ar' ? 'عرض التفاصيل' : 'View Details'}
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem>
+                                                        <Mail className="h-4 w-4 me-2" />
+                                                        {locale === 'ar' ? 'إرسال فاتورة' : 'Send Invoice'}
+                                                    </DropdownMenuItem>
+                                                    {sub.status === 'CANCELED' ? (
+                                                        <DropdownMenuItem
+                                                            onClick={() => handleAction(sub.id, 'reactivate')}
+                                                        >
+                                                            <CheckCircle className="h-4 w-4 me-2" />
+                                                            {locale === 'ar' ? 'إعادة التفعيل' : 'Reactivate'}
+                                                        </DropdownMenuItem>
+                                                    ) : (
+                                                        <DropdownMenuItem
+                                                            className="text-destructive"
+                                                            onClick={() => handleAction(sub.id, 'cancel')}
+                                                        >
+                                                            <Ban className="h-4 w-4 me-2" />
+                                                            {locale === 'ar' ? 'إلغاء الاشتراك' : 'Cancel Subscription'}
+                                                        </DropdownMenuItem>
+                                                    )}
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
+                                        </TableCell>
+                                    </TableRow>
+                                ))
+                            )}
                         </TableBody>
                     </Table>
                 </CardContent>
             </Card>
+
+            {/* Pagination */}
+            {data && data.pagination.totalPages > 1 && (
+                <div className="flex items-center justify-between">
+                    <p className="text-sm text-muted-foreground">
+                        {locale === 'ar'
+                            ? `صفحة ${data.pagination.page} من ${data.pagination.totalPages}`
+                            : `Page ${data.pagination.page} of ${data.pagination.totalPages}`}
+                    </p>
+                    <div className="flex gap-2">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={page === 1}
+                            onClick={() => setPage((p) => p - 1)}
+                        >
+                            {locale === 'ar' ? 'السابق' : 'Previous'}
+                        </Button>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={page === data.pagination.totalPages}
+                            onClick={() => setPage((p) => p + 1)}
+                        >
+                            {locale === 'ar' ? 'التالي' : 'Next'}
+                        </Button>
+                    </div>
+                </div>
+            )}
         </div>
+    );
+}
+
+export default function AdminSubscriptionsPage() {
+    return (
+        <AdminServerGuard>
+            <AdminSubscriptionsContent />
+        </AdminServerGuard>
     );
 }

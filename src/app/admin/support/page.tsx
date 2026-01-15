@@ -1,12 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useLocale } from '@/components/providers/locale-provider';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card, CardContent } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Textarea } from '@/components/ui/textarea';
 import {
     Table,
     TableBody,
@@ -16,23 +18,25 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 import {
     MessageSquare,
     Search,
     Clock,
     CheckCircle2,
     AlertCircle,
-    User,
     MoreVertical,
     Reply,
     Archive,
-    TrendingUp,
+    RefreshCw,
+    Loader2,
+    Send,
 } from 'lucide-react';
 import {
     DropdownMenu,
@@ -40,80 +44,132 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { toast } from 'sonner';
+import { formatDistanceToNow } from 'date-fns';
+import { ar, enUS } from 'date-fns/locale';
+import { AdminServerGuard } from '../_components/admin-server-guard';
 
-// Mock support tickets
-const mockTickets = [
-    {
-        id: 'TKT-001',
-        user: 'Ahmed Al-Mansouri',
-        email: 'ahmed@example.com',
-        subject: 'Cannot export resume to PDF',
-        status: 'open',
-        priority: 'high',
-        created: new Date('2024-01-10T10:30:00'),
-        lastReply: new Date('2024-01-10T14:20:00'),
-    },
-    {
-        id: 'TKT-002',
-        user: 'Sarah Johnson',
-        email: 'sarah@example.com',
-        subject: 'Billing question about Pro plan',
-        status: 'pending',
-        priority: 'medium',
-        created: new Date('2024-01-09T15:45:00'),
-        lastReply: new Date('2024-01-10T09:00:00'),
-    },
-    {
-        id: 'TKT-003',
-        user: 'Mohammed Ali',
-        email: 'mohammed@example.com',
-        subject: 'Feature request: Dark mode',
-        status: 'closed',
-        priority: 'low',
-        created: new Date('2024-01-08T09:15:00'),
-        lastReply: new Date('2024-01-08T16:30:00'),
-    },
-    {
-        id: 'TKT-004',
-        user: 'Emma Wilson',
-        email: 'emma@example.com',
-        subject: 'ATS score not updating',
-        status: 'open',
-        priority: 'high',
-        created: new Date('2024-01-10T11:00:00'),
-        lastReply: null,
-    },
-];
+interface Ticket {
+    id: string;
+    subject: string;
+    message: string;
+    email: string;
+    status: string;
+    priority: string;
+    category: string | null;
+    user: {
+        id: string;
+        name: string;
+        email: string;
+        image: string | null;
+    } | null;
+    assignedTo: string | null;
+    lastResponse: {
+        message: string;
+        createdAt: string;
+    } | null;
+    createdAt: string;
+    updatedAt: string;
+    resolvedAt: string | null;
+}
 
-export default function AdminSupportPage() {
+interface TicketsData {
+    tickets: Ticket[];
+    stats: {
+        open: number;
+        inProgress: number;
+        closedToday: number;
+        urgent: number;
+        avgResponseTime: string;
+    };
+    pagination: {
+        page: number;
+        limit: number;
+        total: number;
+        totalPages: number;
+    };
+}
+
+function AdminSupportContent() {
     const { locale } = useLocale();
+    const [data, setData] = useState<TicketsData | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [actionLoading, setActionLoading] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
-    const [statusFilter, setStatusFilter] = useState('all');
     const [activeTab, setActiveTab] = useState('all');
-
-    const stats = [
-        { label: locale === 'ar' ? 'مفتوحة' : 'Open', value: 12, color: 'text-blue-500' },
-        { label: locale === 'ar' ? 'معلقة' : 'Pending', value: 8, color: 'text-amber-500' },
-        { label: locale === 'ar' ? 'مغلقة اليوم' : 'Closed Today', value: 15, color: 'text-green-500' },
-        { label: locale === 'ar' ? 'متوسط الرد' : 'Avg. Response', value: '2.5h', color: 'text-primary' },
-    ];
-
-    const filteredTickets = mockTickets.filter((ticket) => {
-        const matchesSearch =
-            ticket.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            ticket.user.toLowerCase().includes(searchQuery.toLowerCase());
-        const matchesStatus = statusFilter === 'all' || ticket.status === statusFilter;
-        const matchesTab = activeTab === 'all' || ticket.status === activeTab;
-        return matchesSearch && matchesStatus && matchesTab;
+    const [page, setPage] = useState(1);
+    const [replyDialog, setReplyDialog] = useState<{ open: boolean; ticket: Ticket | null }>({
+        open: false,
+        ticket: null,
     });
+    const [replyMessage, setReplyMessage] = useState('');
+
+    const fetchTickets = useCallback(async () => {
+        setLoading(true);
+        try {
+            const params = new URLSearchParams({
+                page: page.toString(),
+                limit: '20',
+                search: searchQuery,
+                status: activeTab === 'all' ? 'all' : activeTab.toUpperCase(),
+            });
+            const res = await fetch(`/api/admin/support?${params}`);
+            if (!res.ok) throw new Error('Failed to fetch tickets');
+            const json = await res.json();
+            setData(json);
+        } catch (error) {
+            toast.error('Failed to load tickets');
+            console.error(error);
+        } finally {
+            setLoading(false);
+        }
+    }, [page, searchQuery, activeTab]);
+
+    useEffect(() => {
+        const debounce = setTimeout(() => {
+            fetchTickets();
+        }, 300);
+        return () => clearTimeout(debounce);
+    }, [fetchTickets]);
+
+    const handleAction = async (ticketId: string, action: string, actionData?: any) => {
+        setActionLoading(ticketId);
+        try {
+            const res = await fetch('/api/admin/support', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ticketId, action, data: actionData }),
+            });
+            if (!res.ok) throw new Error('Action failed');
+            toast.success(`Ticket ${action} successful`);
+            fetchTickets();
+            setReplyDialog({ open: false, ticket: null });
+            setReplyMessage('');
+        } catch (error) {
+            toast.error(`Failed to ${action} ticket`);
+        } finally {
+            setActionLoading(null);
+        }
+    };
+
+    const formatTime = (dateString: string) => {
+        return formatDistanceToNow(new Date(dateString), {
+            addSuffix: true,
+            locale: locale === 'ar' ? ar : enUS,
+        });
+    };
 
     const getStatusBadge = (status: string) => {
         switch (status) {
-            case 'open':
+            case 'OPEN':
                 return <Badge className="bg-blue-500/10 text-blue-600">{locale === 'ar' ? 'مفتوح' : 'Open'}</Badge>;
-            case 'pending':
-                return <Badge className="bg-amber-500/10 text-amber-600">{locale === 'ar' ? 'معلق' : 'Pending'}</Badge>;
-            case 'closed':
+            case 'IN_PROGRESS':
+                return <Badge className="bg-amber-500/10 text-amber-600">{locale === 'ar' ? 'قيد المعالجة' : 'In Progress'}</Badge>;
+            case 'WAITING_ON_CUSTOMER':
+                return <Badge className="bg-purple-500/10 text-purple-600">{locale === 'ar' ? 'بانتظار الرد' : 'Waiting'}</Badge>;
+            case 'RESOLVED':
+                return <Badge className="bg-green-500/10 text-green-600">{locale === 'ar' ? 'تم الحل' : 'Resolved'}</Badge>;
+            case 'CLOSED':
                 return <Badge variant="secondary">{locale === 'ar' ? 'مغلق' : 'Closed'}</Badge>;
             default:
                 return <Badge variant="outline">{status}</Badge>;
@@ -122,37 +178,68 @@ export default function AdminSupportPage() {
 
     const getPriorityBadge = (priority: string) => {
         switch (priority) {
-            case 'high':
-                return <Badge variant="destructive">{locale === 'ar' ? 'عالي' : 'High'}</Badge>;
-            case 'medium':
+            case 'URGENT':
+                return <Badge variant="destructive">{locale === 'ar' ? 'عاجل' : 'Urgent'}</Badge>;
+            case 'HIGH':
+                return <Badge className="bg-red-500/10 text-red-600">{locale === 'ar' ? 'عالي' : 'High'}</Badge>;
+            case 'MEDIUM':
                 return <Badge className="bg-amber-500/10 text-amber-600">{locale === 'ar' ? 'متوسط' : 'Medium'}</Badge>;
-            case 'low':
+            case 'LOW':
                 return <Badge variant="outline">{locale === 'ar' ? 'منخفض' : 'Low'}</Badge>;
             default:
                 return <Badge variant="outline">{priority}</Badge>;
         }
     };
 
-    const formatTime = (date: Date | null) => {
-        if (!date) return '-';
-        return date.toLocaleString(locale === 'ar' ? 'ar-SA' : 'en-US', {
-            month: 'short',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-        });
-    };
+    const stats = data?.stats ? [
+        { label: locale === 'ar' ? 'مفتوحة' : 'Open', value: data.stats.open, color: 'text-blue-500' },
+        { label: locale === 'ar' ? 'قيد المعالجة' : 'In Progress', value: data.stats.inProgress, color: 'text-amber-500' },
+        { label: locale === 'ar' ? 'مغلقة اليوم' : 'Closed Today', value: data.stats.closedToday, color: 'text-green-500' },
+        { label: locale === 'ar' ? 'متوسط الرد' : 'Avg. Response', value: `${data.stats.avgResponseTime}h`, color: 'text-primary' },
+    ] : [];
+
+    if (loading && !data) {
+        return (
+            <div className="space-y-6">
+                <Skeleton className="h-10 w-48" />
+                <div className="grid gap-4 sm:grid-cols-4">
+                    {[1, 2, 3, 4].map((i) => (
+                        <Card key={i}>
+                            <CardContent className="pt-6">
+                                <Skeleton className="h-16 w-full" />
+                            </CardContent>
+                        </Card>
+                    ))}
+                </div>
+                <Card>
+                    <CardContent className="p-6">
+                        <div className="space-y-4">
+                            {[1, 2, 3, 4, 5].map((i) => (
+                                <Skeleton key={i} className="h-16 w-full" />
+                            ))}
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-6">
             {/* Header */}
-            <div>
-                <h1 className="text-2xl md:text-3xl font-bold">
-                    {locale === 'ar' ? 'تذاكر الدعم' : 'Support Tickets'}
-                </h1>
-                <p className="text-muted-foreground mt-1">
-                    {locale === 'ar' ? 'إدارة طلبات الدعم من المستخدمين' : 'Manage user support requests'}
-                </p>
+            <div className="flex items-center justify-between">
+                <div>
+                    <h1 className="text-2xl md:text-3xl font-bold">
+                        {locale === 'ar' ? 'تذاكر الدعم' : 'Support Tickets'}
+                    </h1>
+                    <p className="text-muted-foreground mt-1">
+                        {locale === 'ar' ? 'إدارة طلبات الدعم من المستخدمين' : 'Manage user support requests'}
+                    </p>
+                </div>
+                <Button variant="outline" onClick={fetchTickets} disabled={loading}>
+                    <RefreshCw className={`h-4 w-4 me-2 ${loading ? 'animate-spin' : ''}`} />
+                    {locale === 'ar' ? 'تحديث' : 'Refresh'}
+                </Button>
             </div>
 
             {/* Stats */}
@@ -169,7 +256,7 @@ export default function AdminSupportPage() {
 
             {/* Tabs and Filters */}
             <div className="flex flex-col sm:flex-row gap-4">
-                <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1">
+                <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v); setPage(1); }} className="flex-1">
                     <TabsList>
                         <TabsTrigger value="all">
                             {locale === 'ar' ? 'الكل' : 'All'}
@@ -178,13 +265,13 @@ export default function AdminSupportPage() {
                             <AlertCircle className="h-3 w-3" />
                             {locale === 'ar' ? 'مفتوح' : 'Open'}
                         </TabsTrigger>
-                        <TabsTrigger value="pending" className="gap-1">
+                        <TabsTrigger value="in_progress" className="gap-1">
                             <Clock className="h-3 w-3" />
-                            {locale === 'ar' ? 'معلق' : 'Pending'}
+                            {locale === 'ar' ? 'قيد المعالجة' : 'In Progress'}
                         </TabsTrigger>
-                        <TabsTrigger value="closed" className="gap-1">
+                        <TabsTrigger value="resolved" className="gap-1">
                             <CheckCircle2 className="h-3 w-3" />
-                            {locale === 'ar' ? 'مغلق' : 'Closed'}
+                            {locale === 'ar' ? 'تم الحل' : 'Resolved'}
                         </TabsTrigger>
                     </TabsList>
                 </Tabs>
@@ -196,7 +283,7 @@ export default function AdminSupportPage() {
                         placeholder={locale === 'ar' ? 'بحث...' : 'Search...'}
                         className="ps-10"
                         value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
+                        onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
                     />
                 </div>
             </div>
@@ -211,66 +298,181 @@ export default function AdminSupportPage() {
                                 <TableHead>{locale === 'ar' ? 'المستخدم' : 'User'}</TableHead>
                                 <TableHead>{locale === 'ar' ? 'الحالة' : 'Status'}</TableHead>
                                 <TableHead>{locale === 'ar' ? 'الأولوية' : 'Priority'}</TableHead>
-                                <TableHead>{locale === 'ar' ? 'آخر رد' : 'Last Reply'}</TableHead>
+                                <TableHead>{locale === 'ar' ? 'آخر تحديث' : 'Last Update'}</TableHead>
                                 <TableHead className="w-12"></TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {filteredTickets.map((ticket) => (
-                                <TableRow key={ticket.id}>
-                                    <TableCell>
-                                        <div>
-                                            <div className="flex items-center gap-2">
-                                                <code className="text-xs bg-muted px-1.5 py-0.5 rounded">{ticket.id}</code>
-                                            </div>
-                                            <p className="font-medium mt-1">{ticket.subject}</p>
-                                        </div>
-                                    </TableCell>
-                                    <TableCell>
-                                        <div className="flex items-center gap-2">
-                                            <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-medium text-primary">
-                                                {ticket.user.charAt(0)}
-                                            </div>
-                                            <div>
-                                                <p className="text-sm font-medium">{ticket.user}</p>
-                                                <p className="text-xs text-muted-foreground">{ticket.email}</p>
-                                            </div>
-                                        </div>
-                                    </TableCell>
-                                    <TableCell>{getStatusBadge(ticket.status)}</TableCell>
-                                    <TableCell>{getPriorityBadge(ticket.priority)}</TableCell>
-                                    <TableCell className="text-sm text-muted-foreground">
-                                        {formatTime(ticket.lastReply)}
-                                    </TableCell>
-                                    <TableCell>
-                                        <DropdownMenu>
-                                            <DropdownMenuTrigger asChild>
-                                                <Button variant="ghost" size="icon">
-                                                    <MoreVertical className="h-4 w-4" />
-                                                </Button>
-                                            </DropdownMenuTrigger>
-                                            <DropdownMenuContent align="end">
-                                                <DropdownMenuItem>
-                                                    <Reply className="h-4 w-4 me-2" />
-                                                    {locale === 'ar' ? 'رد' : 'Reply'}
-                                                </DropdownMenuItem>
-                                                <DropdownMenuItem>
-                                                    <CheckCircle2 className="h-4 w-4 me-2" />
-                                                    {locale === 'ar' ? 'إغلاق' : 'Close'}
-                                                </DropdownMenuItem>
-                                                <DropdownMenuItem>
-                                                    <Archive className="h-4 w-4 me-2" />
-                                                    {locale === 'ar' ? 'أرشفة' : 'Archive'}
-                                                </DropdownMenuItem>
-                                            </DropdownMenuContent>
-                                        </DropdownMenu>
+                            {data?.tickets.length === 0 ? (
+                                <TableRow>
+                                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                                        <MessageSquare className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                                        {locale === 'ar' ? 'لا توجد تذاكر' : 'No tickets found'}
                                     </TableCell>
                                 </TableRow>
-                            ))}
+                            ) : (
+                                data?.tickets.map((ticket) => (
+                                    <TableRow key={ticket.id}>
+                                        <TableCell>
+                                            <div>
+                                                <div className="flex items-center gap-2">
+                                                    <code className="text-xs bg-muted px-1.5 py-0.5 rounded">
+                                                        {ticket.id.slice(0, 8)}
+                                                    </code>
+                                                </div>
+                                                <p className="font-medium mt-1">{ticket.subject}</p>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell>
+                                            <div className="flex items-center gap-2">
+                                                {ticket.user?.image ? (
+                                                    <img
+                                                        src={ticket.user.image}
+                                                        alt={ticket.user.name || ''}
+                                                        className="h-8 w-8 rounded-full object-cover"
+                                                    />
+                                                ) : (
+                                                    <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-medium text-primary">
+                                                        {(ticket.user?.name || ticket.email).charAt(0).toUpperCase()}
+                                                    </div>
+                                                )}
+                                                <div>
+                                                    <p className="text-sm font-medium">
+                                                        {ticket.user?.name || 'Guest'}
+                                                    </p>
+                                                    <p className="text-xs text-muted-foreground">{ticket.email}</p>
+                                                </div>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell>{getStatusBadge(ticket.status)}</TableCell>
+                                        <TableCell>{getPriorityBadge(ticket.priority)}</TableCell>
+                                        <TableCell className="text-sm text-muted-foreground">
+                                            {formatTime(ticket.updatedAt)}
+                                        </TableCell>
+                                        <TableCell>
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <Button variant="ghost" size="icon" disabled={actionLoading === ticket.id}>
+                                                        {actionLoading === ticket.id ? (
+                                                            <Loader2 className="h-4 w-4 animate-spin" />
+                                                        ) : (
+                                                            <MoreVertical className="h-4 w-4" />
+                                                        )}
+                                                    </Button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end">
+                                                    <DropdownMenuItem
+                                                        onClick={() => setReplyDialog({ open: true, ticket })}
+                                                    >
+                                                        <Reply className="h-4 w-4 me-2" />
+                                                        {locale === 'ar' ? 'رد' : 'Reply'}
+                                                    </DropdownMenuItem>
+                                                    {ticket.status !== 'RESOLVED' && ticket.status !== 'CLOSED' && (
+                                                        <DropdownMenuItem
+                                                            onClick={() => handleAction(ticket.id, 'resolve')}
+                                                        >
+                                                            <CheckCircle2 className="h-4 w-4 me-2" />
+                                                            {locale === 'ar' ? 'حل' : 'Resolve'}
+                                                        </DropdownMenuItem>
+                                                    )}
+                                                    <DropdownMenuItem
+                                                        onClick={() => handleAction(ticket.id, 'close')}
+                                                    >
+                                                        <Archive className="h-4 w-4 me-2" />
+                                                        {locale === 'ar' ? 'إغلاق' : 'Close'}
+                                                    </DropdownMenuItem>
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
+                                        </TableCell>
+                                    </TableRow>
+                                ))
+                            )}
                         </TableBody>
                     </Table>
                 </CardContent>
             </Card>
+
+            {/* Pagination */}
+            {data && data.pagination.totalPages > 1 && (
+                <div className="flex items-center justify-between">
+                    <p className="text-sm text-muted-foreground">
+                        {locale === 'ar'
+                            ? `صفحة ${data.pagination.page} من ${data.pagination.totalPages}`
+                            : `Page ${data.pagination.page} of ${data.pagination.totalPages}`}
+                    </p>
+                    <div className="flex gap-2">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={page === 1}
+                            onClick={() => setPage((p) => p - 1)}
+                        >
+                            {locale === 'ar' ? 'السابق' : 'Previous'}
+                        </Button>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={page === data.pagination.totalPages}
+                            onClick={() => setPage((p) => p + 1)}
+                        >
+                            {locale === 'ar' ? 'التالي' : 'Next'}
+                        </Button>
+                    </div>
+                </div>
+            )}
+
+            {/* Reply Dialog */}
+            <Dialog open={replyDialog.open} onOpenChange={(open) => { setReplyDialog({ open, ticket: null }); setReplyMessage(''); }}>
+                <DialogContent className="max-w-lg">
+                    <DialogHeader>
+                        <DialogTitle>
+                            {locale === 'ar' ? 'الرد على التذكرة' : 'Reply to Ticket'}
+                        </DialogTitle>
+                        <DialogDescription>
+                            {replyDialog.ticket?.subject}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                        <div className="p-4 bg-muted rounded-lg">
+                            <p className="text-sm font-medium mb-1">
+                                {replyDialog.ticket?.user?.name || 'Guest'}
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                                {replyDialog.ticket?.message}
+                            </p>
+                        </div>
+                        <Textarea
+                            placeholder={locale === 'ar' ? 'اكتب ردك هنا...' : 'Type your reply...'}
+                            value={replyMessage}
+                            onChange={(e) => setReplyMessage(e.target.value)}
+                            rows={4}
+                        />
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => { setReplyDialog({ open: false, ticket: null }); setReplyMessage(''); }}>
+                            {locale === 'ar' ? 'إلغاء' : 'Cancel'}
+                        </Button>
+                        <Button
+                            onClick={() => replyDialog.ticket && handleAction(replyDialog.ticket.id, 'reply', { message: replyMessage })}
+                            disabled={!replyMessage.trim() || actionLoading === replyDialog.ticket?.id}
+                        >
+                            {actionLoading === replyDialog.ticket?.id && (
+                                <Loader2 className="h-4 w-4 me-2 animate-spin" />
+                            )}
+                            <Send className="h-4 w-4 me-2" />
+                            {locale === 'ar' ? 'إرسال' : 'Send'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
+    );
+}
+
+export default function AdminSupportPage() {
+    return (
+        <AdminServerGuard>
+            <AdminSupportContent />
+        </AdminServerGuard>
     );
 }

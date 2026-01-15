@@ -4,9 +4,9 @@ import { auth } from '@/lib/auth';
 export async function AdminServerGuard({ children }: { children: React.ReactNode }) {
     const session = await auth();
 
-    // Check if user is authenticated
+    // Check if user is authenticated - redirect to admin login
     if (!session?.user) {
-        redirect('/login?callbackUrl=/admin&admin=true');
+        redirect('/admin/login');
     }
 
     // Check if user has admin role

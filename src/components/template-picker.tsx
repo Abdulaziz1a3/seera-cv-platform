@@ -25,7 +25,7 @@ interface TemplatePickerProps {
 
 export function TemplatePicker({ isOpen, onClose, resume }: TemplatePickerProps) {
     const { locale } = useLocale();
-    const [selectedLayout, setSelectedLayout] = useState<TemplateLayout>('modern');
+    const [selectedLayout, setSelectedLayout] = useState<TemplateLayout>('executive');
     const [selectedTheme, setSelectedTheme] = useState<ThemeColor>('obsidian');
     const [downloading, setDownloading] = useState(false);
     const [activeTab, setActiveTab] = useState<string>('layout');

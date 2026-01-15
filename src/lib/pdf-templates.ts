@@ -63,39 +63,23 @@ export const THEMES: Record<ThemeColor, ThemePalette> = {
 export const LAYOUTS: { id: TemplateLayout; name: { en: string; ar: string }; description: { en: string; ar: string }; premium: boolean }[] = [
     {
         id: 'executive',
-        name: { en: 'The Executive', ar: 'التنفيذي' },
-        description: { en: 'Classic serif, gold-standard. Best for Management.', ar: 'كلاسيكي بخط مميز، المعيار الذهبي للإدارة.' },
-        premium: true
+        name: { en: 'Master Executive', ar: 'ماستر تنفيذي' },
+        description: { en: 'Executive layout with bold name + clean sections.', ar: 'قالب تنفيذي مع اسم بارز وأقسام مرتبة.' },
+        premium: false,
     },
     {
+        // NOTE: we keep the underlying id as "modern" for backwards compatibility,
+        // but present it to users as the "Master Split" template.
         id: 'modern',
-        name: { en: 'The Modern', ar: 'العصري' },
-        description: { en: 'Clean, sidebar-based. Best for Tech.', ar: 'نظيف، شريط جانبي. مثالي للتقنية.' },
-        premium: false
-    },
-    {
-        id: 'professional',
-        name: { en: 'The Professional', ar: 'الاحترافي' },
-        description: { en: 'Balanced, dense info. Best for Business.', ar: 'متوازن، معلومات مكثفة. مثالي للأعمال.' },
-        premium: false
+        name: { en: 'Master Split', ar: 'ماستر مقسّم' },
+        description: { en: 'Split layout with dark sidebar + strong hierarchy.', ar: 'قالب مقسّم مع شريط جانبي داكن وتسلسل واضح.' },
+        premium: false,
     },
     {
         id: 'creative',
-        name: { en: 'The Creative', ar: 'الإبداعي' },
-        description: { en: 'Bold headers, unique shapes. Best for Design.', ar: 'ترويس عريض، أشكال فريدة. مثالي للتصميم.' },
-        premium: true
-    },
-    {
-        id: 'minimalist',
-        name: { en: 'The Minimalist', ar: 'البسيط' },
-        description: { en: 'Ultra-clean, whitespace-heavy. Best for Architecture.', ar: 'نظيف جداً، مساحات بيضاء. مثالي العمارة.' },
-        premium: false
-    },
-    {
-        id: 'startup',
-        name: { en: 'The Startup', ar: 'الريادي' },
-        description: { en: 'Skills-forward, high-impact. Best for Freelancers.', ar: 'التركيز على المهارات، تأثير عالي. مثالي للمستقلين.' },
-        premium: true
+        name: { en: 'Master Creative', ar: 'ماستر إبداعي' },
+        description: { en: 'Bold hero header + modern two-column content.', ar: 'رأس جريء مع تخطيط عمودين حديث.' },
+        premium: false,
     },
 ];
 
@@ -116,63 +100,59 @@ function formatDate(dateStr: string): string {
 }
 
 // ==========================================
-// 1. MODERN TEMPLATE - Two column, sidebar accent
+// 1. MASTER SPLIT (modern id) - Two column, dark sidebar
 // ==========================================
 function renderModernTemplate(doc: jsPDF, resume: ResumeData, colors: ThemePalette) {
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();
     const sidebarWidth = 65;
 
-    // Sidebar background
-    doc.setFillColor(hexToRgb(colors.primary).r, hexToRgb(colors.primary).g, hexToRgb(colors.primary).b);
+    // Sidebar background (darker for "Master Split" feel)
+    const sidebarColor = colors.secondary || colors.primary;
+    doc.setFillColor(hexToRgb(sidebarColor).r, hexToRgb(sidebarColor).g, hexToRgb(sidebarColor).b);
     doc.rect(0, 0, sidebarWidth, pageHeight, 'F');
 
     // Sidebar content
     let sideY = 25;
 
-    // Name in sidebar
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(18);
-    doc.setFont('helvetica', 'bold');
-    const nameLines = doc.splitTextToSize(resume.contact.fullName || 'Your Name', sidebarWidth - 10);
-    nameLines.forEach((line: string) => {
-        doc.text(line, 5, sideY);
-        sideY += 7;
-    });
+    // Avatar circle placeholder (optional)
+    doc.setFillColor(255, 255, 255, 0.12);
+    doc.circle(sidebarWidth / 2, sideY + 8, 10, 'F');
+    sideY += 26;
 
-    // Contact section in sidebar
-    sideY += 10;
+    // Contact section in sidebar (Master Split style)
+    doc.setTextColor(255, 255, 255);
     doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
-    doc.text('CONTACT', 5, sideY);
+    doc.text('CONTACT', 7, sideY);
     sideY += 8;
 
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(9);
     if (resume.contact.email) {
-        doc.text('✉', 5, sideY);
+        doc.text('✉', 7, sideY);
         const emailLines = doc.splitTextToSize(resume.contact.email, sidebarWidth - 15);
         emailLines.forEach((line: string) => {
-            doc.text(line, 12, sideY);
+            doc.text(line, 14, sideY);
             sideY += 5;
         });
     }
     if (resume.contact.phone) {
-        doc.text('📱', 5, sideY);
-        doc.text(resume.contact.phone, 12, sideY);
+        doc.text('📱', 7, sideY);
+        doc.text(resume.contact.phone, 14, sideY);
         sideY += 5;
     }
     if (resume.contact.location) {
-        doc.text('📍', 5, sideY);
-        doc.text(resume.contact.location, 12, sideY);
+        doc.text('📍', 7, sideY);
+        doc.text(resume.contact.location, 14, sideY);
         sideY += 5;
     }
     if (resume.contact.linkedin) {
         sideY += 2;
-        doc.text('🔗', 5, sideY);
+        doc.text('🔗', 7, sideY);
         const linkedInLines = doc.splitTextToSize(resume.contact.linkedin.replace('https://', ''), sidebarWidth - 15);
         linkedInLines.forEach((line: string) => {
-            doc.text(line, 12, sideY);
+            doc.text(line, 14, sideY);
             sideY += 5;
         });
     }
@@ -182,7 +162,7 @@ function renderModernTemplate(doc: jsPDF, resume: ResumeData, colors: ThemePalet
         sideY += 15;
         doc.setFontSize(10);
         doc.setFont('helvetica', 'bold');
-        doc.text('SKILLS', 5, sideY);
+        doc.text('SKILLS', 7, sideY);
         sideY += 8;
 
         doc.setFont('helvetica', 'normal');
@@ -190,8 +170,8 @@ function renderModernTemplate(doc: jsPDF, resume: ResumeData, colors: ThemePalet
         resume.skills.slice(0, 15).forEach((skill) => {
             // Skill pill
             doc.setFillColor(255, 255, 255, 0.2);
-            doc.roundedRect(5, sideY - 3.5, sidebarWidth - 10, 5, 1, 1, 'F');
-            doc.text(skill, 7, sideY);
+            doc.roundedRect(7, sideY - 3.5, sidebarWidth - 14, 5, 1, 1, 'F');
+            doc.text(skill, 9, sideY);
             sideY += 7;
         });
     }
@@ -217,17 +197,37 @@ function renderModernTemplate(doc: jsPDF, resume: ResumeData, colors: ThemePalet
     const mainX = sidebarWidth + 10;
     const mainWidth = pageWidth - sidebarWidth - 20;
 
+    // Big name + role in main content (Master Split)
+    doc.setTextColor(hexToRgb(colors.text).r, hexToRgb(colors.text).g, hexToRgb(colors.text).b);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(26);
+    const fullName = (resume.contact.fullName || 'Your Name').toUpperCase();
+    const nameLinesMain = doc.splitTextToSize(fullName, mainWidth);
+    nameLinesMain.forEach((line: string) => {
+        doc.text(line, mainX, mainY);
+        mainY += 9;
+    });
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(11);
+    doc.setTextColor(hexToRgb(colors.muted).r, hexToRgb(colors.muted).g, hexToRgb(colors.muted).b);
+    if (resume.title) {
+        doc.text(resume.title.toUpperCase(), mainX, mainY);
+        mainY += 10;
+    } else {
+        mainY += 6;
+    }
+
     // Summary
     if (resume.summary) {
         doc.setTextColor(hexToRgb(colors.text).r, hexToRgb(colors.text).g, hexToRgb(colors.text).b);
         doc.setFontSize(12);
         doc.setFont('helvetica', 'bold');
-        doc.text('PROFESSIONAL SUMMARY', mainX, mainY);
-        mainY += 3;
-        doc.setDrawColor(hexToRgb(colors.primary).r, hexToRgb(colors.primary).g, hexToRgb(colors.primary).b);
-        doc.setLineWidth(0.8);
-        doc.line(mainX, mainY, mainX + 40, mainY);
-        mainY += 6;
+        // Blue-accent left border feel
+        doc.setDrawColor(hexToRgb(colors.accent).r, hexToRgb(colors.accent).g, hexToRgb(colors.accent).b);
+        doc.setLineWidth(2);
+        doc.line(mainX, mainY - 3, mainX, mainY + 5);
+        doc.text('PROFILE', mainX + 4, mainY);
+        mainY += 8;
 
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(10);
@@ -245,11 +245,11 @@ function renderModernTemplate(doc: jsPDF, resume: ResumeData, colors: ThemePalet
         doc.setTextColor(hexToRgb(colors.text).r, hexToRgb(colors.text).g, hexToRgb(colors.text).b);
         doc.setFontSize(12);
         doc.setFont('helvetica', 'bold');
-        doc.text('EXPERIENCE', mainX, mainY);
-        mainY += 3;
-        doc.setDrawColor(hexToRgb(colors.primary).r, hexToRgb(colors.primary).g, hexToRgb(colors.primary).b);
-        doc.line(mainX, mainY, mainX + 30, mainY);
-        mainY += 6;
+        doc.setDrawColor(hexToRgb(colors.accent).r, hexToRgb(colors.accent).g, hexToRgb(colors.accent).b);
+        doc.setLineWidth(2);
+        doc.line(mainX, mainY - 3, mainX, mainY + 5);
+        doc.text('EXPERIENCE', mainX + 4, mainY);
+        mainY += 10;
 
         resume.experience.forEach((exp) => {
             if (mainY > pageHeight - 30) {
@@ -266,7 +266,7 @@ function renderModernTemplate(doc: jsPDF, resume: ResumeData, colors: ThemePalet
             // Date range
             doc.setFontSize(9);
             doc.setFont('helvetica', 'normal');
-            doc.setTextColor(hexToRgb(colors.primary).r, hexToRgb(colors.primary).g, hexToRgb(colors.primary).b);
+            doc.setTextColor(hexToRgb(colors.accent).r, hexToRgb(colors.accent).g, hexToRgb(colors.accent).b);
             const dateText = `${formatDate(exp.startDate)} - ${exp.current ? 'Present' : formatDate(exp.endDate)}`;
             doc.text(dateText, pageWidth - 15 - doc.getTextWidth(dateText), mainY);
             mainY += 5;
@@ -280,7 +280,7 @@ function renderModernTemplate(doc: jsPDF, resume: ResumeData, colors: ThemePalet
             // Bullets
             doc.setFontSize(9);
             exp.bullets.filter(b => b.trim()).forEach((bullet) => {
-                doc.setTextColor(hexToRgb(colors.primary).r, hexToRgb(colors.primary).g, hexToRgb(colors.primary).b);
+                doc.setTextColor(hexToRgb(colors.accent).r, hexToRgb(colors.accent).g, hexToRgb(colors.accent).b);
                 doc.text('▸', mainX, mainY);
                 doc.setTextColor(hexToRgb(colors.text).r, hexToRgb(colors.text).g, hexToRgb(colors.text).b);
                 const bulletLines = doc.splitTextToSize(bullet, mainWidth - 8);
@@ -326,53 +326,67 @@ function renderModernTemplate(doc: jsPDF, resume: ResumeData, colors: ThemePalet
 }
 
 // ==========================================
-// 2. EXECUTIVE TEMPLATE - Gold accents, elegant
+// 2. MASTER EXECUTIVE - Clean header, section dividers (based on provided HTML)
 // ==========================================
 function renderExecutiveTemplate(doc: jsPDF, resume: ResumeData, colors: ThemePalette) {
     const pageWidth = doc.internal.pageSize.getWidth();
     const margin = 20;
     let y = 25;
 
-    // Top border with accent
-    doc.setFillColor(hexToRgb(colors.accent).r, hexToRgb(colors.accent).g, hexToRgb(colors.accent).b);
-    doc.rect(0, 0, pageWidth, 6, 'F');
+    // Header divider line (like HTML border-bottom)
+    doc.setDrawColor(hexToRgb(colors.primary).r, hexToRgb(colors.primary).g, hexToRgb(colors.primary).b);
+    doc.setLineWidth(0.8);
 
-    // Name centered
-    doc.setFontSize(28);
+    // Name (uppercase, left)
+    doc.setFontSize(26);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(hexToRgb(colors.primary).r, hexToRgb(colors.primary).g, hexToRgb(colors.primary).b);
-    doc.text(resume.contact.fullName || 'Your Name', pageWidth / 2, y, { align: 'center' });
-    y += 10;
-
-    // Contact info centered
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(hexToRgb(colors.muted).r, hexToRgb(colors.muted).g, hexToRgb(colors.muted).b);
-    const contactParts = [
-        resume.contact.email,
-        resume.contact.phone,
-        resume.contact.location,
-    ].filter(Boolean);
-    doc.text(contactParts.join('  ◆  '), pageWidth / 2, y, { align: 'center' });
+    doc.text((resume.contact.fullName || 'Your Name').toUpperCase(), margin, y);
     y += 8;
 
-    // Divider line
-    doc.setDrawColor(hexToRgb(colors.accent).r, hexToRgb(colors.accent).g, hexToRgb(colors.accent).b);
-    doc.setLineWidth(1);
+    // Role / title (use resume.title if available)
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(hexToRgb(colors.muted).r, hexToRgb(colors.muted).g, hexToRgb(colors.muted).b);
+    if (resume.title) {
+        doc.text(resume.title, margin, y);
+        y += 6;
+    }
+
+    // Contact info row
+    doc.setFontSize(9.5);
+    const contactParts = [resume.contact.email, resume.contact.phone, resume.contact.location].filter(Boolean);
+    if (contactParts.length) {
+        doc.text(contactParts.join('  •  '), margin, y);
+        y += 6;
+    }
+
+    // Divider under header
     doc.line(margin, y, pageWidth - margin, y);
-    y += 12;
+    y += 10;
 
     // Summary
     if (resume.summary) {
+        // Section title
+        doc.setFontSize(11);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(hexToRgb(colors.primary).r, hexToRgb(colors.primary).g, hexToRgb(colors.primary).b);
+        doc.text('PROFESSIONAL SUMMARY', margin, y);
+        y += 4;
+        doc.setDrawColor(220, 220, 220);
+        doc.setLineWidth(0.3);
+        doc.line(margin, y, pageWidth - margin, y);
+        y += 6;
+
+        doc.setFont('helvetica', 'normal');
         doc.setFontSize(10);
-        doc.setFont('helvetica', 'italic');
         doc.setTextColor(hexToRgb(colors.text).r, hexToRgb(colors.text).g, hexToRgb(colors.text).b);
         const summaryLines = doc.splitTextToSize(resume.summary, pageWidth - 2 * margin);
         summaryLines.forEach((line: string) => {
-            doc.text(line, pageWidth / 2, y, { align: 'center' });
+            doc.text(line, margin, y);
             y += 5;
         });
-        y += 8;
+        y += 6;
     }
 
     // Section header helper
@@ -383,8 +397,8 @@ function renderExecutiveTemplate(doc: jsPDF, resume: ResumeData, colors: ThemePa
         doc.setTextColor(hexToRgb(colors.primary).r, hexToRgb(colors.primary).g, hexToRgb(colors.primary).b);
         doc.text(title, margin, y);
         y += 2;
-        doc.setDrawColor(hexToRgb(colors.accent).r, hexToRgb(colors.accent).g, hexToRgb(colors.accent).b);
-        doc.setLineWidth(0.5);
+        doc.setDrawColor(220, 220, 220);
+        doc.setLineWidth(0.3);
         doc.line(margin, y, pageWidth - margin, y);
         y += 8;
     };
@@ -568,136 +582,124 @@ function renderMinimalistTemplate(doc: jsPDF, resume: ResumeData, colors: ThemeP
 }
 
 // ==========================================
-// 4. CREATIVE TEMPLATE - Color blocks, modern
+// 4. MASTER CREATIVE - Hero header + two columns (based on provided HTML)
 // ==========================================
 function renderCreativeTemplate(doc: jsPDF, resume: ResumeData, colors: ThemePalette) {
     const pageWidth = doc.internal.pageSize.getWidth();
-    const margin = 15;
+    const margin = 18;
 
-    // Large colorful header block
-    doc.setFillColor(hexToRgb(colors.primary).r, hexToRgb(colors.primary).g, hexToRgb(colors.primary).b);
-    doc.rect(0, 0, pageWidth, 50, 'F');
+    // Hero header block
+    const headerH = 55;
+    doc.setFillColor(hexToRgb(colors.secondary).r, hexToRgb(colors.secondary).g, hexToRgb(colors.secondary).b);
+    doc.rect(0, 0, pageWidth, headerH, 'F');
 
-    // Accent triangle
+    // Accent stripe (left)
     doc.setFillColor(hexToRgb(colors.accent).r, hexToRgb(colors.accent).g, hexToRgb(colors.accent).b);
-    doc.triangle(pageWidth - 40, 0, pageWidth, 0, pageWidth, 50, 'F');
+    doc.rect(margin, 18, 2, 26, 'F');
 
-    // Name in header
-    doc.setFontSize(26);
-    doc.setFont('helvetica', 'bold');
+    // Name (uppercase) + role
     doc.setTextColor(255, 255, 255);
-    doc.text(resume.contact.fullName || 'Your Name', margin, 25);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(22);
+    const name = (resume.contact.fullName || 'Your Name').toUpperCase();
+    const nameLines = doc.splitTextToSize(name, pageWidth - 2 * margin - 6);
+    let nameY = 26;
+    nameLines.slice(0, 2).forEach((line: string) => {
+        doc.text(line, margin + 6, nameY);
+        nameY += 10;
+    });
 
-    // Title/role
-    doc.setFontSize(12);
     doc.setFont('helvetica', 'normal');
-    doc.text(resume.contact.email || '', margin, 38);
+    doc.setFontSize(11);
+    doc.setTextColor(hexToRgb(colors.accent).r, hexToRgb(colors.accent).g, hexToRgb(colors.accent).b);
+    if (resume.title) {
+        doc.text(resume.title.toUpperCase(), margin + 6, 44);
+    }
 
-    let y = 65;
-
-    // Contact box
-    doc.setFillColor(hexToRgb(colors.bg).r, hexToRgb(colors.bg).g, hexToRgb(colors.bg).b);
-    doc.roundedRect(margin, y - 8, pageWidth - 2 * margin, 18, 3, 3, 'F');
-
-    doc.setFontSize(9);
+    // Contact bar (below header)
+    let y = headerH + 10;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9.5);
     doc.setTextColor(hexToRgb(colors.text).r, hexToRgb(colors.text).g, hexToRgb(colors.text).b);
-    const contactInfo = [
-        resume.contact.phone && `📱 ${resume.contact.phone}`,
-        resume.contact.location && `📍 ${resume.contact.location}`,
-        resume.contact.linkedin && `🔗 ${resume.contact.linkedin}`,
-    ].filter(Boolean).join('     ');
-    doc.text(contactInfo, margin + 5, y);
-    y += 20;
+    const contactBar = [resume.contact.email, resume.contact.phone].filter(Boolean).join('   ');
+    if (contactBar) {
+        doc.text(contactBar, pageWidth - margin, y, { align: 'right' });
+        y += 10;
+    }
 
-    const addColorSection = (title: string, color: string) => {
-        y += 5;
-        doc.setFillColor(hexToRgb(color).r, hexToRgb(color).g, hexToRgb(color).b);
-        doc.roundedRect(margin, y - 5, 4, 10, 1, 1, 'F');
-        doc.setFontSize(12);
+    // Two columns content
+    const gap = 10;
+    const leftW = 55; // ~30%
+    const rightX = margin + leftW + gap;
+    const rightW = pageWidth - rightX - margin;
+    let leftY = y;
+    let rightY = y;
+
+    // Left: Skills
+    const addCreativeSectionTitle = (title: string, x: number, yy: number) => {
         doc.setFont('helvetica', 'bold');
+        doc.setFontSize(12);
         doc.setTextColor(hexToRgb(colors.text).r, hexToRgb(colors.text).g, hexToRgb(colors.text).b);
-        doc.text(title, margin + 8, y + 2);
-        y += 12;
+        // Dot indicator
+        doc.setFillColor(hexToRgb(colors.accent).r, hexToRgb(colors.accent).g, hexToRgb(colors.accent).b);
+        doc.circle(x + 2, yy - 2, 2, 'F');
+        doc.text(title.toUpperCase(), x + 7, yy);
+        return yy + 8;
     };
 
-    // Summary
-    if (resume.summary) {
-        addColorSection('About Me', colors.primary);
-        doc.setFontSize(10);
-        doc.setFont('helvetica', 'normal');
-        const summaryLines = doc.splitTextToSize(resume.summary, pageWidth - 2 * margin);
-        summaryLines.forEach((line: string) => {
-            doc.text(line, margin, y);
-            y += 5;
-        });
-        y += 5;
-    }
-
-    // Experience
-    if (resume.experience.length > 0) {
-        addColorSection('Experience', colors.accent);
-
-        resume.experience.forEach((exp) => {
-            doc.setFontSize(11);
-            doc.setFont('helvetica', 'bold');
-            doc.setTextColor(hexToRgb(colors.secondary).r, hexToRgb(colors.secondary).g, hexToRgb(colors.secondary).b);
-            doc.text(exp.position, margin, y);
-            y += 5;
-
-            doc.setFontSize(9);
-            doc.setFont('helvetica', 'normal');
-            doc.setTextColor(hexToRgb(colors.muted).r, hexToRgb(colors.muted).g, hexToRgb(colors.muted).b);
-            doc.text(`${exp.company} | ${formatDate(exp.startDate)} - ${exp.current ? 'Present' : formatDate(exp.endDate)}`, margin, y);
-            y += 5;
-
-            doc.setFontSize(9);
-            doc.setTextColor(hexToRgb(colors.text).r, hexToRgb(colors.text).g, hexToRgb(colors.text).b);
-            exp.bullets.filter(b => b.trim()).slice(0, 3).forEach((bullet) => {
-                doc.text(`► ${bullet}`, margin + 2, y);
-                y += 4.5;
-            });
-            y += 4;
-        });
-    }
-
-    // Skills - as colored tags
     if (resume.skills.length > 0) {
-        addColorSection('Skills', colors.primary);
-        let skillX = margin;
-        let skillY = y;
+        leftY = addCreativeSectionTitle('Skills', margin, leftY);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(9);
 
-        doc.setFontSize(8);
-        resume.skills.forEach((skill) => {
-            const skillWidth = doc.getTextWidth(skill) + 8;
-            if (skillX + skillWidth > pageWidth - margin) {
-                skillX = margin;
-                skillY += 8;
-            }
-
-            doc.setFillColor(hexToRgb(colors.primary).r, hexToRgb(colors.primary).g, hexToRgb(colors.primary).b);
-            doc.roundedRect(skillX, skillY - 4, skillWidth, 7, 2, 2, 'F');
-            doc.setTextColor(255, 255, 255);
-            doc.text(skill, skillX + 4, skillY);
-            skillX += skillWidth + 3;
+        resume.skills.slice(0, 18).forEach((skill) => {
+            const pillW = Math.min(leftW, doc.getTextWidth(skill) + 10);
+            doc.setFillColor(223, 230, 233); // dfe6e9
+            doc.roundedRect(margin, leftY - 4, pillW, 7, 3.5, 3.5, 'F');
+            doc.setTextColor(hexToRgb(colors.text).r, hexToRgb(colors.text).g, hexToRgb(colors.text).b);
+            doc.text(skill, margin + 4, leftY);
+            leftY += 9;
         });
-        y = skillY + 12;
     }
 
-    // Education
-    if (resume.education.length > 0) {
-        addColorSection('Education', colors.accent);
+    // Right: Summary + Experience
+    if (resume.summary) {
+        rightY = addCreativeSectionTitle('Profile', rightX, rightY);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(10);
+        doc.setTextColor(hexToRgb(colors.muted).r, hexToRgb(colors.muted).g, hexToRgb(colors.muted).b);
+        doc.splitTextToSize(resume.summary, rightW).forEach((line: string) => {
+            doc.text(line, rightX, rightY);
+            rightY += 5;
+        });
+        rightY += 6;
+    }
 
-        resume.education.forEach((edu) => {
-            doc.setFontSize(10);
+    if (resume.experience.length > 0) {
+        rightY = addCreativeSectionTitle('Experience', rightX, rightY);
+        resume.experience.forEach((exp) => {
             doc.setFont('helvetica', 'bold');
+            doc.setFontSize(11);
             doc.setTextColor(hexToRgb(colors.text).r, hexToRgb(colors.text).g, hexToRgb(colors.text).b);
-            doc.text(`${edu.degree}${edu.field ? ' in ' + edu.field : ''}`, margin, y);
-            y += 5;
+            doc.text(exp.position || 'Position', rightX, rightY);
+            rightY += 5;
+
             doc.setFont('helvetica', 'normal');
-            doc.setFontSize(9);
+            doc.setFontSize(9.5);
             doc.setTextColor(hexToRgb(colors.muted).r, hexToRgb(colors.muted).g, hexToRgb(colors.muted).b);
-            doc.text(`${edu.institution} | ${formatDate(edu.graduationDate)}`, margin, y);
-            y += 7;
+            const meta = `${exp.company}${exp.company ? ' • ' : ''}${formatDate(exp.startDate)} - ${exp.current ? 'Present' : formatDate(exp.endDate)}`;
+            doc.text(meta, rightX, rightY);
+            rightY += 5;
+
+            doc.setFontSize(9.5);
+            doc.setTextColor(hexToRgb(colors.text).r, hexToRgb(colors.text).g, hexToRgb(colors.text).b);
+            exp.bullets.filter(b => b.trim()).slice(0, 2).forEach((b) => {
+                doc.splitTextToSize(b, rightW).forEach((line: string) => {
+                    doc.text(line, rightX, rightY);
+                    rightY += 4.5;
+                });
+            });
+            rightY += 6;
         });
     }
 }

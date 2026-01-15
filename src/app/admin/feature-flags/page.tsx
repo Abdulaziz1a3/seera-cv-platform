@@ -1,126 +1,210 @@
 'use client';
 
-import { useState } from 'react';
-import { toast } from 'sonner';
+import { useState, useEffect } from 'react';
 import { useLocale } from '@/components/providers/locale-provider';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Slider } from '@/components/ui/slider';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
 import {
     Flag,
     Plus,
-    Search,
+    RefreshCw,
+    Loader2,
+    Settings,
+    Trash2,
+    Percent,
     AlertTriangle,
-    Zap,
-    Users,
-    Code,
-    Sparkles,
-    Shield,
 } from 'lucide-react';
+import { toast } from 'sonner';
+import { AdminServerGuard } from '../_components/admin-server-guard';
 
-// Mock feature flags
-const mockFlags = [
-    {
-        id: '1',
-        name: 'ai_cover_letter',
-        label: 'AI Cover Letter Generator',
-        description: 'Enable AI-powered cover letter generation for users',
-        enabled: true,
-        category: 'AI Features',
-        rollout: 100,
-    },
-    {
-        id: '2',
-        name: 'new_editor_v2',
-        label: 'New Resume Editor V2',
-        description: 'Beta version of the new drag-and-drop resume editor',
-        enabled: false,
-        category: 'Beta Features',
-        rollout: 10,
-    },
-    {
-        id: '3',
-        name: 'linkedin_sync',
-        label: 'LinkedIn Profile Sync',
-        description: 'Allow users to sync their LinkedIn profile data',
-        enabled: true,
-        category: 'Integrations',
-        rollout: 100,
-    },
-    {
-        id: '4',
-        name: 'premium_templates',
-        label: 'Premium Templates',
-        description: 'Show premium templates to pro users',
-        enabled: true,
-        category: 'Features',
-        rollout: 100,
-    },
-    {
-        id: '5',
-        name: 'dark_mode_v2',
-        label: 'Dark Mode V2',
-        description: 'New dark mode with improved contrast and colors',
-        enabled: false,
-        category: 'Beta Features',
-        rollout: 25,
-    },
-    {
-        id: '6',
-        name: 'realtime_ats_scoring',
-        label: 'Real-time ATS Scoring',
-        description: 'Calculate ATS score as user types',
-        enabled: true,
-        category: 'AI Features',
-        rollout: 100,
-    },
-];
+interface FeatureFlag {
+    id: string;
+    key: string;
+    name: string;
+    description: string | null;
+    enabled: boolean;
+    percentage: number;
+    enabledFor: string[];
+    disabledFor: string[];
+    createdAt: string;
+    updatedAt: string;
+}
 
-export default function AdminFeatureFlagsPage() {
+interface FeatureFlagsData {
+    flags: Record<string, FeatureFlag[]>;
+    allFlags: FeatureFlag[];
+    stats: {
+        total: number;
+        enabled: number;
+        disabled: number;
+        partialRollouts: number;
+    };
+}
+
+function AdminFeatureFlagsContent() {
     const { locale } = useLocale();
-    const [searchQuery, setSearchQuery] = useState('');
-    const [flags, setFlags] = useState(mockFlags);
+    const [data, setData] = useState<FeatureFlagsData | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [actionLoading, setActionLoading] = useState<string | null>(null);
+    const [createDialog, setCreateDialog] = useState(false);
+    const [newFlag, setNewFlag] = useState({ key: '', name: '', description: '' });
+    const [percentageDialog, setPercentageDialog] = useState<{ open: boolean; flag: FeatureFlag | null }>({
+        open: false,
+        flag: null,
+    });
+    const [newPercentage, setNewPercentage] = useState(100);
 
-    const categories = Array.from(new Set(flags.map((f) => f.category)));
-
-    const getCategoryIcon = (category: string) => {
-        switch (category) {
-            case 'AI Features':
-                return Sparkles;
-            case 'Beta Features':
-                return Zap;
-            case 'Integrations':
-                return Code;
-            case 'Features':
-                return Flag;
-            default:
-                return Flag;
+    const fetchFlags = async () => {
+        setLoading(true);
+        try {
+            const res = await fetch('/api/admin/feature-flags');
+            if (!res.ok) throw new Error('Failed to fetch flags');
+            const json = await res.json();
+            setData(json);
+        } catch (error) {
+            toast.error('Failed to load feature flags');
+            console.error(error);
+        } finally {
+            setLoading(false);
         }
     };
 
-    const toggleFlag = (id: string) => {
-        setFlags(flags.map((f) => {
-            if (f.id === id) {
-                const newEnabled = !f.enabled;
-                toast.success(
-                    locale === 'ar'
-                        ? `تم ${newEnabled ? 'تفعيل' : 'تعطيل'} ${f.label}`
-                        : `${f.label} ${newEnabled ? 'enabled' : 'disabled'}`
-                );
-                return { ...f, enabled: newEnabled };
-            }
-            return f;
-        }));
+    useEffect(() => {
+        fetchFlags();
+    }, []);
+
+    const handleToggle = async (flagId: string) => {
+        setActionLoading(flagId);
+        try {
+            const res = await fetch('/api/admin/feature-flags', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: flagId, action: 'toggle' }),
+            });
+            if (!res.ok) throw new Error('Toggle failed');
+            toast.success('Feature flag updated');
+            fetchFlags();
+        } catch (error) {
+            toast.error('Failed to toggle feature flag');
+        } finally {
+            setActionLoading(null);
+        }
     };
 
-    const filteredFlags = flags.filter((f) =>
-        f.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        f.name.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    const handleCreate = async () => {
+        if (!newFlag.key || !newFlag.name) {
+            toast.error('Key and name are required');
+            return;
+        }
+        setActionLoading('create');
+        try {
+            const res = await fetch('/api/admin/feature-flags', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(newFlag),
+            });
+            if (!res.ok) {
+                const data = await res.json();
+                throw new Error(data.error || 'Create failed');
+            }
+            toast.success('Feature flag created');
+            setCreateDialog(false);
+            setNewFlag({ key: '', name: '', description: '' });
+            fetchFlags();
+        } catch (error: any) {
+            toast.error(error.message || 'Failed to create feature flag');
+        } finally {
+            setActionLoading(null);
+        }
+    };
+
+    const handleUpdatePercentage = async () => {
+        if (!percentageDialog.flag) return;
+        setActionLoading(percentageDialog.flag.id);
+        try {
+            const res = await fetch('/api/admin/feature-flags', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    id: percentageDialog.flag.id,
+                    action: 'update_percentage',
+                    data: { percentage: newPercentage }
+                }),
+            });
+            if (!res.ok) throw new Error('Update failed');
+            toast.success('Rollout percentage updated');
+            setPercentageDialog({ open: false, flag: null });
+            fetchFlags();
+        } catch (error) {
+            toast.error('Failed to update percentage');
+        } finally {
+            setActionLoading(null);
+        }
+    };
+
+    const handleDelete = async (flagId: string) => {
+        setActionLoading(flagId);
+        try {
+            const res = await fetch('/api/admin/feature-flags', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: flagId, action: 'delete' }),
+            });
+            if (!res.ok) {
+                const data = await res.json();
+                throw new Error(data.error || 'Delete failed');
+            }
+            toast.success('Feature flag deleted');
+            fetchFlags();
+        } catch (error: any) {
+            toast.error(error.message || 'Failed to delete feature flag');
+        } finally {
+            setActionLoading(null);
+        }
+    };
+
+    if (loading && !data) {
+        return (
+            <div className="space-y-6">
+                <div className="flex justify-between">
+                    <Skeleton className="h-10 w-48" />
+                    <Skeleton className="h-10 w-32" />
+                </div>
+                <div className="grid gap-4 sm:grid-cols-4">
+                    {[1, 2, 3, 4].map((i) => (
+                        <Card key={i}>
+                            <CardContent className="pt-6">
+                                <Skeleton className="h-16 w-full" />
+                            </CardContent>
+                        </Card>
+                    ))}
+                </div>
+                <div className="space-y-4">
+                    {[1, 2, 3].map((i) => (
+                        <Card key={i}>
+                            <CardContent className="pt-6">
+                                <Skeleton className="h-24 w-full" />
+                            </CardContent>
+                        </Card>
+                    ))}
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-6">
@@ -132,14 +216,20 @@ export default function AdminFeatureFlagsPage() {
                     </h1>
                     <p className="text-muted-foreground mt-1">
                         {locale === 'ar'
-                            ? 'تحكم في إطلاق الميزات للمستخدمين'
-                            : 'Control feature rollout to users'}
+                            ? 'تفعيل وإلغاء تفعيل ميزات التطبيق'
+                            : 'Enable and disable application features'}
                     </p>
                 </div>
-                <Button>
-                    <Plus className="h-4 w-4 me-2" />
-                    {locale === 'ar' ? 'إضافة ميزة' : 'Add Flag'}
-                </Button>
+                <div className="flex gap-2">
+                    <Button variant="outline" onClick={fetchFlags} disabled={loading}>
+                        <RefreshCw className={`h-4 w-4 me-2 ${loading ? 'animate-spin' : ''}`} />
+                        {locale === 'ar' ? 'تحديث' : 'Refresh'}
+                    </Button>
+                    <Button onClick={() => setCreateDialog(true)}>
+                        <Plus className="h-4 w-4 me-2" />
+                        {locale === 'ar' ? 'إضافة ميزة' : 'Add Flag'}
+                    </Button>
+                </div>
             </div>
 
             {/* Warning */}
@@ -156,76 +246,266 @@ export default function AdminFeatureFlagsPage() {
                 </CardContent>
             </Card>
 
-            {/* Search */}
-            <div className="relative max-w-md">
-                <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                    type="search"
-                    placeholder={locale === 'ar' ? 'البحث عن ميزة...' : 'Search flags...'}
-                    className="ps-10"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                />
-            </div>
-
-            {/* Flags by Category */}
-            {categories.map((category) => {
-                const categoryFlags = filteredFlags.filter((f) => f.category === category);
-                if (categoryFlags.length === 0) return null;
-
-                const CategoryIcon = getCategoryIcon(category);
-
-                return (
-                    <Card key={category}>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2 text-lg">
-                                <CategoryIcon className="h-5 w-5 text-primary" />
-                                {category}
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            {categoryFlags.map((flag, index) => (
-                                <div key={flag.id}>
-                                    <div className="flex items-start justify-between gap-4">
-                                        <div className="flex-1">
-                                            <div className="flex items-center gap-2">
-                                                <Label className="font-medium">{flag.label}</Label>
-                                                <code className="text-xs bg-muted px-1.5 py-0.5 rounded">
-                                                    {flag.name}
-                                                </code>
-                                                {flag.rollout < 100 && (
-                                                    <Badge variant="outline" className="text-xs">
-                                                        {flag.rollout}% {locale === 'ar' ? 'إطلاق' : 'rollout'}
-                                                    </Badge>
-                                                )}
-                                            </div>
-                                            <p className="text-sm text-muted-foreground mt-1">
-                                                {flag.description}
-                                            </p>
-                                        </div>
-                                        <Switch
-                                            checked={flag.enabled}
-                                            onCheckedChange={() => toggleFlag(flag.id)}
-                                        />
-                                    </div>
-                                    {index < categoryFlags.length - 1 && <Separator className="mt-4" />}
+            {/* Stats */}
+            {data?.stats && (
+                <div className="grid gap-4 sm:grid-cols-4">
+                    <Card>
+                        <CardContent className="pt-6">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-sm text-muted-foreground">
+                                        {locale === 'ar' ? 'إجمالي الميزات' : 'Total Flags'}
+                                    </p>
+                                    <p className="text-2xl font-bold">{data.stats.total}</p>
                                 </div>
-                            ))}
+                                <Flag className="h-8 w-8 text-muted-foreground" />
+                            </div>
                         </CardContent>
                     </Card>
-                );
-            })}
+                    <Card>
+                        <CardContent className="pt-6">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-sm text-muted-foreground">
+                                        {locale === 'ar' ? 'مفعلة' : 'Enabled'}
+                                    </p>
+                                    <p className="text-2xl font-bold text-green-500">{data.stats.enabled}</p>
+                                </div>
+                                <div className="h-8 w-8 rounded-full bg-green-500/10 flex items-center justify-center">
+                                    <div className="h-3 w-3 rounded-full bg-green-500" />
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardContent className="pt-6">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-sm text-muted-foreground">
+                                        {locale === 'ar' ? 'معطلة' : 'Disabled'}
+                                    </p>
+                                    <p className="text-2xl font-bold text-red-500">{data.stats.disabled}</p>
+                                </div>
+                                <div className="h-8 w-8 rounded-full bg-red-500/10 flex items-center justify-center">
+                                    <div className="h-3 w-3 rounded-full bg-red-500" />
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardContent className="pt-6">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-sm text-muted-foreground">
+                                        {locale === 'ar' ? 'تدريجي' : 'Partial Rollout'}
+                                    </p>
+                                    <p className="text-2xl font-bold text-amber-500">{data.stats.partialRollouts}</p>
+                                </div>
+                                <Percent className="h-8 w-8 text-amber-500" />
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+            )}
 
-            {filteredFlags.length === 0 && (
+            {/* Feature Flags List */}
+            {data?.allFlags.length === 0 ? (
                 <Card>
-                    <CardContent className="py-12 text-center">
-                        <Flag className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <CardContent className="pt-6 text-center py-12">
+                        <Flag className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
                         <p className="text-muted-foreground">
-                            {locale === 'ar' ? 'لا توجد ميزات مطابقة' : 'No matching feature flags'}
+                            {locale === 'ar' ? 'لا توجد ميزات' : 'No feature flags yet'}
                         </p>
+                        <Button className="mt-4" onClick={() => setCreateDialog(true)}>
+                            <Plus className="h-4 w-4 me-2" />
+                            {locale === 'ar' ? 'إضافة ميزة' : 'Add Your First Flag'}
+                        </Button>
                     </CardContent>
                 </Card>
+            ) : (
+                <div className="space-y-4">
+                    {Object.entries(data?.flags || {}).map(([category, flags]) => (
+                        <Card key={category}>
+                            <CardHeader>
+                                <CardTitle className="text-lg">{category}</CardTitle>
+                                <CardDescription>
+                                    {flags.length} {locale === 'ar' ? 'ميزة' : 'feature(s)'}
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="space-y-4">
+                                    {flags.map((flag) => (
+                                        <div
+                                            key={flag.id}
+                                            className="flex items-center justify-between p-4 border rounded-lg"
+                                        >
+                                            <div className="flex-1">
+                                                <div className="flex items-center gap-3">
+                                                    <h4 className="font-medium">{flag.name}</h4>
+                                                    <Badge variant="outline" className="font-mono text-xs">
+                                                        {flag.key}
+                                                    </Badge>
+                                                    {flag.percentage < 100 && flag.enabled && (
+                                                        <Badge className="bg-amber-500/10 text-amber-600">
+                                                            {flag.percentage}%
+                                                        </Badge>
+                                                    )}
+                                                </div>
+                                                {flag.description && (
+                                                    <p className="text-sm text-muted-foreground mt-1">
+                                                        {flag.description}
+                                                    </p>
+                                                )}
+                                            </div>
+                                            <div className="flex items-center gap-3">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    onClick={() => {
+                                                        setNewPercentage(flag.percentage);
+                                                        setPercentageDialog({ open: true, flag });
+                                                    }}
+                                                >
+                                                    <Settings className="h-4 w-4" />
+                                                </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="text-destructive"
+                                                    onClick={() => handleDelete(flag.id)}
+                                                    disabled={actionLoading === flag.id}
+                                                >
+                                                    {actionLoading === flag.id ? (
+                                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                                    ) : (
+                                                        <Trash2 className="h-4 w-4" />
+                                                    )}
+                                                </Button>
+                                                <Switch
+                                                    checked={flag.enabled}
+                                                    onCheckedChange={() => handleToggle(flag.id)}
+                                                    disabled={actionLoading === flag.id}
+                                                />
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </CardContent>
+                        </Card>
+                    ))}
+                </div>
             )}
+
+            {/* Create Flag Dialog */}
+            <Dialog open={createDialog} onOpenChange={setCreateDialog}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>
+                            {locale === 'ar' ? 'إضافة ميزة جديدة' : 'Create Feature Flag'}
+                        </DialogTitle>
+                        <DialogDescription>
+                            {locale === 'ar'
+                                ? 'أضف ميزة جديدة للتحكم في تفعيلها'
+                                : 'Add a new feature flag to control feature availability'}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="key">{locale === 'ar' ? 'المفتاح' : 'Key'}</Label>
+                            <Input
+                                id="key"
+                                placeholder="feature_key"
+                                value={newFlag.key}
+                                onChange={(e) => setNewFlag({ ...newFlag, key: e.target.value })}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="name">{locale === 'ar' ? 'الاسم' : 'Name'}</Label>
+                            <Input
+                                id="name"
+                                placeholder="Feature Name"
+                                value={newFlag.name}
+                                onChange={(e) => setNewFlag({ ...newFlag, name: e.target.value })}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="description">{locale === 'ar' ? 'الوصف' : 'Description'}</Label>
+                            <Input
+                                id="description"
+                                placeholder="Optional description"
+                                value={newFlag.description}
+                                onChange={(e) => setNewFlag({ ...newFlag, description: e.target.value })}
+                            />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setCreateDialog(false)}>
+                            {locale === 'ar' ? 'إلغاء' : 'Cancel'}
+                        </Button>
+                        <Button onClick={handleCreate} disabled={actionLoading === 'create'}>
+                            {actionLoading === 'create' && <Loader2 className="h-4 w-4 me-2 animate-spin" />}
+                            {locale === 'ar' ? 'إنشاء' : 'Create'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Percentage Dialog */}
+            <Dialog open={percentageDialog.open} onOpenChange={(open) => setPercentageDialog({ open, flag: null })}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>
+                            {locale === 'ar' ? 'نسبة التفعيل' : 'Rollout Percentage'}
+                        </DialogTitle>
+                        <DialogDescription>
+                            {locale === 'ar'
+                                ? `ضبط نسبة المستخدمين لـ "${percentageDialog.flag?.name}"`
+                                : `Set the rollout percentage for "${percentageDialog.flag?.name}"`}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-6 py-4">
+                        <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                                <Label>{locale === 'ar' ? 'النسبة' : 'Percentage'}</Label>
+                                <span className="text-2xl font-bold">{newPercentage}%</span>
+                            </div>
+                            <Slider
+                                value={[newPercentage]}
+                                onValueChange={([value]) => setNewPercentage(value)}
+                                max={100}
+                                step={5}
+                            />
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                            {locale === 'ar'
+                                ? `سيتم تفعيل هذه الميزة لـ ${newPercentage}% من المستخدمين`
+                                : `This feature will be enabled for ${newPercentage}% of users`}
+                        </p>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setPercentageDialog({ open: false, flag: null })}>
+                            {locale === 'ar' ? 'إلغاء' : 'Cancel'}
+                        </Button>
+                        <Button
+                            onClick={handleUpdatePercentage}
+                            disabled={actionLoading === percentageDialog.flag?.id}
+                        >
+                            {actionLoading === percentageDialog.flag?.id && (
+                                <Loader2 className="h-4 w-4 me-2 animate-spin" />
+                            )}
+                            {locale === 'ar' ? 'حفظ' : 'Save'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
+    );
+}
+
+export default function AdminFeatureFlagsPage() {
+    return (
+        <AdminServerGuard>
+            <AdminFeatureFlagsContent />
+        </AdminServerGuard>
     );
 }

@@ -40,9 +40,9 @@ interface BasicInfo {
 }
 
 const templates = [
-    { id: 'classic', name: 'Classic', nameAr: 'كلاسيك', description: 'Clean and professional', descriptionAr: 'نظيف ومهني' },
-    { id: 'modern', name: 'Modern', nameAr: 'عصري', description: 'Contemporary with subtle styling', descriptionAr: 'عصري مع لمسات أنيقة' },
-    { id: 'executive', name: 'Executive', nameAr: 'تنفيذي', description: 'Premium corporate look', descriptionAr: 'مظهر احترافي فاخر' },
+    { id: 'executive', name: 'Master Executive', nameAr: 'ماستر تنفيذي', description: 'Executive layout with clean sections', descriptionAr: 'قالب تنفيذي مع أقسام مرتبة' },
+    { id: 'modern', name: 'Master Split', nameAr: 'ماستر مقسّم', description: 'Split layout with dark sidebar', descriptionAr: 'قالب مقسّم مع شريط جانبي داكن' },
+    { id: 'creative', name: 'Master Creative', nameAr: 'ماستر إبداعي', description: 'Bold hero header + modern layout', descriptionAr: 'ترويسة جريئة مع تخطيط حديث' },
 ];
 
 export default function NewResumePage() {
@@ -62,7 +62,7 @@ export default function NewResumePage() {
         title: '',
         targetRole: '',
         language: 'en',
-        template: 'classic',
+        template: 'executive',
     });
 
     // Handle file upload

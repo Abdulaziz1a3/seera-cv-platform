@@ -43,11 +43,24 @@ export const authConfig: NextAuthConfig = {
             const isLoggedIn = !!auth?.user;
             const isOnDashboard = nextUrl.pathname.startsWith('/dashboard');
             const isOnAdmin = nextUrl.pathname.startsWith('/admin');
+            const isOnAdminLogin = nextUrl.pathname === '/admin/login';
             const isOnAuth = nextUrl.pathname.startsWith('/login') ||
                            nextUrl.pathname.startsWith('/register') ||
                            nextUrl.pathname.startsWith('/forgot-password') ||
                            nextUrl.pathname.startsWith('/reset-password') ||
                            nextUrl.pathname.startsWith('/verify-email');
+
+            // Allow admin login page access
+            if (isOnAdminLogin) {
+                // If logged in as admin, redirect to admin dashboard
+                if (isLoggedIn) {
+                    const role = auth?.user?.role;
+                    if (role === 'ADMIN' || role === 'SUPER_ADMIN') {
+                        return Response.redirect(new URL('/admin', nextUrl));
+                    }
+                }
+                return true;
+            }
 
             // Redirect logged-in users away from auth pages
             if (isLoggedIn && isOnAuth) {
@@ -60,12 +73,14 @@ export const authConfig: NextAuthConfig = {
                 return false; // Redirect to login
             }
 
-            // Protect admin routes
+            // Protect admin routes - redirect to admin login
             if (isOnAdmin) {
-                if (!isLoggedIn) return false;
+                if (!isLoggedIn) {
+                    return Response.redirect(new URL('/admin/login', nextUrl));
+                }
                 const role = auth?.user?.role;
                 if (role !== 'ADMIN' && role !== 'SUPER_ADMIN') {
-                    return Response.redirect(new URL('/dashboard', nextUrl));
+                    return Response.redirect(new URL('/dashboard?error=unauthorized', nextUrl));
                 }
                 return true;
             }

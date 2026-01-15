@@ -80,7 +80,8 @@ function createEmptyResume(title: string = 'Untitled Resume'): ResumeData {
     return {
         id: crypto.randomUUID(),
         title,
-        template: 'professional',
+        // Default to one of the 3 main templates users can pick
+        template: 'executive',
         contact: {
             fullName: '',
             email: '',
