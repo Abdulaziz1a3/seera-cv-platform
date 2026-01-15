@@ -226,7 +226,10 @@ export default function NewResumePage() {
             toast.success(locale === 'ar' ? 'تم إنشاء السيرة الذاتية بنجاح!' : 'Resume created successfully!');
             router.push(`/dashboard/resumes/${resumeId}/edit`);
         } catch (error) {
-            toast.error(locale === 'ar' ? 'فشل إنشاء السيرة الذاتية' : 'Failed to create resume');
+            const message = error instanceof Error && error.message
+                ? error.message
+                : (locale === 'ar' ? 'فشل إنشاء السيرة الذاتية' : 'Failed to create resume');
+            toast.error(message);
         } finally {
             setIsLoading(false);
         }
