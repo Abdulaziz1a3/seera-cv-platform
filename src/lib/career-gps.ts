@@ -126,8 +126,10 @@ function calculateYearsExperience(resume: ResumeCareerProfile): number {
 
     let totalMonths = 0;
     resume.experience.forEach(exp => {
+        if (!exp.startDate) return;
         const start = new Date(exp.startDate);
-        const end = exp.current ? new Date() : new Date(exp.endDate);
+        const end = exp.current || !exp.endDate ? new Date() : new Date(exp.endDate);
+        if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return;
         const months = (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth());
         totalMonths += Math.max(0, months);
     });
