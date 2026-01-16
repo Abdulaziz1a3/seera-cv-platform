@@ -105,8 +105,18 @@ export function ProfileEditor({ mode, initialData, profileId, onCancel }: Profil
           ? `/api/seera-link/check-slug?slug=${debouncedSlug}&profileId=${profileId}`
           : `/api/seera-link/check-slug?slug=${debouncedSlug}`;
         const response = await fetch(url);
+        if (!response.ok) {
+          setSlugStatus('idle');
+          return;
+        }
         const data = await response.json();
-        setSlugStatus(data.data?.available ? 'available' : 'taken');
+        if (data?.data?.available === true) {
+          setSlugStatus('available');
+        } else if (data?.data?.available === false) {
+          setSlugStatus('taken');
+        } else {
+          setSlugStatus('idle');
+        }
       } catch {
         setSlugStatus('idle');
       }
