@@ -73,6 +73,8 @@ const defaultFormData: CreateProfileInput = {
   noIndex: false,
   hidePhoneNumber: false,
   enableDownloadCv: false,
+  ctaWhatsappMessage: 'Hi! I saw your Seera profile and would like to connect.',
+  ctaEmailSubject: "Let's Connect",
 };
 
 export function ProfileEditor({ mode, initialData, profileId, onCancel }: ProfileEditorProps) {
