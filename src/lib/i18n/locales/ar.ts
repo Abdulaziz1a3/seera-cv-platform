@@ -576,7 +576,7 @@ export const ar = {
         resources: 'الموارد',
         company: 'الشركة',
         legal: 'قانوني',
-        copyright: '© 2024 Seera AI. جميع الحقوق محفوظة.',
+        copyright: '© 2025 Seera AI. جميع الحقوق محفوظة.',
         links: {
             templates: 'القوالب',
             pricing: 'الأسعار',

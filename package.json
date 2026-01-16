@@ -11,16 +11,23 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "lint:fix": "next lint --fix",
+    "type-check": "tsc --noEmit",
     "test": "jest",
     "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "test:ci": "jest --ci --coverage --maxWorkers=2",
     "test:integration": "jest --config jest.integration.config.js",
     "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
     "db:seed": "prisma db seed",
     "db:studio": "prisma studio",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "analyze": "ANALYZE=true next build",
+    "prepare": "node -e \"try { require('husky').install() } catch (e) {}\""
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.0.0",
@@ -88,6 +95,7 @@
     "tailwind-merge": "^2.2.1",
     "tailwindcss-animate": "^1.0.7",
     "uuid": "^9.0.1",
+    "web-vitals": "^3.5.2",
     "zod": "^3.22.4",
     "zustand": "^4.5.0"
   },

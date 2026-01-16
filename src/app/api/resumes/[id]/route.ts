@@ -5,6 +5,24 @@ import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { lintResume } from '@/lib/ats-linter';
 
+// Valid template and theme options
+const VALID_TEMPLATES = [
+    'prestige-executive',
+    'metropolitan-split',
+    'nordic-minimal',
+    'classic-professional',
+    'impact-modern',
+] as const;
+
+const VALID_THEMES = [
+    'obsidian',
+    'sapphire',
+    'emerald',
+    'ruby',
+    'amber',
+    'slate',
+] as const;
+
 // GET /api/resumes/[id] - Get a specific resume
 export async function GET(
     request: Request,
@@ -84,6 +102,14 @@ export async function PATCH(
 
         const body = await request.json();
         const { title, targetRole, contact, summary, experience, education, skills, projects, certifications, languages, template, theme, ...otherSections } = body;
+
+        // Validate template and theme if provided
+        if (template && !VALID_TEMPLATES.includes(template)) {
+            return NextResponse.json({ error: 'Invalid template' }, { status: 400 });
+        }
+        if (theme && !VALID_THEMES.includes(theme)) {
+            return NextResponse.json({ error: 'Invalid theme' }, { status: 400 });
+        }
 
         // Calculate ATS score
         const lintResult = lintResume(body, (resume.language || 'en') as 'ar' | 'en');

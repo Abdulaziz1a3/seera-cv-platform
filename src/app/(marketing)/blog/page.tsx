@@ -10,50 +10,42 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import {
     Search,
-    Calendar,
     Clock,
     ArrowRight,
-    User,
     TrendingUp,
 } from 'lucide-react';
 
-// Mock blog posts
+// Blog posts
 const blogPosts = [
     {
         id: '1',
         slug: 'how-to-write-ats-friendly-resume',
         title: {
-            en: 'How to Write an ATS-Friendly Resume in 2024',
-            ar: 'كيف تكتب سيرة ذاتية متوافقة مع ATS في 2024',
+            en: 'How to Write an ATS-Friendly Resume',
+            ar: 'كيف تكتب سيرة ذاتية متوافقة مع ATS',
         },
         excerpt: {
             en: 'Learn the secrets to getting your resume past Applicant Tracking Systems and into the hands of recruiters.',
             ar: 'تعلم أسرار تجاوز أنظمة تتبع المتقدمين والوصول إلى مسؤولي التوظيف.',
         },
         category: { en: 'Resume Tips', ar: 'نصائح السيرة' },
-        author: 'Ahmed Al-Mansouri',
-        date: '2024-01-10',
         readTime: 8,
         featured: true,
-        image: '/blog/ats-resume.jpg',
     },
     {
         id: '2',
         slug: 'top-skills-employers-want',
         title: {
-            en: 'Top 10 Skills Employers Want to See in 2024',
-            ar: 'أهم 10 مهارات يبحث عنها أصحاب العمل في 2024',
+            en: 'Top 10 Skills Employers Want to See',
+            ar: 'أهم 10 مهارات يبحث عنها أصحاب العمل',
         },
         excerpt: {
             en: 'Discover the most in-demand skills that can help you stand out in the competitive job market.',
             ar: 'اكتشف المهارات الأكثر طلباً التي يمكن أن تساعدك على التميز في سوق العمل.',
         },
         category: { en: 'Career Advice', ar: 'نصائح مهنية' },
-        author: 'Sarah Johnson',
-        date: '2024-01-08',
         readTime: 6,
         featured: true,
-        image: '/blog/skills.jpg',
     },
     {
         id: '3',
@@ -67,11 +59,8 @@ const blogPosts = [
             ar: 'أتقن فن كتابة خطابات التقديم التي تلفت انتباه مسؤولي التوظيف.',
         },
         category: { en: 'Cover Letters', ar: 'خطابات التقديم' },
-        author: 'Mohammed Ali',
-        date: '2024-01-05',
         readTime: 10,
         featured: false,
-        image: '/blog/cover-letter.jpg',
     },
     {
         id: '4',
@@ -85,29 +74,23 @@ const blogPosts = [
             ar: 'استعد لمقابلتك القادمة مع هذه الأسئلة الشائعة والإجابات المعتمدة من الخبراء.',
         },
         category: { en: 'Interviews', ar: 'المقابلات' },
-        author: 'Emma Wilson',
-        date: '2024-01-02',
         readTime: 12,
         featured: false,
-        image: '/blog/interview.jpg',
     },
     {
         id: '5',
         slug: 'saudi-job-market-trends',
         title: {
-            en: 'Saudi Arabia Job Market Trends for 2024',
-            ar: 'اتجاهات سوق العمل السعودي لعام 2024',
+            en: 'Saudi Arabia Job Market Trends',
+            ar: 'اتجاهات سوق العمل السعودي',
         },
         excerpt: {
-            en: 'Explore the latest trends and opportunities in the Saudi job market this year.',
-            ar: 'استكشف أحدث الاتجاهات والفرص في سوق العمل السعودي هذا العام.',
+            en: 'Explore the latest trends and opportunities in the Saudi job market.',
+            ar: 'استكشف أحدث الاتجاهات والفرص في سوق العمل السعودي.',
         },
         category: { en: 'Market Insights', ar: 'رؤى السوق' },
-        author: 'Khalid Ibrahim',
-        date: '2023-12-28',
         readTime: 7,
         featured: false,
-        image: '/blog/saudi-market.jpg',
     },
 ];
 
@@ -135,14 +118,6 @@ export default function BlogPage() {
     });
 
     const featuredPosts = blogPosts.filter((p) => p.featured);
-
-    const formatDate = (dateStr: string) => {
-        return new Date(dateStr).toLocaleDateString(locale === 'ar' ? 'ar-SA' : 'en-US', {
-            month: 'long',
-            day: 'numeric',
-            year: 'numeric',
-        });
-    };
 
     return (
         <div className="space-y-12">
@@ -203,12 +178,8 @@ export default function BlogPage() {
                                         </p>
                                         <div className="flex items-center gap-4 mt-4 text-sm text-muted-foreground">
                                             <span className="flex items-center gap-1">
-                                                <User className="h-3 w-3" />
-                                                {post.author}
-                                            </span>
-                                            <span className="flex items-center gap-1">
                                                 <Clock className="h-3 w-3" />
-                                                {post.readTime} {locale === 'ar' ? 'د' : 'min'}
+                                                {post.readTime} {locale === 'ar' ? 'د قراءة' : 'min read'}
                                             </span>
                                         </div>
                                     </CardContent>
@@ -262,12 +233,8 @@ export default function BlogPage() {
                                             </p>
                                             <div className="flex items-center gap-4 mt-3 text-sm text-muted-foreground">
                                                 <span className="flex items-center gap-1">
-                                                    <Calendar className="h-3 w-3" />
-                                                    {formatDate(post.date)}
-                                                </span>
-                                                <span className="flex items-center gap-1">
                                                     <Clock className="h-3 w-3" />
-                                                    {post.readTime} {locale === 'ar' ? 'دقيقة' : 'min read'}
+                                                    {post.readTime} {locale === 'ar' ? 'دقيقة قراءة' : 'min read'}
                                                 </span>
                                             </div>
                                         </div>

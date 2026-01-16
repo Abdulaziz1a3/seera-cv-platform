@@ -35,6 +35,7 @@ const helpCategories = [
             ar: 'تعلم أساسيات Seera AI',
         },
         articles: 5,
+        href: '#getting-started',
     },
     {
         id: 'resume-builder',
@@ -42,6 +43,7 @@ const helpCategories = [
         name: { en: 'Resume Builder', ar: 'منشئ السيرة الذاتية' },
         description: { en: 'Create and edit your resume', ar: 'أنشئ وعدّل سيرتك الذاتية' },
         articles: 12,
+        href: '#resume-builder',
     },
     {
         id: 'ats-optimization',
@@ -49,6 +51,7 @@ const helpCategories = [
         name: { en: 'ATS Optimization', ar: 'تحسين ATS' },
         description: { en: 'Pass applicant tracking systems', ar: 'تجاوز أنظمة تتبع المتقدمين' },
         articles: 8,
+        href: '#ats-optimization',
     },
     {
         id: 'export-download',
@@ -56,6 +59,7 @@ const helpCategories = [
         name: { en: 'Export & Download', ar: 'التصدير والتحميل' },
         description: { en: 'Download your resume in any format', ar: 'حمّل سيرتك بأي صيغة' },
         articles: 6,
+        href: '#export-download',
     },
     {
         id: 'billing',
@@ -63,6 +67,7 @@ const helpCategories = [
         name: { en: 'Billing & Plans', ar: 'الفواتير والخطط' },
         description: { en: 'Manage your subscription', ar: 'إدارة اشتراكك' },
         articles: 7,
+        href: '/pricing',
     },
     {
         id: 'account',
@@ -70,6 +75,7 @@ const helpCategories = [
         name: { en: 'Account & Security', ar: 'الحساب والأمان' },
         description: { en: 'Manage your account settings', ar: 'إدارة إعدادات حسابك' },
         articles: 4,
+        href: '#account',
     },
 ];
 
@@ -79,30 +85,35 @@ const popularArticles = [
         title: { en: 'How to create your first resume', ar: 'كيفية إنشاء أول سيرة ذاتية' },
         category: 'getting-started',
         views: 15420,
+        href: '/dashboard/resumes/new',
     },
     {
         id: 2,
         title: { en: 'Understanding your ATS score', ar: 'فهم نتيجة ATS الخاصة بك' },
         category: 'ats-optimization',
         views: 12350,
+        href: '#ats-optimization',
     },
     {
         id: 3,
         title: { en: 'Using AI to generate bullet points', ar: 'استخدام الذكاء الاصطناعي لتوليد النقاط' },
         category: 'resume-builder',
         views: 10890,
+        href: '#resume-builder',
     },
     {
         id: 4,
         title: { en: 'Exporting to PDF vs DOCX', ar: 'التصدير إلى PDF مقابل DOCX' },
         category: 'export-download',
         views: 8760,
+        href: '#export-download',
     },
     {
         id: 5,
         title: { en: 'How to upgrade to Pro', ar: 'كيفية الترقية للخطة الاحترافية' },
         category: 'billing',
         views: 7540,
+        href: '/pricing',
     },
 ];
 
@@ -206,30 +217,29 @@ export default function HelpCenterPage() {
 
                     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                         {helpCategories.map((category) => (
-                            <Card
-                                key={category.id}
-                                className="group cursor-pointer hover:shadow-lg transition-all hover:-translate-y-1"
-                            >
-                                <CardContent className="p-6">
-                                    <div className="flex items-start gap-4">
-                                        <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0 group-hover:bg-primary/20 transition-colors">
-                                            <category.icon className="h-6 w-6 text-primary" />
+                            <Link key={category.id} href={category.href}>
+                                <Card className="group cursor-pointer hover:shadow-lg transition-all hover:-translate-y-1 h-full">
+                                    <CardContent className="p-6">
+                                        <div className="flex items-start gap-4">
+                                            <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0 group-hover:bg-primary/20 transition-colors">
+                                                <category.icon className="h-6 w-6 text-primary" />
+                                            </div>
+                                            <div className="flex-1">
+                                                <h3 className="font-semibold mb-1 group-hover:text-primary transition-colors">
+                                                    {category.name[locale]}
+                                                </h3>
+                                                <p className="text-sm text-muted-foreground mb-2">
+                                                    {category.description[locale]}
+                                                </p>
+                                                <span className="text-xs text-muted-foreground">
+                                                    {category.articles} {locale === 'ar' ? 'مقالة' : 'articles'}
+                                                </span>
+                                            </div>
+                                            <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
                                         </div>
-                                        <div className="flex-1">
-                                            <h3 className="font-semibold mb-1 group-hover:text-primary transition-colors">
-                                                {category.name[locale]}
-                                            </h3>
-                                            <p className="text-sm text-muted-foreground mb-2">
-                                                {category.description[locale]}
-                                            </p>
-                                            <span className="text-xs text-muted-foreground">
-                                                {category.articles} {locale === 'ar' ? 'مقالة' : 'articles'}
-                                            </span>
-                                        </div>
-                                        <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
-                                    </div>
-                                </CardContent>
-                            </Card>
+                                    </CardContent>
+                                </Card>
+                            </Link>
                         ))}
                     </div>
                 </div>
@@ -244,22 +254,24 @@ export default function HelpCenterPage() {
 
                     <div className="max-w-3xl mx-auto space-y-3">
                         {popularArticles.map((article) => (
-                            <Card key={article.id} className="group cursor-pointer hover:shadow-md transition-shadow">
-                                <CardContent className="p-4 flex items-center gap-4">
-                                    <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                                        <BookOpen className="h-5 w-5 text-primary" />
-                                    </div>
-                                    <div className="flex-1">
-                                        <h3 className="font-medium group-hover:text-primary transition-colors">
-                                            {article.title[locale]}
-                                        </h3>
-                                        <span className="text-xs text-muted-foreground">
-                                            {article.views.toLocaleString()} {locale === 'ar' ? 'مشاهدة' : 'views'}
-                                        </span>
-                                    </div>
-                                    <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
-                                </CardContent>
-                            </Card>
+                            <Link key={article.id} href={article.href}>
+                                <Card className="group cursor-pointer hover:shadow-md transition-shadow">
+                                    <CardContent className="p-4 flex items-center gap-4">
+                                        <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                                            <BookOpen className="h-5 w-5 text-primary" />
+                                        </div>
+                                        <div className="flex-1">
+                                            <h3 className="font-medium group-hover:text-primary transition-colors">
+                                                {article.title[locale]}
+                                            </h3>
+                                            <span className="text-xs text-muted-foreground">
+                                                {article.views.toLocaleString()} {locale === 'ar' ? 'مشاهدة' : 'views'}
+                                            </span>
+                                        </div>
+                                        <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
+                                    </CardContent>
+                                </Card>
+                            </Link>
                         ))}
                     </div>
                 </div>

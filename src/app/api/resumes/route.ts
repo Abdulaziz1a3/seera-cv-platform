@@ -5,12 +5,30 @@ import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { createEmptyResume } from '@/lib/resume-schema';
 
+// Valid template and theme options
+const VALID_TEMPLATES = [
+    'prestige-executive',
+    'metropolitan-split',
+    'nordic-minimal',
+    'classic-professional',
+    'impact-modern',
+] as const;
+
+const VALID_THEMES = [
+    'obsidian',
+    'sapphire',
+    'emerald',
+    'ruby',
+    'amber',
+    'slate',
+] as const;
+
 const createResumeSchema = z.object({
     title: z.string().min(1).max(100),
     targetRole: z.string().max(100).optional(),
     language: z.enum(['en', 'ar']).default('en'),
-    template: z.string().default('prestige-executive'),
-    theme: z.string().optional(),
+    template: z.enum(VALID_TEMPLATES).default('prestige-executive'),
+    theme: z.enum(VALID_THEMES).optional(),
 });
 
 // GET /api/resumes - Get all resumes for the current user

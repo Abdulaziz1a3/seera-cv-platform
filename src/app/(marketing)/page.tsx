@@ -11,18 +11,11 @@ import {
     Target,
     Shield,
     Download,
-    Briefcase,
-    LayoutGrid,
-    Star,
     Users,
     TrendingUp,
-    ChevronRight,
     Compass,
     Brain,
-    Mic,
-    MessageSquare,
     Building2,
-    DollarSign,
     Zap,
     Award,
 } from 'lucide-react';
@@ -31,6 +24,8 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { useLocale } from '@/components/providers/locale-provider';
+import { SecurityBadges, FeaturedIn, GuaranteeBadge } from '@/components/marketing/trust-badges';
+import { SocialProofNotification } from '@/components/marketing/social-proof-notification';
 
 export default function Home() {
     const { t, locale, dir } = useLocale();
@@ -105,36 +100,6 @@ export default function Home() {
             icon: Download,
             title: t.landing.features.export.title,
             description: t.landing.features.export.description,
-        },
-    ];
-
-    const testimonials = [
-        {
-            name: locale === 'ar' ? 'أحمد المنصوري' : 'Ahmed Al-Mansouri',
-            role: locale === 'ar' ? 'مهندس برمجيات' : 'Software Engineer',
-            company: 'Microsoft',
-            content: locale === 'ar'
-                ? 'بفضل Seera AI، تجاوزت سيرتي الذاتية أنظمة ATS وحصلت على مقابلة في أقل من أسبوع!'
-                : 'Thanks to Seera AI, my resume passed ATS systems and I got an interview within a week!',
-            avatar: 'AM',
-        },
-        {
-            name: locale === 'ar' ? 'سارة الخالدي' : 'Sara Al-Khaledi',
-            role: locale === 'ar' ? 'مديرة منتجات' : 'Product Manager',
-            company: 'Careem',
-            content: locale === 'ar'
-                ? 'GPS المهني ساعدني على فهم المسار الصحيح لمسيرتي المهنية بوضوح تام!'
-                : 'Career GPS helped me understand my career path with complete clarity!',
-            avatar: 'SK',
-        },
-        {
-            name: locale === 'ar' ? 'محمد العلي' : 'Mohammed Al-Ali',
-            role: locale === 'ar' ? 'محلل بيانات' : 'Data Analyst',
-            company: 'Aramco',
-            content: locale === 'ar'
-                ? 'تحضير المقابلة الصوتي مذهل! تدربت على 10 مقابلات قبل الحقيقية ونجحت.'
-                : 'The voice interview prep is amazing! I practiced 10 interviews before the real one and passed.',
-            avatar: 'MA',
         },
     ];
 
@@ -240,6 +205,9 @@ export default function Home() {
                         ))}
                     </div>
 
+                    {/* Featured In / Trusted By */}
+                    <FeaturedIn className="mt-16" />
+
                     {/* Right Side Illustration - Career Journey */}
                     <div className="hidden lg:block absolute top-[50%] -translate-y-1/2 mt-[132px] -right-[320px] xl:-right-[180px] w-[900px] h-[900px] pointer-events-none -z-10 select-none">
                         <Image
@@ -260,7 +228,7 @@ export default function Home() {
                 <div className="container mx-auto px-4">
                     <div className="text-center mb-12">
                         <Badge variant="outline" className="mb-4">
-                            {locale === 'ar' ? 'ميزات حصرية' : 'Exclusive Features'}
+                            {locale === 'ar' ? 'ميزات متقدمة' : 'Premium Features'}
                         </Badge>
                         <h2 className="text-4xl font-bold mb-4">
                             {locale === 'ar' ? 'أدوات لا تجدها في أي مكان آخر' : 'Tools You Won\'t Find Anywhere Else'}
@@ -403,42 +371,6 @@ export default function Home() {
                 </div>
             </section>
 
-            {/* Testimonials */}
-            <section className="py-20 bg-muted/30">
-                <div className="container mx-auto px-4">
-                    <div className="text-center mb-12">
-                        <h2 className="text-3xl font-bold mb-4">{t.landing.testimonials.title}</h2>
-                        <p className="text-muted-foreground">
-                            {locale === 'ar' ? 'انضم لآلاف المحترفين الذين حققوا أحلامهم' : 'Join thousands of professionals who achieved their dreams'}
-                        </p>
-                    </div>
-
-                    <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-                        {testimonials.map((testimonial) => (
-                            <Card key={testimonial.name}>
-                                <CardContent className="pt-6">
-                                    <div className="flex items-center gap-1 mb-4">
-                                        {[...Array(5)].map((_, i) => (
-                                            <Star key={i} className="h-4 w-4 text-amber-500 fill-amber-500" />
-                                        ))}
-                                    </div>
-                                    <p className="text-muted-foreground mb-4">"{testimonial.content}"</p>
-                                    <div className="flex items-center gap-3">
-                                        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center font-semibold text-primary">
-                                            {testimonial.avatar}
-                                        </div>
-                                        <div>
-                                            <p className="font-semibold">{testimonial.name}</p>
-                                            <p className="text-sm text-muted-foreground">{testimonial.role} @ {testimonial.company}</p>
-                                        </div>
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        ))}
-                    </div>
-                </div>
-            </section>
-
             {/* FAQ */}
             <section className="py-20">
                 <div className="container mx-auto px-4">
@@ -492,9 +424,14 @@ export default function Home() {
                                 </Button>
                             </Link>
                         </div>
+                        {/* Trust Elements */}
+                        <SecurityBadges className="mt-8" />
                     </div>
                 </div>
             </section>
+
+            {/* Social Proof Notification */}
+            <SocialProofNotification />
         </div>
     );
 }

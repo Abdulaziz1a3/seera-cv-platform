@@ -1,0 +1,14 @@
+# Robots.txt for Seera AI
+# https://seera-ai.com
+
+User-agent: *
+Allow: /
+
+# Disallow admin and API routes
+Disallow: /admin
+Disallow: /api
+Disallow: /dashboard
+Disallow: /_next
+
+# Sitemap
+Sitemap: https://seera-ai.com/sitemap.xml

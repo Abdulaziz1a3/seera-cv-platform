@@ -3,16 +3,15 @@
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { useLocale } from '@/components/providers/locale-provider';
+import { useResumes } from '@/components/providers/resume-provider';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
     FileText,
     Plus,
     Target,
     Briefcase,
-    TrendingUp,
     Sparkles,
     Clock,
     ArrowRight,
@@ -20,39 +19,25 @@ import {
     Zap,
     CheckCircle2,
     AlertCircle,
+    Rocket,
 } from 'lucide-react';
-
-// Mock data - would come from API in production
-const mockStats = {
-    totalResumes: 2,
-    applications: 5,
-    avgAtsScore: 78,
-    aiCreditsUsed: 2,
-    aiCreditsTotal: 3,
-};
-
-const mockResumes = [
-    {
-        id: '1',
-        title: 'Software Engineer Resume',
-        targetRole: 'Senior Software Engineer',
-        atsScore: 85,
-        updatedAt: new Date('2024-01-10'),
-    },
-    {
-        id: '2',
-        title: 'Product Manager Resume',
-        targetRole: 'Product Manager',
-        atsScore: 72,
-        updatedAt: new Date('2024-01-08'),
-    },
-];
 
 export default function DashboardPage() {
     const { data: session } = useSession();
     const { locale, t } = useLocale();
+    const { resumes, isLoading } = useResumes();
 
     const firstName = session?.user?.name?.split(' ')[0] || 'User';
+
+    // Calculate real stats from resumes
+    const stats = {
+        totalResumes: resumes.length,
+        avgAtsScore: resumes.length > 0
+            ? Math.round(resumes.reduce((sum, r) => sum + (r.atsScore || 0), 0) / resumes.length)
+            : 0,
+    };
+
+    const recentResumes = resumes.slice(0, 3);
 
     const quickActions = [
         {
@@ -78,7 +63,9 @@ export default function DashboardPage() {
         },
     ];
 
-    const formatDate = (date: Date) => {
+    const formatDate = (dateStr: string | null | undefined) => {
+        if (!dateStr) return '';
+        const date = new Date(dateStr);
         const now = new Date();
         const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
 
@@ -87,6 +74,36 @@ export default function DashboardPage() {
         if (diffDays < 7) return locale === 'ar' ? `منذ ${diffDays} أيام` : `${diffDays} days ago`;
         return date.toLocaleDateString(locale === 'ar' ? 'ar-SA' : 'en-US');
     };
+
+    // Skeleton loader for stats
+    const StatSkeleton = () => (
+        <Card className="relative overflow-hidden">
+            <CardContent className="pt-6">
+                <div className="flex items-center gap-3">
+                    <Skeleton className="h-12 w-12 rounded-xl" />
+                    <div className="space-y-2">
+                        <Skeleton className="h-6 w-12" />
+                        <Skeleton className="h-4 w-20" />
+                    </div>
+                </div>
+            </CardContent>
+        </Card>
+    );
+
+    // Skeleton loader for resume items
+    const ResumeSkeleton = () => (
+        <div className="flex items-center gap-4 p-4 rounded-xl border bg-card">
+            <Skeleton className="h-12 w-12 rounded-xl" />
+            <div className="flex-1 space-y-2">
+                <Skeleton className="h-5 w-48" />
+                <Skeleton className="h-4 w-32" />
+            </div>
+            <div className="space-y-2">
+                <Skeleton className="h-4 w-12" />
+                <Skeleton className="h-3 w-16" />
+            </div>
+        </div>
+    );
 
     return (
         <div className="space-y-8">
@@ -107,69 +124,110 @@ export default function DashboardPage() {
             </div>
 
             {/* Stats Grid */}
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                <Card className="relative overflow-hidden">
-                    <div className="absolute top-0 end-0 h-24 w-24 bg-gradient-to-bl from-primary/10 to-transparent rounded-bl-full" />
-                    <CardContent className="pt-6">
-                        <div className="flex items-center gap-3">
-                            <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                                <FileText className="h-6 w-6 text-primary" />
+            {isLoading ? (
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                    <StatSkeleton />
+                    <StatSkeleton />
+                    <StatSkeleton />
+                    <StatSkeleton />
+                </div>
+            ) : resumes.length === 0 ? (
+                // First-time user - show getting started instead of empty stats
+                <Card className="border-primary/20 bg-gradient-to-r from-primary/5 via-purple-500/5 to-primary/5">
+                    <CardContent className="py-8">
+                        <div className="flex flex-col md:flex-row items-center gap-6 text-center md:text-start">
+                            <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center flex-shrink-0">
+                                <Rocket className="h-8 w-8 text-white" />
                             </div>
-                            <div>
-                                <p className="text-2xl font-bold">{mockStats.totalResumes}</p>
-                                <p className="text-sm text-muted-foreground">{t.dashboard.stats.totalResumes}</p>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                <Card className="relative overflow-hidden">
-                    <div className="absolute top-0 end-0 h-24 w-24 bg-gradient-to-bl from-green-500/10 to-transparent rounded-bl-full" />
-                    <CardContent className="pt-6">
-                        <div className="flex items-center gap-3">
-                            <div className="h-12 w-12 rounded-xl bg-green-500/10 flex items-center justify-center">
-                                <Briefcase className="h-6 w-6 text-green-500" />
-                            </div>
-                            <div>
-                                <p className="text-2xl font-bold">{mockStats.applications}</p>
-                                <p className="text-sm text-muted-foreground">{t.dashboard.stats.applications}</p>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                <Card className="relative overflow-hidden">
-                    <div className="absolute top-0 end-0 h-24 w-24 bg-gradient-to-bl from-amber-500/10 to-transparent rounded-bl-full" />
-                    <CardContent className="pt-6">
-                        <div className="flex items-center gap-3">
-                            <div className="h-12 w-12 rounded-xl bg-amber-500/10 flex items-center justify-center">
-                                <BarChart3 className="h-6 w-6 text-amber-500" />
-                            </div>
-                            <div>
-                                <p className="text-2xl font-bold">{mockStats.avgAtsScore}%</p>
-                                <p className="text-sm text-muted-foreground">{t.dashboard.stats.avgAtsScore}</p>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                <Card className="relative overflow-hidden">
-                    <div className="absolute top-0 end-0 h-24 w-24 bg-gradient-to-bl from-purple-500/10 to-transparent rounded-bl-full" />
-                    <CardContent className="pt-6">
-                        <div className="flex items-center gap-3">
-                            <div className="h-12 w-12 rounded-xl bg-purple-500/10 flex items-center justify-center">
-                                <Sparkles className="h-6 w-6 text-purple-500" />
-                            </div>
-                            <div>
-                                <p className="text-2xl font-bold">
-                                    {mockStats.aiCreditsUsed}/{mockStats.aiCreditsTotal}
+                            <div className="flex-1">
+                                <h2 className="text-xl font-bold mb-2">
+                                    {locale === 'ar' ? 'مرحباً بك في Seera AI!' : 'Welcome to Seera AI!'}
+                                </h2>
+                                <p className="text-muted-foreground mb-4">
+                                    {locale === 'ar'
+                                        ? 'ابدأ بإنشاء سيرتك الذاتية الأولى واحصل على تقييم ATS فوري'
+                                        : 'Start by creating your first resume and get instant ATS scoring'}
                                 </p>
-                                <p className="text-sm text-muted-foreground">{t.dashboard.stats.aiCredits}</p>
+                                <div className="flex flex-wrap gap-2 justify-center md:justify-start">
+                                    <Button asChild>
+                                        <Link href="/dashboard/resumes/new">
+                                            <Plus className="h-4 w-4 me-2" />
+                                            {locale === 'ar' ? 'إنشاء سيرة ذاتية' : 'Create Resume'}
+                                        </Link>
+                                    </Button>
+                                    <Button variant="outline" asChild>
+                                        <Link href="/help">
+                                            {locale === 'ar' ? 'شاهد الدليل' : 'Watch Guide'}
+                                        </Link>
+                                    </Button>
+                                </div>
                             </div>
                         </div>
                     </CardContent>
                 </Card>
-            </div>
+            ) : (
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                    <Card className="relative overflow-hidden">
+                        <div className="absolute top-0 end-0 h-24 w-24 bg-gradient-to-bl from-primary/10 to-transparent rounded-bl-full" />
+                        <CardContent className="pt-6">
+                            <div className="flex items-center gap-3">
+                                <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center">
+                                    <FileText className="h-6 w-6 text-primary" />
+                                </div>
+                                <div>
+                                    <p className="text-2xl font-bold">{stats.totalResumes}</p>
+                                    <p className="text-sm text-muted-foreground">{t.dashboard.stats.totalResumes}</p>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <Card className="relative overflow-hidden">
+                        <div className="absolute top-0 end-0 h-24 w-24 bg-gradient-to-bl from-amber-500/10 to-transparent rounded-bl-full" />
+                        <CardContent className="pt-6">
+                            <div className="flex items-center gap-3">
+                                <div className="h-12 w-12 rounded-xl bg-amber-500/10 flex items-center justify-center">
+                                    <BarChart3 className="h-6 w-6 text-amber-500" />
+                                </div>
+                                <div>
+                                    <p className="text-2xl font-bold">{stats.avgAtsScore}%</p>
+                                    <p className="text-sm text-muted-foreground">{t.dashboard.stats.avgAtsScore}</p>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <Card className="relative overflow-hidden">
+                        <div className="absolute top-0 end-0 h-24 w-24 bg-gradient-to-bl from-green-500/10 to-transparent rounded-bl-full" />
+                        <CardContent className="pt-6">
+                            <div className="flex items-center gap-3">
+                                <div className="h-12 w-12 rounded-xl bg-green-500/10 flex items-center justify-center">
+                                    <Briefcase className="h-6 w-6 text-green-500" />
+                                </div>
+                                <div>
+                                    <p className="text-2xl font-bold">0</p>
+                                    <p className="text-sm text-muted-foreground">{t.dashboard.stats.applications}</p>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <Card className="relative overflow-hidden">
+                        <div className="absolute top-0 end-0 h-24 w-24 bg-gradient-to-bl from-purple-500/10 to-transparent rounded-bl-full" />
+                        <CardContent className="pt-6">
+                            <div className="flex items-center gap-3">
+                                <div className="h-12 w-12 rounded-xl bg-purple-500/10 flex items-center justify-center">
+                                    <Sparkles className="h-6 w-6 text-purple-500" />
+                                </div>
+                                <div>
+                                    <p className="text-2xl font-bold">0/3</p>
+                                    <p className="text-sm text-muted-foreground">{t.dashboard.stats.aiCredits}</p>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+            )}
 
             <div className="grid gap-6 lg:grid-cols-3">
                 {/* Recent Resumes */}
@@ -179,15 +237,22 @@ export default function DashboardPage() {
                             <CardTitle>{t.dashboard.recentResumes.title}</CardTitle>
                             <CardDescription>{t.dashboard.recentResumes.subtitle}</CardDescription>
                         </div>
-                        <Button variant="ghost" size="sm" asChild>
-                            <Link href="/dashboard/resumes">
-                                {t.dashboard.recentResumes.viewAll}
-                                <ArrowRight className="h-4 w-4 ms-1" />
-                            </Link>
-                        </Button>
+                        {resumes.length > 0 && (
+                            <Button variant="ghost" size="sm" asChild>
+                                <Link href="/dashboard/resumes">
+                                    {t.dashboard.recentResumes.viewAll}
+                                    <ArrowRight className="h-4 w-4 ms-1" />
+                                </Link>
+                            </Button>
+                        )}
                     </CardHeader>
                     <CardContent>
-                        {mockResumes.length === 0 ? (
+                        {isLoading ? (
+                            <div className="space-y-4">
+                                <ResumeSkeleton />
+                                <ResumeSkeleton />
+                            </div>
+                        ) : recentResumes.length === 0 ? (
                             <div className="text-center py-12">
                                 <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                                 <h3 className="font-medium mb-1">{t.dashboard.recentResumes.empty.title}</h3>
@@ -203,7 +268,7 @@ export default function DashboardPage() {
                             </div>
                         ) : (
                             <div className="space-y-4">
-                                {mockResumes.map((resume) => (
+                                {recentResumes.map((resume) => (
                                     <Link
                                         key={resume.id}
                                         href={`/dashboard/resumes/${resume.id}/edit`}
@@ -218,22 +283,22 @@ export default function DashboardPage() {
                                                     {resume.title}
                                                 </h4>
                                                 <p className="text-sm text-muted-foreground truncate">
-                                                    {resume.targetRole}
+                                                    {resume.targetRole || (locale === 'ar' ? 'بدون هدف وظيفي' : 'No target role')}
                                                 </p>
                                             </div>
                                             <div className="flex items-center gap-4">
                                                 <div className="text-end">
                                                     <div className="flex items-center gap-1">
-                                                        {resume.atsScore >= 80 ? (
+                                                        {(resume.atsScore || 0) >= 80 ? (
                                                             <CheckCircle2 className="h-4 w-4 text-green-500" />
                                                         ) : (
                                                             <AlertCircle className="h-4 w-4 text-amber-500" />
                                                         )}
                                                         <span
-                                                            className={`font-semibold ${resume.atsScore >= 80 ? 'text-green-500' : 'text-amber-500'
+                                                            className={`font-semibold ${(resume.atsScore || 0) >= 80 ? 'text-green-500' : 'text-amber-500'
                                                                 }`}
                                                         >
-                                                            {resume.atsScore}%
+                                                            {resume.atsScore || 0}%
                                                         </span>
                                                     </div>
                                                     <p className="text-xs text-muted-foreground flex items-center gap-1">
@@ -281,26 +346,28 @@ export default function DashboardPage() {
                 </Card>
             </div>
 
-            {/* Pro Tip */}
-            <Card className="border-primary/20 bg-gradient-to-r from-primary/5 to-transparent">
-                <CardContent className="py-6">
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                        <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
-                            <Zap className="h-6 w-6 text-primary" />
+            {/* Pro Tip - Only show if user has resumes */}
+            {resumes.length > 0 && (
+                <Card className="border-primary/20 bg-gradient-to-r from-primary/5 to-transparent">
+                    <CardContent className="py-6">
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                            <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
+                                <Zap className="h-6 w-6 text-primary" />
+                            </div>
+                            <div className="flex-1">
+                                <h3 className="font-semibold mb-1">{t.dashboard.tip.title}</h3>
+                                <p className="text-sm text-muted-foreground">{t.dashboard.tip.description}</p>
+                            </div>
+                            <Button asChild>
+                                <Link href="/dashboard/job-targets/new">
+                                    {t.dashboard.tip.cta}
+                                    <ArrowRight className="h-4 w-4 ms-2" />
+                                </Link>
+                            </Button>
                         </div>
-                        <div className="flex-1">
-                            <h3 className="font-semibold mb-1">{t.dashboard.tip.title}</h3>
-                            <p className="text-sm text-muted-foreground">{t.dashboard.tip.description}</p>
-                        </div>
-                        <Button asChild>
-                            <Link href="/dashboard/job-targets/new">
-                                {t.dashboard.tip.cta}
-                                <ArrowRight className="h-4 w-4 ms-2" />
-                            </Link>
-                        </Button>
-                    </div>
-                </CardContent>
-            </Card>
+                    </CardContent>
+                </Card>
+            )}
         </div>
     );
 }

@@ -25,7 +25,9 @@ import {
     User,
     PenTool,
     Shield,
+    Crown,
 } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -39,6 +41,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { LanguageSwitcher } from '@/components/language-switcher';
 import { useLocale } from '@/components/providers/locale-provider';
+import { WelcomeModal } from '@/components/onboarding/welcome-modal';
+import { SkipLink } from '@/components/accessibility';
 
 export default function DashboardLayout({
     children,
@@ -52,13 +56,13 @@ export default function DashboardLayout({
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
     const navigation = [
-        { name: t.nav.dashboard, href: '/dashboard', icon: LayoutDashboard },
-        { name: t.nav.myResumes, href: '/dashboard/resumes', icon: FileText },
-        { name: locale === 'ar' ? 'GPS المهني' : 'Career GPS', href: '/dashboard/career', icon: Compass },
-        { name: locale === 'ar' ? 'تحضير المقابلة' : 'Interview Prep', href: '/dashboard/interview', icon: Brain },
-        { name: locale === 'ar' ? 'مجموعة المواهب' : 'Talent Pool', href: '/dashboard/talent-pool', icon: Users },
-        { name: locale === 'ar' ? 'وضع التخفي' : 'Stealth Mode', href: '/dashboard/stealth', icon: Shield },
-        { name: 'LinkedIn', href: '/dashboard/linkedin', icon: User },
+        { name: t.nav.dashboard, href: '/dashboard', icon: LayoutDashboard, isPro: false },
+        { name: t.nav.myResumes, href: '/dashboard/resumes', icon: FileText, isPro: false },
+        { name: locale === 'ar' ? 'GPS المهني' : 'Career GPS', href: '/dashboard/career', icon: Compass, isPro: true },
+        { name: locale === 'ar' ? 'تحضير المقابلة' : 'Interview Prep', href: '/dashboard/interview', icon: Brain, isPro: true },
+        { name: locale === 'ar' ? 'مجموعة المواهب' : 'Talent Pool', href: '/dashboard/talent-pool', icon: Users, isPro: false },
+        { name: locale === 'ar' ? 'وضع التخفي' : 'Stealth Mode', href: '/dashboard/stealth', icon: Shield, isPro: true },
+        { name: 'LinkedIn', href: '/dashboard/linkedin', icon: User, isPro: true },
     ];
 
     const secondaryNav = [
@@ -79,8 +83,11 @@ export default function DashboardLayout({
 
     return (
         <div className="flex h-screen bg-muted/30">
+            <SkipLink />
             {/* Sidebar */}
             <aside
+                role="navigation"
+                aria-label={locale === 'ar' ? 'القائمة الرئيسية' : 'Main navigation'}
                 className={`flex flex-col bg-card border-e transition-all duration-300 ${sidebarCollapsed ? 'w-16' : 'w-64'
                     }`}
             >
@@ -106,7 +113,16 @@ export default function DashboardLayout({
                                 }`}
                         >
                             <item.icon className="h-5 w-5 flex-shrink-0" />
-                            {!sidebarCollapsed && <span>{item.name}</span>}
+                            {!sidebarCollapsed && (
+                                <span className="flex items-center gap-2 flex-1">
+                                    {item.name}
+                                    {item.isPro && (
+                                        <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+                                            PRO
+                                        </Badge>
+                                    )}
+                                </span>
+                            )}
                         </Link>
                     ))}
                 </nav>
@@ -239,8 +255,19 @@ export default function DashboardLayout({
                 </header>
 
                 {/* Page Content */}
-                <main className="flex-1 overflow-y-auto p-6">{children}</main>
+                <main
+                    id="main-content"
+                    className="flex-1 overflow-y-auto p-6"
+                    tabIndex={-1}
+                    role="main"
+                    aria-label={locale === 'ar' ? 'المحتوى الرئيسي' : 'Main content'}
+                >
+                    {children}
+                </main>
             </div>
+
+            {/* Onboarding Modal */}
+            <WelcomeModal />
         </div>
     );
 }

@@ -286,10 +286,234 @@ export async function sendSubscriptionConfirmation(
     }
 }
 
+// Resume completion reminder email
+export async function sendResumeReminderEmail(
+    email: string,
+    resumeTitle: string,
+    completionPercentage: number,
+    name?: string
+): Promise<EmailResult> {
+    if (!resend) {
+        logger.warn('Email service not configured - skipping resume reminder email', { email });
+        return { success: false, error: 'Email service not configured' };
+    }
+
+    const resumeUrl = `${APP_URL}/dashboard/resumes`;
+    const greeting = name ? `Hi ${name.split(' ')[0]},` : 'Hi there,';
+
+    const content = `
+        <h1 style="margin: 0 0 16px 0; font-size: 24px; font-weight: 700; color: #18181b;">Complete Your Resume</h1>
+        <p style="margin: 0 0 24px 0; font-size: 16px; color: #3f3f46; line-height: 1.6;">
+            ${greeting}<br><br>
+            Your resume "${resumeTitle}" is ${completionPercentage}% complete. A few more details and you'll be ready to impress recruiters!
+        </p>
+        <div style="background-color: #f4f4f5; border-radius: 8px; padding: 24px; margin: 24px 0;">
+            <div style="display: flex; align-items: center; gap: 16px;">
+                <div style="flex: 1; background-color: #e4e4e7; border-radius: 999px; height: 8px; overflow: hidden;">
+                    <div style="width: ${completionPercentage}%; background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); height: 100%; border-radius: 999px;"></div>
+                </div>
+                <span style="font-weight: 600; color: #3b82f6;">${completionPercentage}%</span>
+            </div>
+        </div>
+        <div style="text-align: center; margin: 32px 0;">
+            <a href="${resumeUrl}" style="${getButtonStyle()}">Continue Editing</a>
+        </div>
+        <p style="margin: 24px 0 0 0; font-size: 14px; color: #71717a;">
+            Pro tip: Completed resumes get 3x more views from recruiters!
+        </p>
+    `;
+
+    try {
+        const { data, error } = await resend.emails.send({
+            from: FROM_EMAIL,
+            to: email,
+            subject: `Your resume is almost ready! - ${APP_NAME}`,
+            html: getBaseTemplate(content),
+        });
+
+        if (error) {
+            logger.error('Failed to send resume reminder email', { email, error });
+            return { success: false, error: error.message };
+        }
+
+        logger.info('Resume reminder email sent', { email, messageId: data?.id });
+        return { success: true, messageId: data?.id };
+    } catch (error) {
+        logger.error('Email sending failed', { email, error: error as Error });
+        return { success: false, error: 'Failed to send email' };
+    }
+}
+
+// Weekly tips newsletter
+export async function sendWeeklyTipsEmail(
+    email: string,
+    tips: { title: string; description: string }[],
+    name?: string
+): Promise<EmailResult> {
+    if (!resend) {
+        logger.warn('Email service not configured - skipping weekly tips email', { email });
+        return { success: false, error: 'Email service not configured' };
+    }
+
+    const greeting = name ? `Hi ${name.split(' ')[0]},` : 'Hi there,';
+
+    const tipsHtml = tips.map(tip => `
+        <div style="margin-bottom: 20px; padding: 16px; background-color: #f9fafb; border-radius: 8px; border-left: 4px solid #3b82f6;">
+            <h3 style="margin: 0 0 8px 0; font-size: 16px; font-weight: 600; color: #18181b;">${tip.title}</h3>
+            <p style="margin: 0; font-size: 14px; color: #3f3f46; line-height: 1.5;">${tip.description}</p>
+        </div>
+    `).join('');
+
+    const content = `
+        <h1 style="margin: 0 0 16px 0; font-size: 24px; font-weight: 700; color: #18181b;">This Week's Career Tips</h1>
+        <p style="margin: 0 0 24px 0; font-size: 16px; color: #3f3f46; line-height: 1.6;">
+            ${greeting}<br><br>
+            Here are this week's tips to help you stand out in your job search:
+        </p>
+        ${tipsHtml}
+        <div style="text-align: center; margin: 32px 0;">
+            <a href="${APP_URL}/dashboard" style="${getButtonStyle()}">Apply These Tips</a>
+        </div>
+    `;
+
+    try {
+        const { data, error } = await resend.emails.send({
+            from: FROM_EMAIL,
+            to: email,
+            subject: `Weekly Career Tips - ${APP_NAME}`,
+            html: getBaseTemplate(content),
+        });
+
+        if (error) {
+            logger.error('Failed to send weekly tips email', { email, error });
+            return { success: false, error: error.message };
+        }
+
+        logger.info('Weekly tips email sent', { email, messageId: data?.id });
+        return { success: true, messageId: data?.id };
+    } catch (error) {
+        logger.error('Email sending failed', { email, error: error as Error });
+        return { success: false, error: 'Failed to send email' };
+    }
+}
+
+// Feedback request email
+export async function sendFeedbackRequestEmail(
+    email: string,
+    name?: string
+): Promise<EmailResult> {
+    if (!resend) {
+        logger.warn('Email service not configured - skipping feedback email', { email });
+        return { success: false, error: 'Email service not configured' };
+    }
+
+    const feedbackUrl = `${APP_URL}/feedback`;
+    const greeting = name ? `Hi ${name.split(' ')[0]},` : 'Hi there,';
+
+    const content = `
+        <h1 style="margin: 0 0 16px 0; font-size: 24px; font-weight: 700; color: #18181b;">We'd Love Your Feedback</h1>
+        <p style="margin: 0 0 24px 0; font-size: 16px; color: #3f3f46; line-height: 1.6;">
+            ${greeting}<br><br>
+            You've been using ${APP_NAME} for a while now, and we'd love to hear about your experience. Your feedback helps us improve for everyone!
+        </p>
+        <div style="background-color: #fef3c7; border: 1px solid #f59e0b; border-radius: 8px; padding: 24px; margin: 24px 0; text-align: center;">
+            <p style="margin: 0 0 8px 0; font-size: 32px;">⭐⭐⭐⭐⭐</p>
+            <p style="margin: 0; color: #92400e; font-weight: 500;">
+                How would you rate your experience?
+            </p>
+        </div>
+        <div style="text-align: center; margin: 32px 0;">
+            <a href="${feedbackUrl}" style="${getButtonStyle()}">Share Feedback</a>
+        </div>
+        <p style="margin: 24px 0 0 0; font-size: 14px; color: #71717a; text-align: center;">
+            Takes less than 2 minutes
+        </p>
+    `;
+
+    try {
+        const { data, error } = await resend.emails.send({
+            from: FROM_EMAIL,
+            to: email,
+            subject: `Quick question about your experience - ${APP_NAME}`,
+            html: getBaseTemplate(content),
+        });
+
+        if (error) {
+            logger.error('Failed to send feedback email', { email, error });
+            return { success: false, error: error.message };
+        }
+
+        logger.info('Feedback request email sent', { email, messageId: data?.id });
+        return { success: true, messageId: data?.id };
+    } catch (error) {
+        logger.error('Email sending failed', { email, error: error as Error });
+        return { success: false, error: 'Failed to send email' };
+    }
+}
+
+// Export notification email
+export async function sendExportReadyEmail(
+    email: string,
+    resumeTitle: string,
+    downloadUrl: string,
+    format: 'PDF' | 'DOCX',
+    name?: string
+): Promise<EmailResult> {
+    if (!resend) {
+        logger.warn('Email service not configured - skipping export email', { email });
+        return { success: false, error: 'Email service not configured' };
+    }
+
+    const greeting = name ? `Hi ${name.split(' ')[0]},` : 'Hi there,';
+
+    const content = `
+        <h1 style="margin: 0 0 16px 0; font-size: 24px; font-weight: 700; color: #18181b;">Your Resume is Ready!</h1>
+        <p style="margin: 0 0 24px 0; font-size: 16px; color: #3f3f46; line-height: 1.6;">
+            ${greeting}<br><br>
+            Your ${format} export of "${resumeTitle}" is ready for download.
+        </p>
+        <div style="background-color: #ecfdf5; border: 1px solid #10b981; border-radius: 8px; padding: 24px; margin: 24px 0; text-align: center;">
+            <p style="margin: 0; color: #047857; font-weight: 600; font-size: 18px;">
+                📄 ${resumeTitle}.${format.toLowerCase()}
+            </p>
+        </div>
+        <div style="text-align: center; margin: 32px 0;">
+            <a href="${downloadUrl}" style="${getButtonStyle()}">Download Resume</a>
+        </div>
+        <p style="margin: 24px 0 0 0; font-size: 14px; color: #71717a;">
+            This download link expires in 24 hours.
+        </p>
+    `;
+
+    try {
+        const { data, error } = await resend.emails.send({
+            from: FROM_EMAIL,
+            to: email,
+            subject: `Your resume is ready to download - ${APP_NAME}`,
+            html: getBaseTemplate(content),
+        });
+
+        if (error) {
+            logger.error('Failed to send export email', { email, error });
+            return { success: false, error: error.message };
+        }
+
+        logger.info('Export ready email sent', { email, messageId: data?.id });
+        return { success: true, messageId: data?.id };
+    } catch (error) {
+        logger.error('Email sending failed', { email, error: error as Error });
+        return { success: false, error: 'Failed to send email' };
+    }
+}
+
 export default {
     isEmailConfigured,
     sendVerificationEmail,
     sendPasswordResetEmail,
     sendWelcomeEmail,
     sendSubscriptionConfirmation,
+    sendResumeReminderEmail,
+    sendWeeklyTipsEmail,
+    sendFeedbackRequestEmail,
+    sendExportReadyEmail,
 };

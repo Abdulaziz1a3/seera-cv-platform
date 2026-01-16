@@ -6,32 +6,26 @@ import { useLocale } from '@/components/providers/locale-provider';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
 import {
     ArrowLeft,
-    Calendar,
     Clock,
-    User,
     Share2,
     BookmarkPlus,
     ThumbsUp,
     ArrowRight,
 } from 'lucide-react';
 
-// Mock blog data
+// Blog data
 const blogPosts: Record<string, {
     title: { en: string; ar: string };
     content: { en: string; ar: string };
     category: { en: string; ar: string };
-    author: string;
-    authorRole: { en: string; ar: string };
-    date: string;
     readTime: number;
 }> = {
     'how-to-write-ats-friendly-resume': {
         title: {
-            en: 'How to Write an ATS-Friendly Resume in 2024',
-            ar: 'كيف تكتب سيرة ذاتية متوافقة مع ATS في 2024',
+            en: 'How to Write an ATS-Friendly Resume',
+            ar: 'كيف تكتب سيرة ذاتية متوافقة مع ATS',
         },
         content: {
             en: `## What is an ATS?
@@ -96,9 +90,6 @@ By following these guidelines, you can significantly improve your chances of get
 باتباع هذه الإرشادات، يمكنك تحسين فرصك بشكل كبير في تجاوز ATS والوصول إلى مسؤول التوظيف.`,
         },
         category: { en: 'Resume Tips', ar: 'نصائح السيرة' },
-        author: 'Ahmed Al-Mansouri',
-        authorRole: { en: 'Career Expert', ar: 'خبير مهني' },
-        date: '2024-01-10',
         readTime: 8,
     },
 };
@@ -128,14 +119,6 @@ export default function BlogPostPage({ params }: { params: { slug: string } }) {
 }
 
 function BlogPostContent({ post, locale, t }: { post: typeof blogPosts[string]; locale: 'en' | 'ar'; t: any }) {
-    const formatDate = (dateStr: string) => {
-        return new Date(dateStr).toLocaleDateString(locale === 'ar' ? 'ar-SA' : 'en-US', {
-            month: 'long',
-            day: 'numeric',
-            year: 'numeric',
-        });
-    };
-
     return (
         <article className="max-w-4xl mx-auto">
             {/* Back link */}
@@ -152,25 +135,9 @@ function BlogPostContent({ post, locale, t }: { post: typeof blogPosts[string]; 
                 <Badge className="mb-4">{post.category[locale]}</Badge>
                 <h1 className="text-3xl md:text-4xl font-bold mb-4">{post.title[locale]}</h1>
 
-                <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-                    <div className="flex items-center gap-2">
-                        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                            <User className="h-5 w-5 text-primary" />
-                        </div>
-                        <div>
-                            <p className="font-medium text-foreground">{post.author}</p>
-                            <p className="text-xs">{post.authorRole[locale]}</p>
-                        </div>
-                    </div>
-                    <Separator orientation="vertical" className="h-8" />
-                    <span className="flex items-center gap-1">
-                        <Calendar className="h-4 w-4" />
-                        {formatDate(post.date)}
-                    </span>
-                    <span className="flex items-center gap-1">
-                        <Clock className="h-4 w-4" />
-                        {post.readTime} {locale === 'ar' ? 'دقيقة قراءة' : 'min read'}
-                    </span>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Clock className="h-4 w-4" />
+                    <span>{post.readTime} {locale === 'ar' ? 'دقيقة قراءة' : 'min read'}</span>
                 </div>
             </header>
 

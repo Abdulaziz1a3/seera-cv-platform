@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { FileText, Twitter, Linkedin, Github, Facebook, Instagram } from 'lucide-react';
+import { Twitter, Linkedin } from 'lucide-react';
 import { useLocale } from '@/components/providers/locale-provider';
 
 export function MarketingFooter() {
@@ -10,32 +10,28 @@ export function MarketingFooter() {
 
     const footerLinks = {
         product: [
-            { href: '#templates', label: t.footer.links.templates },
+            { href: '/templates', label: t.footer.links.templates },
             { href: '/pricing', label: t.footer.links.pricing },
-            { href: '#blog', label: t.footer.links.blog },
+            { href: '/blog', label: t.footer.links.blog },
         ],
         resources: [
-            { href: '#help', label: t.footer.links.helpCenter },
-            { href: '#guide', label: t.footer.links.resumeGuide },
-            { href: '#tips', label: t.footer.links.careerTips },
+            { href: '/help', label: t.footer.links.helpCenter },
+            { href: '/blog', label: t.footer.links.resumeGuide },
+            { href: '/blog', label: t.footer.links.careerTips },
         ],
         company: [
-            { href: '#about', label: t.footer.links.aboutUs },
-            { href: '#contact', label: t.footer.links.contact },
-            { href: '#careers', label: t.footer.links.careers },
+            { href: '/contact', label: t.footer.links.aboutUs },
+            { href: '/contact', label: t.footer.links.contact },
         ],
         legal: [
             { href: '/terms', label: t.footer.links.terms },
             { href: '/privacy', label: t.footer.links.privacy },
-            { href: '#cookies', label: t.footer.links.cookies },
         ],
     };
 
     const socialLinks = [
-        { href: '#', icon: Twitter, label: t.footer.social.twitter },
-        { href: '#', icon: Linkedin, label: t.footer.social.linkedin },
-        { href: '#', icon: Facebook, label: t.footer.social.facebook },
-        { href: '#', icon: Instagram, label: t.footer.social.instagram },
+        { href: 'https://x.com/seera_ai', icon: Twitter, label: t.footer.social.twitter },
+        { href: 'https://linkedin.com/company/seera-ai', icon: Linkedin, label: t.footer.social.linkedin },
     ];
 
     return (

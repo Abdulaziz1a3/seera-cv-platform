@@ -1,11 +1,14 @@
 import type { Metadata, Viewport } from 'next';
 import { Inter, Noto_Sans_Arabic } from 'next/font/google';
+import Script from 'next/script';
 import { ThemeProvider } from '@/components/providers/theme-provider';
 import { Toaster } from '@/components/ui/sonner';
 import { QueryProvider } from '@/components/providers/query-provider';
 import { SessionProvider } from '@/components/providers/session-provider';
 import { LocaleProvider } from '@/components/providers/locale-provider';
 import { ResumeProvider } from '@/components/providers/resume-provider';
+import { AnalyticsProvider } from '@/components/providers/analytics-provider';
+import { ErrorBoundary } from '@/components/providers/error-boundary';
 import './globals.css';
 
 const inter = Inter({
@@ -22,6 +25,12 @@ export const metadata: Metadata = {
     title: {
         default: 'Seera AI | Professional ATS-Friendly Resume Builder',
         template: '%s | Seera AI',
+    },
+    manifest: '/manifest.json',
+    appleWebApp: {
+        capable: true,
+        statusBarStyle: 'default',
+        title: 'Seera AI',
     },
     description:
         'Create professional, ATS-optimized resumes with our intelligent resume builder. Multi-language support including Arabic with RTL layout. Get hired faster with tailored resumes.',
@@ -70,7 +79,7 @@ export const metadata: Metadata = {
         description:
             'Create professional, ATS-optimized resumes with our intelligent resume builder.',
         images: ['/og-image.png'],
-        creator: '@seeraai',
+        creator: '@seera_ai',
     },
     robots: {
         index: true,
@@ -84,7 +93,8 @@ export const metadata: Metadata = {
         },
     },
     verification: {
-        google: 'your-google-verification-code',
+        // Add your Google Search Console verification code here
+        // google: 'your-actual-verification-code',
     },
 };
 
@@ -105,6 +115,11 @@ export default function RootLayout({
 }) {
     return (
         <html lang="en" dir="ltr" suppressHydrationWarning>
+            <head>
+                <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png" />
+                <meta name="apple-mobile-web-app-capable" content="yes" />
+                <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+            </head>
             <body
                 className={`${inter.variable} ${notoArabic.variable} font-sans antialiased`}
             >
@@ -118,13 +133,34 @@ export default function RootLayout({
                         >
                             <LocaleProvider>
                                 <ResumeProvider>
-                                    {children}
+                                    <AnalyticsProvider>
+                                        <ErrorBoundary>
+                                            {children}
+                                        </ErrorBoundary>
+                                    </AnalyticsProvider>
                                     <Toaster richColors closeButton position="bottom-right" />
                                 </ResumeProvider>
                             </LocaleProvider>
                         </ThemeProvider>
                     </QueryProvider>
                 </SessionProvider>
+                {/* Service Worker Registration */}
+                <Script id="sw-register" strategy="afterInteractive">
+                    {`
+                        if ('serviceWorker' in navigator) {
+                            window.addEventListener('load', function() {
+                                navigator.serviceWorker.register('/sw.js').then(
+                                    function(registration) {
+                                        console.log('SW registered: ', registration.scope);
+                                    },
+                                    function(err) {
+                                        console.log('SW registration failed: ', err);
+                                    }
+                                );
+                            });
+                        }
+                    `}
+                </Script>
             </body>
         </html>
     );

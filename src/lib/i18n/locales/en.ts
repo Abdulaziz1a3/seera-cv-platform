@@ -576,7 +576,7 @@ export const en = {
         resources: 'Resources',
         company: 'Company',
         legal: 'Legal',
-        copyright: '© 2024 Seera AI. All rights reserved.',
+        copyright: '© 2025 Seera AI. All rights reserved.',
         links: {
             templates: 'Templates',
             pricing: 'Pricing',

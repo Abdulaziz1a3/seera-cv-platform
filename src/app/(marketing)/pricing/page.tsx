@@ -95,7 +95,7 @@ export default function PricingPage() {
                             <Card
                                 key={plan.name}
                                 className={`relative overflow-hidden transition-all duration-300 hover:shadow-xl ${plan.popular
-                                        ? 'border-2 border-primary shadow-lg scale-105 md:scale-110'
+                                        ? 'border-2 border-primary shadow-lg md:scale-105'
                                         : 'hover:-translate-y-1'
                                     }`}
                             >
@@ -151,6 +151,12 @@ export default function PricingPage() {
                                             <ArrowRight className="h-4 w-4 ms-2" />
                                         </Link>
                                     </Button>
+
+                                    {plan.monthlyPrice > 0 && (
+                                        <p className="text-xs text-muted-foreground mt-4 text-center">
+                                            {locale === 'ar' ? '🔒 دفع آمن عبر Stripe' : '🔒 Secure payment via Stripe'}
+                                        </p>
+                                    )}
                                 </CardContent>
                             </Card>
                         ))}
@@ -165,8 +171,8 @@ export default function PricingPage() {
                         {locale === 'ar' ? 'مقارنة الميزات' : 'Compare Features'}
                     </h2>
 
-                    <div className="max-w-4xl mx-auto overflow-x-auto">
-                        <table className="w-full text-sm">
+                    <div className="max-w-4xl mx-auto overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0">
+                        <table className="w-full text-sm min-w-[600px]">
                             <thead>
                                 <tr className="border-b">
                                     <th className="text-start py-4 pe-4 font-medium">

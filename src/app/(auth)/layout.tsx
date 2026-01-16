@@ -64,7 +64,7 @@ export default function AuthLayout({
                 </div>
 
                 <div className="text-sm opacity-70">
-                    © 2024 Seera AI. {t.footer.copyright}
+                    {t.footer.copyright}
                 </div>
             </div>
 
