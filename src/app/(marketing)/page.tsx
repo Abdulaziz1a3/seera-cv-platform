@@ -18,6 +18,7 @@ import {
     Building2,
     Zap,
     Award,
+    PenTool,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -70,6 +71,15 @@ export default function Home() {
                 : 'Make your resume visible to hundreds of GCC companies and receive job offers directly',
             color: 'from-green-500 to-emerald-500',
             badge: 'INCLUDED',
+        },
+        {
+            icon: PenTool,
+            title: locale === 'ar' ? '???? ????' : 'Seera Link',
+            description: locale === 'ar'
+                ? '????? ??? ?????? ?????? ????? ?????? ?????? ???? ????? ?????? ?????.'
+                : 'Create a shareable career profile page with direct contact actions and CV access.',
+            color: 'from-fuchsia-500 to-rose-500',
+            badge: 'PUBLIC PROFILE',
         },
     ];
 
