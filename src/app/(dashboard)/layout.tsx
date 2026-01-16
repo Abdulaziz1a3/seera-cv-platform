@@ -86,8 +86,8 @@ export default function DashboardLayout({
         { name: t.nav.myResumes, href: '/dashboard/resumes', icon: FileText, isPro: false },
         { name: locale === 'ar' ? 'GPS المهني' : 'Career GPS', href: '/dashboard/career', icon: Compass, isPro: true },
         { name: locale === 'ar' ? 'تحضير المقابلة' : 'Interview Prep', href: '/dashboard/interview', icon: Brain, isPro: true },
-        { name: locale === 'ar' ? 'مجموعة المواهب' : 'Talent Pool', href: '/dashboard/talent-pool', icon: Users, isPro: false },
-        { name: t.nav.seeraLink, href: '/dashboard/seera-link', icon: PenTool, isPro: false },
+        { name: locale === 'ar' ? 'مجموعة المواهب' : 'Talent Pool', href: '/dashboard/talent-pool', icon: Users, isPro: true },
+        { name: t.nav.seeraLink, href: '/dashboard/seera-link', icon: PenTool, isPro: true },
         { name: locale === 'ar' ? 'وضع التخفي' : 'Stealth Mode', href: '/dashboard/stealth', icon: Shield, isPro: true },
         { name: 'LinkedIn', href: '/dashboard/linkedin', icon: User, isPro: true },
     ];
@@ -101,6 +101,9 @@ export default function DashboardLayout({
         if (href === '/dashboard') return pathname === href;
         return pathname.startsWith(href);
     };
+
+    const proRoutes = navigation.filter((item) => item.isPro).map((item) => item.href);
+    const isProRoute = proRoutes.some((route) => pathname.startsWith(route));
 
     const userInitials = session?.user?.name
         ?.split(' ')
@@ -130,28 +133,34 @@ export default function DashboardLayout({
 
                 {/* Navigation */}
                 <nav className="flex-1 p-2 space-y-1 overflow-y-auto">
-                    {navigation.map((item) => (
-                        <Link
-                            key={item.href}
-                            href={item.href}
-                            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${isActive(item.href)
-                                ? 'bg-primary text-primary-foreground'
-                                : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-                                }`}
-                        >
-                            <item.icon className="h-5 w-5 flex-shrink-0" />
-                            {!sidebarCollapsed && (
-                                <span className="flex items-center gap-2 flex-1">
-                                    {item.name}
-                                    {item.isPro && (
-                                        <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
-                                            PRO
-                                        </Badge>
-                                    )}
-                                </span>
-                            )}
-                        </Link>
-                    ))}
+                    {navigation.map((item) => {
+                        const isLocked = item.isPro && !isSubscriptionActive;
+                        const href = isLocked ? '/dashboard/settings?tab=billing' : item.href;
+
+                        return (
+                            <Link
+                                key={item.href}
+                                href={href}
+                                aria-disabled={isLocked}
+                                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${isActive(item.href)
+                                    ? 'bg-primary text-primary-foreground'
+                                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                                    } ${isLocked ? 'opacity-70' : ''}`}
+                            >
+                                <item.icon className="h-5 w-5 flex-shrink-0" />
+                                {!sidebarCollapsed && (
+                                    <span className="flex items-center gap-2 flex-1">
+                                        {item.name}
+                                        {item.isPro && (
+                                            <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+                                                PRO
+                                            </Badge>
+                                        )}
+                                    </span>
+                                )}
+                            </Link>
+                        );
+                    })}
                 </nav>
 
                 {/* Secondary Nav */}
@@ -207,12 +216,10 @@ export default function DashboardLayout({
                     {/* Actions */}
                     <div className="flex items-center gap-2">
                         {/* New Resume Button */}
-                        <Button asChild size="sm" disabled={!isSubscriptionActive}>
+                        <Button asChild size="sm">
                             <Link
                                 href="/dashboard/resumes/new"
-                                aria-disabled={!isSubscriptionActive}
-                                className={!isSubscriptionActive ? 'pointer-events-none opacity-70' : undefined}
-                            >
+                                                            >
                                 <Plus className="h-4 w-4 me-1" />
                                 {t.dashboard.newResume}
                             </Link>
@@ -294,10 +301,10 @@ export default function DashboardLayout({
                     aria-label={locale === 'ar' ? 'المحتوى الرئيسي' : 'Main content'}
                 >
                     <div className="relative min-h-[60vh]">
-                        <div className={!isSubscriptionActive ? 'pointer-events-none opacity-50' : undefined}>
+                        <div className={!isSubscriptionActive && isProRoute ? 'pointer-events-none opacity-50' : undefined}>
                             {children}
                         </div>
-                        {!isSubscriptionActive && (
+                        {!isSubscriptionActive && isProRoute && (
                             <div className="absolute inset-0 flex items-center justify-center">
                                 <div className="max-w-md w-full rounded-2xl border bg-card p-6 shadow-xl text-center">
                                     <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-amber-500/10 text-amber-600">
