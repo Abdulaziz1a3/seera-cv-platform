@@ -3,16 +3,16 @@ import { cookies } from 'next/headers';
 import { prisma } from '@/lib/db';
 
 interface RouteParams {
-  params: Promise<{ slug: string }>;
+  params: Promise<{ id: string }>;
 }
 
-// GET /api/seera-link/[slug]/cv - Fetch resume data for CV download/preview
+// GET /api/seera-link/[id]/cv - Fetch resume data for CV download/preview
 export async function GET(request: Request, { params }: RouteParams) {
   try {
-    const { slug } = await params;
+    const { id } = await params;
     const profile = await prisma.seeraProfile.findFirst({
       where: {
-        slug: slug.toLowerCase(),
+        slug: id.toLowerCase(),
         status: 'PUBLISHED',
         deletedAt: null,
       },
