@@ -66,6 +66,8 @@ const translations = {
     email: 'بريد',
     linkedin: 'لينكدإن',
     downloadCv: 'تحميل السيرة',
+    viewCv: 'عرض السيرة',
+    preparingCv: 'جاري تجهيز السيرة...',
   },
 };
 
