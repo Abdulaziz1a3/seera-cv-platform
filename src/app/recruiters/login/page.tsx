@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { signIn } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -20,6 +21,7 @@ import {
     Zap,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { isCompanyEmail } from '@/lib/company-email';
 
 export default function RecruiterLoginPage() {
     const router = useRouter();
@@ -30,14 +32,30 @@ export default function RecruiterLoginPage() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (!isCompanyEmail(email)) {
+            toast.error('Please use your company email address.');
+            return;
+        }
         setIsLoading(true);
 
-        // Simulate login
-        setTimeout(() => {
+        try {
+            const result = await signIn('credentials', {
+                redirect: false,
+                email,
+                password,
+            });
+            if (result?.error) {
+                toast.error('Invalid credentials');
+                return;
+            }
             toast.success('Welcome back!');
             router.push('/recruiters');
+        } catch (error) {
+            console.error('Recruiter login error', error);
+            toast.error('Sign in failed');
+        } finally {
             setIsLoading(false);
-        }, 1500);
+        }
     };
 
     return (
@@ -81,7 +99,7 @@ export default function RecruiterLoginPage() {
                                 <Lock className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                                 <Input
                                     type={showPassword ? 'text' : 'password'}
-                                    placeholder="••••••••"
+                                    placeholder="********"
                                     className="ps-10 pe-10 h-12"
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}

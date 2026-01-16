@@ -113,7 +113,7 @@ class PDFRenderer {
       resume.contact.location,
     ].filter(Boolean);
     if (contactParts.length) {
-      this.doc.text(contactParts.join('  •  '), margin, this.y);
+      this.doc.text(contactParts.join('  |  '), margin, this.y);
       this.y += 5;
     }
     if (resume.contact.linkedin) {
@@ -191,7 +191,7 @@ class PDFRenderer {
           exp.bullets.filter(b => b?.trim()).forEach((bullet) => {
             this.checkPageBreak(8);
             this.setColor(this.theme.accent);
-            this.doc.text('•', margin + 2, this.y);
+            this.doc.text('-', margin + 2, this.y);
             this.setColor(this.theme.text);
             const bulletLines = this.doc.splitTextToSize(bullet, contentWidth - 8);
             bulletLines.forEach((line: string) => {
@@ -243,7 +243,7 @@ class PDFRenderer {
     // Skills
     if (resume.skills.length > 0) {
       addSection('skills', () => {
-        const skillsText = resume.skills.join('  •  ');
+        const skillsText = resume.skills.join('  |  ');
         this.addWrappedText(skillsText, margin, contentWidth, 4.5);
       });
     }
@@ -276,7 +276,7 @@ class PDFRenderer {
     // Languages
     if (resume.languages.length > 0) {
       addSection('languages', () => {
-        const langText = resume.languages.map(l => `${l.name} (${l.proficiency})`).join('  •  ');
+        const langText = resume.languages.map(l => `${l.name} (${l.proficiency})`).join('  |  ');
         this.doc.text(langText, margin, this.y);
         this.y += 5;
       });
@@ -353,7 +353,7 @@ class PDFRenderer {
 
           this.doc.setFont('helvetica', 'normal');
           this.setColor(this.theme.muted);
-          const meta = ` — ${exp.company}, ${formatDate(exp.startDate, this.locale)} - ${exp.current ? getPresentText(this.locale) : formatDate(exp.endDate, this.locale)}`;
+          const meta = ` - ${exp.company}, ${formatDate(exp.startDate, this.locale)} - ${exp.current ? getPresentText(this.locale) : formatDate(exp.endDate, this.locale)}`;
           this.doc.text(meta, margin + this.doc.getTextWidth(exp.position), this.y);
           this.y += 6;
 
@@ -362,7 +362,7 @@ class PDFRenderer {
           this.setColor(this.theme.text);
           exp.bullets.filter(b => b?.trim()).forEach((bullet) => {
             this.checkPageBreak(8);
-            const bulletLines = this.doc.splitTextToSize(`– ${bullet}`, contentWidth - 5);
+            const bulletLines = this.doc.splitTextToSize(`- ${bullet}`, contentWidth - 5);
             bulletLines.forEach((line: string) => {
               this.doc.text(line, margin + 3, this.y);
               this.y += 5;
@@ -734,7 +734,7 @@ class PDFRenderer {
           this.setColor(this.theme.text);
           exp.bullets.filter(b => b?.trim()).forEach((bullet) => {
             this.checkPageBreak(8);
-            const bulletLines = this.doc.splitTextToSize(`• ${bullet}`, contentWidth - 5);
+            const bulletLines = this.doc.splitTextToSize(`- ${bullet}`, contentWidth - 5);
             bulletLines.forEach((line: string) => {
               this.doc.text(line, margin + 2, this.y);
               this.y += 4.5;
@@ -776,7 +776,7 @@ class PDFRenderer {
     // Skills
     if (resume.skills.length > 0) {
       addSection('skills', () => {
-        const skillsText = resume.skills.join('  •  ');
+        const skillsText = resume.skills.join('  |  ');
         this.doc.text(skillsText, centerX, this.y, { align: 'center', maxWidth: contentWidth });
         this.y += 5;
       });
@@ -826,7 +826,7 @@ class PDFRenderer {
     this.doc.setFont('helvetica', 'normal');
     this.doc.setFontSize(9);
     this.setColor(this.theme.muted);
-    const contactBar = [resume.contact.email, resume.contact.phone, resume.contact.location].filter(Boolean).join('   •   ');
+    const contactBar = [resume.contact.email, resume.contact.phone, resume.contact.location].filter(Boolean).join('   |   ');
     if (contactBar) {
       this.doc.text(contactBar, this.pageWidth - margin, this.y, { align: 'right' });
       this.y += 10;
@@ -908,7 +908,7 @@ class PDFRenderer {
           this.doc.setFont('helvetica', 'normal');
           this.doc.setFontSize(9.5);
           this.setColor(this.theme.muted);
-          const meta = `${exp.company} • ${formatDate(exp.startDate, this.locale)} - ${exp.current ? getPresentText(this.locale) : formatDate(exp.endDate, this.locale)}`;
+          const meta = `${exp.company} | ${formatDate(exp.startDate, this.locale)} - ${exp.current ? getPresentText(this.locale) : formatDate(exp.endDate, this.locale)}`;
           this.doc.text(meta, margin + 10, this.y);
           this.y += 5;
 
@@ -941,7 +941,7 @@ class PDFRenderer {
           this.doc.setFont('helvetica', 'normal');
           this.doc.setFontSize(10);
           this.setColor(this.theme.muted);
-          this.doc.text(`${edu.institution}${edu.graduationDate ? ' • ' + formatDate(edu.graduationDate, this.locale) : ''}`, margin, this.y);
+          this.doc.text(`${edu.institution}${edu.graduationDate ? ' | ' + formatDate(edu.graduationDate, this.locale) : ''}`, margin, this.y);
           this.y += 8;
         });
       });

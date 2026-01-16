@@ -153,7 +153,7 @@ export function MarketingHeader() {
                                                         {locale === 'ar' ? 'أنا أبحث عن عمل' : "I'm a Job Seeker"}
                                                     </p>
                                                     <p className="text-xs text-muted-foreground">
-                                                        {locale === 'ar' ? 'أنشئ سيرة ذاتية مجاناً' : 'Create resume for free'}
+                                                        {locale === 'ar' ? 'أنشئ سيرتك الذاتية' : 'Create your resume'}
                                                     </p>
                                                 </div>
                                             </Link>

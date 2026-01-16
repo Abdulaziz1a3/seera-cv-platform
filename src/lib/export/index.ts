@@ -130,7 +130,7 @@ export function generatePlainText(resume: Resume, language: 'en' | 'ar' = 'en'):
             if (exp.bullets && exp.bullets.length > 0) {
                 for (const bullet of exp.bullets) {
                     const content = typeof bullet === 'string' ? bullet : bullet.content;
-                    lines.push(`  • ${content}`);
+                    lines.push(`  - ${content}`);
                 }
             }
             lines.push('');
@@ -180,7 +180,7 @@ export function generatePlainText(resume: Resume, language: 'en' | 'ar' = 'en'):
             let line = cert.name;
             if (cert.issuer) line += ` - ${cert.issuer}`;
             if (cert.issueDate) line += ` (${cert.issueDate})`;
-            lines.push(`  • ${line}`);
+            lines.push(`  - ${line}`);
         }
         lines.push('');
     }
@@ -199,7 +199,7 @@ export function generatePlainText(resume: Resume, language: 'en' | 'ar' = 'en'):
             if (project.bullets && project.bullets.length > 0) {
                 for (const bullet of project.bullets) {
                     const content = typeof bullet === 'string' ? bullet : bullet.content;
-                    lines.push(`  • ${content}`);
+                    lines.push(`  - ${content}`);
                 }
             }
             lines.push('');
@@ -213,7 +213,7 @@ export function generatePlainText(resume: Resume, language: 'en' | 'ar' = 'en'):
         lines.push(separator);
 
         for (const lang of resume.languages.items) {
-            lines.push(`  • ${lang.language} - ${lang.proficiency}`);
+            lines.push(`  - ${lang.language} - ${lang.proficiency}`);
         }
         lines.push('');
     }
@@ -353,7 +353,7 @@ export async function generateDocx(
                     const content = typeof bullet === 'string' ? bullet : bullet.content;
                     sections.push(
                         new Paragraph({
-                            children: [createText(`• ${content}`)],
+                            children: [createText(`- ${content}`)],
                             indent: { left: 360 },
                         })
                     );

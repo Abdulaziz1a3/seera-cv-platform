@@ -22,8 +22,8 @@ export const PLANS = {
         name: 'Pro',
         monthlyPriceId: process.env.STRIPE_PRICE_MONTHLY_PRO,
         yearlyPriceId: process.env.STRIPE_PRICE_YEARLY_PRO,
-        monthlyPrice: 12,
-        yearlyPrice: 99,
+        monthlyPrice: 39,
+        yearlyPrice: 299,
         features: {
             resumes: -1, // Unlimited
             aiGenerationsPerMonth: 100,
@@ -38,8 +38,8 @@ export const PLANS = {
         name: 'Enterprise',
         monthlyPriceId: process.env.STRIPE_PRICE_MONTHLY_ENTERPRISE,
         yearlyPriceId: process.env.STRIPE_PRICE_YEARLY_ENTERPRISE,
-        monthlyPrice: 29,
-        yearlyPrice: 249,
+        monthlyPrice: 249,
+        yearlyPrice: 1990,
         features: {
             resumes: -1,
             aiGenerationsPerMonth: -1, // Unlimited

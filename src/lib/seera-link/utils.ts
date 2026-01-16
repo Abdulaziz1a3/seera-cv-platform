@@ -294,7 +294,16 @@ export async function canCreateProfile(userId: string): Promise<{
     }),
   ]);
 
-  const plan = subscription?.plan || 'FREE';
+  if (!subscription) {
+    return {
+      allowed: false,
+      current: profileCount,
+      max: 0,
+      plan: 'UNPAID',
+    };
+  }
+
+  const plan = subscription.plan || 'FREE';
   const limits: Record<string, number> = {
     FREE: 1,
     PRO: 5,

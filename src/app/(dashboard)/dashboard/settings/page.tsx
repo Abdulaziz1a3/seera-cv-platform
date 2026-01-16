@@ -299,13 +299,13 @@ export default function SettingsPage() {
                                 <div>
                                     <div className="flex items-center gap-2">
                                         <h3 className="text-2xl font-bold">
-                                            {locale === 'ar' ? 'الخطة المجانية' : 'Free Plan'}
+                                            {locale === 'ar' ? 'خطة برو' : 'Pro Plan'}
                                         </h3>
                                         <Badge>{t.settings.billing.current}</Badge>
                                     </div>
-                                    <p className="text-sm text-muted-foreground mt-1">
-                                        {locale === 'ar' ? 'سيرة واحدة، 3 توليدات AI شهرياً' : '1 resume, 3 AI generations/month'}
-                                    </p>
+                                        <p className="text-sm text-muted-foreground mt-1">
+                                            {locale === 'ar' ? 'سير ذاتية غير محدودة، 100 توليد AI شهرياً' : 'Unlimited resumes, 100 AI generations/month'}
+                                        </p>
                                 </div>
                                 <Button size="lg" className="shadow-lg">
                                     {t.settings.billing.upgrade}

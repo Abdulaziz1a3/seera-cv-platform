@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Switch } from '@/components/ui/switch';
-import { Check, Sparkles, Zap, Building2, ArrowRight } from 'lucide-react';
+import { Check, Sparkles, Building2, ArrowRight } from 'lucide-react';
 
 export default function PricingPage() {
     const { t, locale } = useLocale();
@@ -16,23 +16,13 @@ export default function PricingPage() {
 
     const plans = [
         {
-            name: t.landing.pricing.free.name,
-            description: t.landing.pricing.free.description,
-            monthlyPrice: 0,
-            yearlyPrice: 0,
-            features: t.landing.pricing.free.features,
-            cta: t.landing.pricing.free.cta,
-            icon: Zap,
-            popular: false,
-            color: 'from-gray-400 to-gray-600',
-        },
-        {
             name: t.landing.pricing.pro.name,
             description: t.landing.pricing.pro.description,
-            monthlyPrice: 12,
-            yearlyPrice: 99,
+            monthlyPrice: 39,
+            yearlyPrice: 299,
             features: t.landing.pricing.pro.features,
             cta: t.landing.pricing.pro.cta,
+            href: '/register',
             badge: t.landing.pricing.pro.badge,
             icon: Sparkles,
             popular: true,
@@ -41,10 +31,11 @@ export default function PricingPage() {
         {
             name: t.landing.pricing.enterprise.name,
             description: t.landing.pricing.enterprise.description,
-            monthlyPrice: 29,
-            yearlyPrice: 249,
+            monthlyPrice: 249,
+            yearlyPrice: 1990,
             features: t.landing.pricing.enterprise.features,
             cta: t.landing.pricing.enterprise.cta,
+            href: '/recruiters/register',
             icon: Building2,
             popular: false,
             color: 'from-amber-500 to-orange-600',
@@ -90,7 +81,7 @@ export default function PricingPage() {
             {/* Pricing Cards */}
             <section className="py-8 -mt-16">
                 <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="grid gap-8 md:grid-cols-3 max-w-6xl mx-auto">
+                    <div className="grid gap-8 md:grid-cols-2 max-w-5xl mx-auto">
                         {plans.map((plan) => (
                             <Card
                                 key={plan.name}
@@ -122,10 +113,13 @@ export default function PricingPage() {
                                 <CardContent className="text-center">
                                     <div className="mb-6">
                                         <span className="text-5xl font-bold">
-                                            ${isYearly ? plan.yearlyPrice : plan.monthlyPrice}
+                                            {isYearly ? plan.yearlyPrice : plan.monthlyPrice}
                                         </span>
-                                        <span className="text-muted-foreground">
-                                            /{isYearly ? (locale === 'ar' ? 'سنة' : 'year') : t.landing.pricing.monthly.toLowerCase()}
+                                        <span className="text-muted-foreground ms-2">
+                                            {locale === 'ar' ? 'ر.س' : 'SAR'}
+                                        </span>
+                                        <span className="text-muted-foreground ms-2">
+                                            /{isYearly ? (locale === 'ar' ? 'سنة' : 'year') : (locale === 'ar' ? 'شهر' : 'mo')}
                                         </span>
                                     </div>
 
@@ -146,7 +140,7 @@ export default function PricingPage() {
                                         size="lg"
                                         asChild
                                     >
-                                        <Link href="/register">
+                                        <Link href={plan.href}>
                                             {plan.cta}
                                             <ArrowRight className="h-4 w-4 ms-2" />
                                         </Link>
@@ -154,7 +148,7 @@ export default function PricingPage() {
 
                                     {plan.monthlyPrice > 0 && (
                                         <p className="text-xs text-muted-foreground mt-4 text-center">
-                                            {locale === 'ar' ? '🔒 دفع آمن عبر Stripe' : '🔒 Secure payment via Stripe'}
+                                            {locale === 'ar' ? 'دفع آمن عبر Stripe' : 'Secure payment via Stripe'}
                                         </p>
                                     )}
                                 </CardContent>
@@ -178,7 +172,6 @@ export default function PricingPage() {
                                     <th className="text-start py-4 pe-4 font-medium">
                                         {locale === 'ar' ? 'الميزة' : 'Feature'}
                                     </th>
-                                    <th className="py-4 px-4 text-center">{t.landing.pricing.free.name}</th>
                                     <th className="py-4 px-4 text-center bg-primary/5 rounded-t-lg">
                                         {t.landing.pricing.pro.name}
                                     </th>
@@ -187,36 +180,25 @@ export default function PricingPage() {
                             </thead>
                             <tbody>
                                 {[
-                                    { feature: locale === 'ar' ? 'عدد السير الذاتية' : 'Resumes', free: '1', pro: locale === 'ar' ? 'غير محدود' : 'Unlimited', enterprise: locale === 'ar' ? 'غير محدود' : 'Unlimited' },
-                                    { feature: locale === 'ar' ? 'توليدات AI شهرياً' : 'AI Generations/mo', free: '3', pro: '100', enterprise: locale === 'ar' ? 'غير محدود' : 'Unlimited' },
-                                    { feature: locale === 'ar' ? 'القوالب' : 'Templates', free: locale === 'ar' ? 'أساسي' : 'Basic', pro: locale === 'ar' ? 'الكل' : 'All', enterprise: locale === 'ar' ? 'الكل + مخصص' : 'All + Custom' },
-                                    { feature: locale === 'ar' ? 'تصدير PDF' : 'PDF Export', free: true, pro: true, enterprise: true },
-                                    { feature: locale === 'ar' ? 'تصدير DOCX' : 'DOCX Export', free: false, pro: true, enterprise: true },
-                                    { feature: locale === 'ar' ? 'استهداف الوظائف' : 'Job Targeting', free: false, pro: true, enterprise: true },
-                                    { feature: locale === 'ar' ? 'خطاب التقديم' : 'Cover Letters', free: false, pro: true, enterprise: true },
-                                    { feature: locale === 'ar' ? 'تتبع الطلبات' : 'Application Tracker', free: false, pro: true, enterprise: true },
-                                    { feature: locale === 'ar' ? 'تعاون الفريق' : 'Team Collaboration', free: false, pro: false, enterprise: true },
-                                    { feature: locale === 'ar' ? 'وصول API' : 'API Access', free: false, pro: false, enterprise: true },
+                                    { feature: locale === 'ar' ? 'السير الذاتية' : 'Resumes', pro: locale === 'ar' ? 'غير محدود' : 'Unlimited', enterprise: locale === 'ar' ? 'غير محدود' : 'Unlimited' },
+                                    { feature: locale === 'ar' ? 'توليدات الذكاء الاصطناعي/شهر' : 'AI Generations/mo', pro: '100', enterprise: locale === 'ar' ? 'غير محدود' : 'Unlimited' },
+                                    { feature: locale === 'ar' ? 'القوالب' : 'Templates', pro: locale === 'ar' ? 'الكل' : 'All', enterprise: locale === 'ar' ? 'الكل + مخصص' : 'All + Custom' },
+                                    { feature: locale === 'ar' ? 'تصدير PDF' : 'PDF Export', pro: true, enterprise: true },
+                                    { feature: locale === 'ar' ? 'تصدير DOCX' : 'DOCX Export', pro: true, enterprise: true },
+                                    { feature: locale === 'ar' ? 'استهداف الوظائف' : 'Job Targeting', pro: true, enterprise: true },
+                                    { feature: locale === 'ar' ? 'خطابات التقديم' : 'Cover Letters', pro: true, enterprise: true },
+                                    { feature: locale === 'ar' ? 'متابعة الطلبات' : 'Application Tracker', pro: true, enterprise: true },
+                                    { feature: locale === 'ar' ? 'تعاون الفريق' : 'Team Collaboration', pro: false, enterprise: true },
+                                    { feature: locale === 'ar' ? 'وصول API' : 'API Access', pro: false, enterprise: true },
                                 ].map((row) => (
                                     <tr key={row.feature} className="border-b">
                                         <td className="py-3 pe-4">{row.feature}</td>
-                                        <td className="py-3 px-4 text-center">
-                                            {typeof row.free === 'boolean' ? (
-                                                row.free ? (
-                                                    <Check className="h-5 w-5 text-green-500 mx-auto" />
-                                                ) : (
-                                                    <span className="text-muted-foreground">–</span>
-                                                )
-                                            ) : (
-                                                row.free
-                                            )}
-                                        </td>
                                         <td className="py-3 px-4 text-center bg-primary/5">
                                             {typeof row.pro === 'boolean' ? (
                                                 row.pro ? (
                                                     <Check className="h-5 w-5 text-green-500 mx-auto" />
                                                 ) : (
-                                                    <span className="text-muted-foreground">–</span>
+                                                    <span className="text-muted-foreground">-</span>
                                                 )
                                             ) : (
                                                 row.pro
@@ -227,7 +209,7 @@ export default function PricingPage() {
                                                 row.enterprise ? (
                                                     <Check className="h-5 w-5 text-green-500 mx-auto" />
                                                 ) : (
-                                                    <span className="text-muted-foreground">–</span>
+                                                    <span className="text-muted-foreground">-</span>
                                                 )
                                             ) : (
                                                 row.enterprise
@@ -272,13 +254,13 @@ export default function PricingPage() {
                         {locale === 'ar' ? 'جاهز للبدء؟' : 'Ready to get started?'}
                     </h2>
                     <p className="text-muted-foreground mb-8 max-w-xl mx-auto">
-                        {locale === 'ar'
-                            ? 'ابدأ مجاناً اليوم. لا حاجة لبطاقة ائتمان.'
-                            : 'Start free today. No credit card required.'}
+                            {locale === 'ar'
+                            ? 'ابدأ اليوم. لا حاجة لبطاقة ائتمان.'
+                            : 'Start today. No credit card required.'}
                     </p>
                     <Button size="lg" asChild>
                         <Link href="/register">
-                            {locale === 'ar' ? 'ابدأ مجاناً' : 'Get Started Free'}
+                            {locale === 'ar' ? 'ابدأ الآن' : 'Get Started'}
                             <ArrowRight className="h-4 w-4 ms-2" />
                         </Link>
                     </Button>

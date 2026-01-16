@@ -162,8 +162,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                                 },
                                 subscription: {
                                     create: {
-                                        plan: isSuperAdmin ? 'ENTERPRISE' : 'FREE',
-                                        status: 'ACTIVE',
+                                        plan: isSuperAdmin ? 'ENTERPRISE' : 'PRO',
+                                        status: isSuperAdmin ? 'ACTIVE' : 'UNPAID',
                                     },
                                 },
                             },

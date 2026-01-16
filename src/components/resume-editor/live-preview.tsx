@@ -78,8 +78,8 @@ function PrestigeExecutivePreview({
         <div className="w-16 h-1 mt-2 rounded" style={{ backgroundColor: theme.accent }} />
         <div className="flex flex-wrap gap-2 mt-3 text-xs" style={{ color: theme.muted }}>
           {resume.contact.email && <span>{resume.contact.email}</span>}
-          {resume.contact.phone && <><span>•</span><span>{resume.contact.phone}</span></>}
-          {resume.contact.location && <><span>•</span><span>{resume.contact.location}</span></>}
+          {resume.contact.phone && <><span aria-hidden="true">|</span><span>{resume.contact.phone}</span></>}
+          {resume.contact.location && <><span aria-hidden="true">|</span><span>{resume.contact.location}</span></>}
         </div>
         {resume.contact.linkedin && (
           <div className="text-xs mt-1" style={{ color: theme.accent }}>
@@ -116,7 +116,7 @@ function PrestigeExecutivePreview({
               <ul className="mt-2 space-y-1">
                 {exp.bullets.filter(b => b?.trim()).map((bullet, i) => (
                   <li key={i} className="flex text-xs">
-                    <span className="mr-2" style={{ color: theme.accent }}>•</span>
+                    <span className="mr-2" style={{ color: theme.accent }} aria-hidden="true">-</span>
                     <span>{bullet}</span>
                   </li>
                 ))}
@@ -150,7 +150,7 @@ function PrestigeExecutivePreview({
       {/* Skills */}
       {resume.skills.length > 0 && (
         <Section title="skills" theme={theme} locale={locale} style="underline">
-          <p className="text-xs">{resume.skills.join('  •  ')}</p>
+          <p className="text-xs">{resume.skills.join('  |  ')}</p>
         </Section>
       )}
 
@@ -173,7 +173,7 @@ function PrestigeExecutivePreview({
       {resume.languages.length > 0 && (
         <Section title="languages" theme={theme} locale={locale} style="underline">
           <p className="text-xs">
-            {resume.languages.map(l => `${l.name} (${l.proficiency})`).join('  •  ')}
+            {resume.languages.map(l => `${l.name} (${l.proficiency})`).join('  |  ')}
           </p>
         </Section>
       )}
@@ -219,12 +219,12 @@ function NordicMinimalPreview({
               <div className="flex items-baseline">
                 <span className="font-bold text-sm">{exp.position}</span>
                 <span className="text-sm ml-2" style={{ color: theme.muted }}>
-                  — {exp.company}, {formatDate(exp.startDate, locale)} - {exp.current ? getPresentText(locale) : formatDate(exp.endDate, locale)}
+                  - {exp.company}, {formatDate(exp.startDate, locale)} - {exp.current ? getPresentText(locale) : formatDate(exp.endDate, locale)}
                 </span>
               </div>
               <ul className="mt-2 space-y-1">
                 {exp.bullets.filter(b => b?.trim()).map((bullet, i) => (
-                  <li key={i} className="text-xs pl-3">– {bullet}</li>
+                  <li key={i} className="text-xs pl-3">- {bullet}</li>
                 ))}
               </ul>
             </div>
@@ -457,7 +457,7 @@ function ClassicProfessionalPreview({
                   <p className="text-[10px]" style={{ color: theme.muted }}>{exp.company}</p>
                   <ul className="mt-1">
                     {exp.bullets.filter(b => b?.trim()).map((bullet, i) => (
-                      <li key={i} className="text-[10px] ml-2">• {bullet}</li>
+                      <li key={i} className="text-[10px] ml-2">- {bullet}</li>
                     ))}
                   </ul>
                 </div>
@@ -494,7 +494,7 @@ function ClassicProfessionalPreview({
             <div className="px-2 py-1 text-xs font-bold text-white" style={{ backgroundColor: theme.primary }}>
               {getSectionHeader('skills', locale)}
             </div>
-            <p className="text-[10px] mt-2 text-center">{resume.skills.join('  •  ')}</p>
+            <p className="text-[10px] mt-2 text-center">{resume.skills.join('  |  ')}</p>
           </div>
         )}
       </div>
@@ -536,7 +536,7 @@ function ImpactModernPreview({
 
       {/* Contact bar */}
       <div className="px-6 py-2 text-right text-[9px]" style={{ color: theme.muted }}>
-        {[resume.contact.email, resume.contact.phone, resume.contact.location].filter(Boolean).join('   •   ')}
+        {[resume.contact.email, resume.contact.phone, resume.contact.location].filter(Boolean).join('   |   ')}
       </div>
 
       {/* Skills tags */}
@@ -585,7 +585,7 @@ function ImpactModernPreview({
                 <div className="flex-1 pb-2">
                   <span className="font-bold text-[11px]">{exp.position}</span>
                   <p className="text-[9px]" style={{ color: theme.muted }}>
-                    {exp.company} • {formatDate(exp.startDate, locale)} - {exp.current ? getPresentText(locale) : formatDate(exp.endDate, locale)}
+                    {exp.company} | {formatDate(exp.startDate, locale)} - {exp.current ? getPresentText(locale) : formatDate(exp.endDate, locale)}
                   </p>
                   <div className="mt-1 space-y-0.5">
                     {exp.bullets.filter(b => b?.trim()).map((bullet, i) => (
@@ -609,7 +609,7 @@ function ImpactModernPreview({
               <div key={edu.id} className="mb-2">
                 <span className="font-bold text-[11px]">{edu.degree}{edu.field && ` in ${edu.field}`}</span>
                 <p className="text-[9px]" style={{ color: theme.muted }}>
-                  {edu.institution}{edu.graduationDate && ` • ${formatDate(edu.graduationDate, locale)}`}
+                  {edu.institution}{edu.graduationDate && ` | ${formatDate(edu.graduationDate, locale)}`}
                 </p>
               </div>
             ))}

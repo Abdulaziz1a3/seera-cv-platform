@@ -143,7 +143,7 @@ export async function GET(request: NextRequest) {
         // Calculate revenue
         const proCount = planDistribution.find(p => p.plan === 'PRO')?._count || 0;
         const enterpriseCount = planDistribution.find(p => p.plan === 'ENTERPRISE')?._count || 0;
-        const monthlyRevenue = (proCount * 29.99) + (enterpriseCount * 99.99);
+        const monthlyRevenue = (proCount * 39) + (enterpriseCount * 249);
 
         return NextResponse.json({
             overview: {

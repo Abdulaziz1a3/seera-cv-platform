@@ -444,7 +444,7 @@ export default function TemplatesPage() {
                     </p>
                     <Button size="lg" asChild>
                         <Link href="/register">
-                            {locale === 'ar' ? 'ابدأ مجاناً' : 'Get Started Free'}
+                            {locale === 'ar' ? 'ابدأ الآن' : 'Get Started'}
                         </Link>
                     </Button>
                 </div>

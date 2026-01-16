@@ -96,7 +96,7 @@ export async function GET(request: NextRequest) {
         ]);
 
         // Calculate revenue
-        const monthlyRevenue = (proCount * 29.99) + (enterpriseCount * 99.99);
+        const monthlyRevenue = (proCount * 39) + (enterpriseCount * 249);
         const arpu = activeCount > 0 ? monthlyRevenue / activeCount : 0;
         const churnRate = activeCount > 0 ? ((canceledThisMonth / activeCount) * 100) : 0;
 
@@ -111,7 +111,7 @@ export async function GET(request: NextRequest) {
             },
             plan: sub.plan,
             status: sub.status,
-            amount: sub.plan === 'PRO' ? 29.99 : sub.plan === 'ENTERPRISE' ? 99.99 : 0,
+            amount: sub.plan === 'PRO' ? 39 : sub.plan === 'ENTERPRISE' ? 249 : 0,
             stripeSubscriptionId: sub.stripeSubscriptionId,
             currentPeriodStart: sub.currentPeriodStart,
             currentPeriodEnd: sub.currentPeriodEnd,

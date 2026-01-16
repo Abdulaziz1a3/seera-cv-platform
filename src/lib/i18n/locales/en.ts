@@ -40,7 +40,7 @@ export const en = {
         contact: 'Contact',
         signIn: 'Sign In',
         signUp: 'Sign Up',
-        getStartedFree: 'Get Started Free',
+        getStartedFree: 'Get Started',
         dashboard: 'Dashboard',
         myResumes: 'My Resumes',
         seeraLink: 'Seera Link',
@@ -58,9 +58,9 @@ export const en = {
         headlineHighlight: 'ATS-Optimized',
         headlineEnd: 'Resumes',
         description: 'Create professional resumes that pass Applicant Tracking Systems. Multi-language support including Arabic with RTL layout. Get more interviews with AI-powered optimization.',
-        cta: 'Start Building for Free',
+        cta: 'Get Started',
         viewTemplates: 'View Templates',
-        noCreditCard: 'No credit card required • Free forever plan available',
+        noCreditCard: 'No credit card required',
 
         // Stats
         stats: {
@@ -156,8 +156,8 @@ export const en = {
             },
             pro: {
                 name: 'Pro',
-                price: '12',
-                yearlyPrice: '99',
+                price: '39',
+                yearlyPrice: '299',
                 description: 'For serious job seekers',
                 features: [
                     'Unlimited resumes',
@@ -169,14 +169,14 @@ export const en = {
                     'Application tracker',
                     'Priority support',
                 ],
-                cta: 'Start Free Trial',
+                cta: 'Start Pro',
                 badge: 'Most Popular',
             },
             enterprise: {
                 name: 'Enterprise',
-                price: '29',
-                yearlyPrice: '249',
-                description: 'For teams and agencies',
+                price: '249',
+                yearlyPrice: '1990',
+                description: 'For recruiters and teams',
                 features: [
                     'Everything in Pro',
                     'Unlimited AI generations',
@@ -236,7 +236,7 @@ export const en = {
             forgotPassword: 'Forgot password?',
             signIn: 'Sign In',
             noAccount: "Don't have an account?",
-            signUpLink: 'Sign up for free',
+            signUpLink: 'Sign up',
             orContinueWith: 'Or continue with',
             continueWithGoogle: 'Continue with Google',
         },

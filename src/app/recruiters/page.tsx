@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -56,82 +56,6 @@ import {
     INDUSTRIES,
 } from '@/lib/talent-marketplace';
 
-// Mock candidates data
-const MOCK_CANDIDATES = [
-    {
-        id: '1',
-        displayName: 'A████ M█████',
-        fullName: 'Ahmed Mohammed',
-        currentTitle: 'Civil Engineer',
-        currentCompany: 'Hidden',
-        location: 'Riyadh',
-        yearsExperience: 3,
-        skills: ['AutoCAD', 'Revit', 'Structural Analysis', 'Project Management'],
-        education: 'BS Civil Engineering',
-        summary: 'Experienced civil engineer with expertise in structural design and project management...',
-        matchScore: 92,
-        availabilityStatus: 'actively_looking',
-        desiredSalary: { min: 18000, max: 25000 },
-        isUnlocked: false,
-        email: 'ahmed.m@email.com',
-        phone: '+966 5XX XXX XXX',
-    },
-    {
-        id: '2',
-        displayName: 'S███ A██████',
-        fullName: 'Sara Abdullah',
-        currentTitle: 'Senior Software Engineer',
-        currentCompany: 'Hidden',
-        location: 'Dubai',
-        yearsExperience: 6,
-        skills: ['React', 'Node.js', 'TypeScript', 'AWS', 'Python'],
-        education: 'MS Computer Science',
-        summary: 'Full-stack developer with strong experience in building scalable web applications...',
-        matchScore: 88,
-        availabilityStatus: 'open_to_offers',
-        desiredSalary: { min: 28000, max: 40000 },
-        isUnlocked: false,
-        email: 'sara.a@email.com',
-        phone: '+971 5XX XXX XXX',
-    },
-    {
-        id: '3',
-        displayName: 'K████ A███',
-        fullName: 'Khalid Ali',
-        currentTitle: 'Financial Analyst',
-        currentCompany: 'Hidden',
-        location: 'Jeddah',
-        yearsExperience: 4,
-        skills: ['Financial Modeling', 'Excel', 'SAP', 'Bloomberg', 'Python'],
-        education: 'MBA Finance',
-        summary: 'Detail-oriented financial analyst with experience in investment analysis and reporting...',
-        matchScore: 85,
-        availabilityStatus: 'actively_looking',
-        desiredSalary: { min: 20000, max: 30000 },
-        isUnlocked: true,
-        email: 'khalid.a@email.com',
-        phone: '+966 5XX XXX XXX',
-    },
-    {
-        id: '4',
-        displayName: 'N██ H█████',
-        fullName: 'Noura Hassan',
-        currentTitle: 'Marketing Manager',
-        currentCompany: 'Hidden',
-        location: 'Riyadh',
-        yearsExperience: 5,
-        skills: ['Digital Marketing', 'SEO', 'Content Strategy', 'Google Analytics', 'Social Media'],
-        education: 'BA Marketing',
-        summary: 'Creative marketing professional with a track record of driving brand growth...',
-        matchScore: 78,
-        availabilityStatus: 'open_to_offers',
-        desiredSalary: { min: 22000, max: 32000 },
-        isUnlocked: false,
-        email: 'noura.h@email.com',
-        phone: '+966 5XX XXX XXX',
-    },
-];
-
 export default function RecruiterPortalPage() {
     // Company state (mock)
     const [credits, setCredits] = useState(45);
@@ -143,7 +67,13 @@ export default function RecruiterPortalPage() {
     const [selectedIndustry, setSelectedIndustry] = useState<string>('');
     const [minExperience, setMinExperience] = useState<string>('');
     const [maxExperience, setMaxExperience] = useState<string>('');
-    const [candidates, setCandidates] = useState(MOCK_CANDIDATES);
+    const [candidates, setCandidates] = useState<any[]>([]);
+    const [isLoadingCandidates, setIsLoadingCandidates] = useState(false);
+    const [isEnterprise, setIsEnterprise] = useState(true);
+    const [shortlists, setShortlists] = useState<any[]>([]);
+    const [selectedShortlistId, setSelectedShortlistId] = useState<string>('');
+    const [newShortlistName, setNewShortlistName] = useState('');
+    const [shortlistDialogOpen, setShortlistDialogOpen] = useState(false);
 
     // UI state
     const [buyCreditsOpen, setBuyCreditsOpen] = useState(false);
@@ -174,10 +104,89 @@ export default function RecruiterPortalPage() {
         toast.success('CV unlocked! Contact information is now visible.');
     };
 
+    useEffect(() => {
+        const loadStatusAndShortlists = async () => {
+            try {
+                const statusRes = await fetch('/api/billing/status');
+                const statusData = statusRes.ok ? await statusRes.json() : null;
+                if (statusData) {
+                    setIsEnterprise(statusData.isActive && statusData.plan === 'ENTERPRISE');
+                }
+
+                const shortlistRes = await fetch('/api/recruiters/shortlists');
+                if (shortlistRes.ok) {
+                    const shortlistData = await shortlistRes.json();
+                    setShortlists(shortlistData.shortlists || []);
+                }
+            } catch (error) {
+                console.error('Failed to load recruiter data', error);
+            }
+        };
+        loadStatusAndShortlists();
+    }, []);
+
     // Handle search
-    const handleSearch = () => {
-        // In real implementation, this would call the API
-        toast.success(`Found ${candidates.length} matching candidates`);
+    const handleSearch = async () => {
+        setIsLoadingCandidates(true);
+        try {
+            const params = new URLSearchParams();
+            if (searchQuery) params.set('query', searchQuery);
+            if (selectedLocation) params.set('location', selectedLocation);
+            if (selectedIndustry) params.set('industry', selectedIndustry);
+            if (minExperience) params.set('minExp', minExperience);
+            if (maxExperience) params.set('maxExp', maxExperience);
+
+            const res = await fetch(`/api/recruiters/candidates?${params.toString()}`);
+            if (!res.ok) {
+                const data = await res.json();
+                toast.error(data?.error || 'Search failed');
+                return;
+            }
+            const data = await res.json();
+            setCandidates(data.results || []);
+            toast.success(`Found ${data.results?.length || 0} matching candidates`);
+        } catch (error) {
+            console.error('Search error', error);
+            toast.error('Search failed');
+        } finally {
+            setIsLoadingCandidates(false);
+        }
+    };
+
+    const handleCreateShortlist = async () => {
+        if (!newShortlistName.trim()) return;
+        const res = await fetch('/api/recruiters/shortlists', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: newShortlistName.trim() }),
+        });
+        if (!res.ok) {
+            toast.error('Failed to create shortlist');
+            return;
+        }
+        const data = await res.json();
+        setShortlists((prev) => [data.shortlist, ...prev]);
+        setSelectedShortlistId(data.shortlist.id);
+        setNewShortlistName('');
+        setShortlistDialogOpen(false);
+        toast.success('Shortlist created');
+    };
+
+    const handleAddToShortlist = async (talentProfileId: string) => {
+        if (!selectedShortlistId) {
+            toast.error('Select a shortlist first');
+            return;
+        }
+        const res = await fetch(`/api/recruiters/shortlists/${selectedShortlistId}/candidates`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ talentProfileId }),
+        });
+        if (!res.ok) {
+            toast.error('Failed to add to shortlist');
+            return;
+        }
+        toast.success('Added to shortlist');
     };
 
     // Get availability color
@@ -267,6 +276,8 @@ export default function RecruiterPortalPage() {
             </header>
 
             <main className="max-w-7xl mx-auto px-4 py-6">
+                <div className="relative">
+                    <div className={!isEnterprise ? 'pointer-events-none opacity-50' : undefined}>
                 {/* Stats */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                     {[
@@ -287,6 +298,46 @@ export default function RecruiterPortalPage() {
                             </CardContent>
                         </Card>
                     ))}
+                </div>
+
+                {/* Recruiter Features */}
+                <div className="grid md:grid-cols-2 gap-4 mb-6">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <Filter className="h-5 w-5 text-blue-500" />
+                                Advanced Candidate Search
+                            </CardTitle>
+                            <CardDescription>
+                                Precise filters to find the right talent fast.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <ul className="space-y-2 text-sm text-muted-foreground">
+                                <li>Skills, role, seniority, and years of experience</li>
+                                <li>Location, relocation, notice period, and availability</li>
+                                <li>Salary range and industry background</li>
+                            </ul>
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <Star className="h-5 w-5 text-amber-500" />
+                                Smart Shortlists
+                            </CardTitle>
+                            <CardDescription>
+                                AI Fit Score and shortlist workflows built for teams.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <ul className="space-y-2 text-sm text-muted-foreground">
+                                <li>Compare candidates side by side with Fit Score</li>
+                                <li>Save searches, auto-refresh alerts, and tags</li>
+                                <li>Share shortlists with hiring managers</li>
+                            </ul>
+                        </CardContent>
+                    </Card>
                 </div>
 
                 {/* Search Section */}
@@ -359,11 +410,59 @@ export default function RecruiterPortalPage() {
                     </CardContent>
                 </Card>
 
+                {/* Shortlists */}
+                <Card className="mb-6">
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <Folder className="h-5 w-5" />
+                            Smart Shortlists
+                        </CardTitle>
+                        <CardDescription>
+                            Save and share top candidates with your hiring team.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="flex flex-col gap-3 md:flex-row md:items-center">
+                        <Select value={selectedShortlistId} onValueChange={setSelectedShortlistId}>
+                            <SelectTrigger className="h-11 md:w-64">
+                                <SelectValue placeholder="Select shortlist" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {shortlists.map((shortlist) => (
+                                    <SelectItem key={shortlist.id} value={shortlist.id}>
+                                        {shortlist.name}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                        <Dialog open={shortlistDialogOpen} onOpenChange={setShortlistDialogOpen}>
+                            <DialogTrigger asChild>
+                                <Button variant="outline" className="h-11">New Shortlist</Button>
+                            </DialogTrigger>
+                            <DialogContent>
+                                <DialogHeader>
+                                    <DialogTitle>Create shortlist</DialogTitle>
+                                    <DialogDescription>
+                                        Give your shortlist a name to start saving candidates.
+                                    </DialogDescription>
+                                </DialogHeader>
+                                <div className="space-y-3">
+                                    <Input
+                                        placeholder="e.g., Senior Engineers"
+                                        value={newShortlistName}
+                                        onChange={(e) => setNewShortlistName(e.target.value)}
+                                    />
+                                    <Button onClick={handleCreateShortlist}>Create</Button>
+                                </div>
+                            </DialogContent>
+                        </Dialog>
+                    </CardContent>
+                </Card>
+
                 {/* Results */}
                 <div className="space-y-4">
                     <div className="flex items-center justify-between">
                         <h2 className="text-lg font-semibold">
-                            Found {candidates.length} matching candidates
+                            {isLoadingCandidates ? 'Searching...' : `Found ${candidates.length} matching candidates`}
                         </h2>
                         <Select defaultValue="match">
                             <SelectTrigger className="w-48">
@@ -392,12 +491,9 @@ export default function RecruiterPortalPage() {
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-start justify-between gap-4">
                                             <div>
-                                                <h3 className="text-xl font-semibold flex items-center gap-2">
-                                                    {candidate.isUnlocked ? candidate.fullName : candidate.displayName}
-                                                    {candidate.isUnlocked && (
-                                                        <Badge className="bg-green-500">Unlocked</Badge>
-                                                    )}
-                                                </h3>
+                                            <h3 className="text-xl font-semibold flex items-center gap-2">
+                                                {candidate.displayName}
+                                            </h3>
                                                 <p className="text-muted-foreground">{candidate.currentTitle}</p>
                                             </div>
 
@@ -429,7 +525,9 @@ export default function RecruiterPortalPage() {
                                             </span>
                                             <span className="flex items-center gap-1">
                                                 <DollarSign className="h-4 w-4" />
-                                                {candidate.desiredSalary.min.toLocaleString()} - {candidate.desiredSalary.max.toLocaleString()} SAR
+                                                {candidate.desiredSalary?.min != null && candidate.desiredSalary?.max != null
+                                                    ? `${candidate.desiredSalary.min.toLocaleString()} - ${candidate.desiredSalary.max.toLocaleString()} SAR`
+                                                    : 'Hidden'}
                                             </span>
                                         </div>
 
@@ -455,11 +553,11 @@ export default function RecruiterPortalPage() {
                                                 <div className="flex flex-wrap gap-6 text-sm">
                                                     <span className="flex items-center gap-2">
                                                         <Mail className="h-4 w-4" />
-                                                        {candidate.email}
+                                                        {candidate.email || 'Available after unlock'}
                                                     </span>
                                                     <span className="flex items-center gap-2">
                                                         <Phone className="h-4 w-4" />
-                                                        {candidate.phone}
+                                                        {candidate.phone || 'Available after unlock'}
                                                     </span>
                                                 </div>
                                             </div>
@@ -478,6 +576,15 @@ export default function RecruiterPortalPage() {
                                                     <Mail className="h-4 w-4" />
                                                     Send Message
                                                 </Button>
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    className="gap-2"
+                                                    onClick={() => handleAddToShortlist(candidate.id)}
+                                                >
+                                                    <Folder className="h-4 w-4" />
+                                                    Add to Shortlist
+                                                </Button>
                                             </>
                                         ) : (
                                             <>
@@ -489,7 +596,12 @@ export default function RecruiterPortalPage() {
                                                     <Unlock className="h-4 w-4" />
                                                     Unlock - 1 Credit
                                                 </Button>
-                                                <Button variant="outline" size="sm" className="gap-2">
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    className="gap-2"
+                                                    onClick={() => handleAddToShortlist(candidate.id)}
+                                                >
                                                     <Folder className="h-4 w-4" />
                                                     Save
                                                 </Button>
@@ -500,6 +612,35 @@ export default function RecruiterPortalPage() {
                             </CardContent>
                         </Card>
                     ))}
+                </div>
+                    </div>
+                    {!isEnterprise && (
+                        <div className="absolute inset-0 flex items-center justify-center">
+                            <div className="max-w-md w-full rounded-2xl border bg-card p-6 shadow-xl text-center">
+                                <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-amber-500/10 text-amber-600">
+                                    <Crown className="h-6 w-6" />
+                                </div>
+                                <h2 className="text-xl font-semibold">Enterprise required</h2>
+                                <p className="mt-2 text-sm text-muted-foreground">
+                                    Upgrade to Enterprise to access recruiter search and shortlists.
+                                </p>
+                                <Button
+                                    className="mt-6 w-full"
+                                    onClick={async () => {
+                                        const res = await fetch('/api/billing/checkout', {
+                                            method: 'POST',
+                                            headers: { 'Content-Type': 'application/json' },
+                                            body: JSON.stringify({ plan: 'enterprise', interval: 'monthly' }),
+                                        });
+                                        const data = await res.json();
+                                        if (data?.url) window.location.href = data.url;
+                                    }}
+                                >
+                                    Upgrade to Enterprise
+                                </Button>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </main>
         </div>

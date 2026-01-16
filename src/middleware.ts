@@ -108,9 +108,9 @@ export async function middleware(request: NextRequest) {
     const secret = process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET;
 
     // Routes configuration
-    const protectedRoutes = ['/dashboard', '/resumes', '/career', '/interview', '/settings'];
+    const protectedRoutes = ['/dashboard', '/resumes', '/career', '/interview', '/settings', '/recruiters'];
     const adminRoutes = ['/admin'];
-    const authRoutes = ['/login', '/register', '/forgot-password'];
+    const authRoutes = ['/login', '/register', '/forgot-password', '/recruiters/login', '/recruiters/register', '/recruiters/forgot-password'];
 
     const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route));
     const isAuthRoute = authRoutes.some(route => pathname.startsWith(route));
@@ -145,8 +145,9 @@ export async function middleware(request: NextRequest) {
         }
 
         // Redirect unauthenticated users to login
-        if (isProtectedRoute && !token) {
-            const loginUrl = new URL('/login', request.url);
+        if (isProtectedRoute && !token && !isAuthRoute) {
+            const isRecruiterRoute = pathname.startsWith('/recruiters');
+            const loginUrl = new URL(isRecruiterRoute ? '/recruiters/login' : '/login', request.url);
             loginUrl.searchParams.set('callbackUrl', pathname);
             return NextResponse.redirect(loginUrl);
         }

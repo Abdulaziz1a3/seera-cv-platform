@@ -66,7 +66,7 @@ export default function Home() {
                 ? 'اجعل سيرتك مرئية لأكثر من 500 شركة في الخليج واستقبل عروض العمل مباشرة'
                 : 'Make your resume visible to 500+ GCC companies and receive job offers directly',
             color: 'from-green-500 to-emerald-500',
-            badge: 'FREE',
+            badge: 'INCLUDED',
         },
     ];
 
@@ -112,16 +112,10 @@ export default function Home() {
 
     const faq = [
         {
-            q: locale === 'ar' ? 'ما هو Seera AI؟' : 'What is Seera AI?',
+            q: locale === 'ar' ? 'ما هي الخطط المتاحة؟' : 'What plans are available?',
             a: locale === 'ar'
-                ? 'Seera AI هو منصة شاملة لبناء المسيرة المهنية تتضمن إنشاء السيرة الذاتية، GPS المهني، تحضير المقابلات بالذكاء الاصطناعي، ومجموعة المواهب للتواصل مع الشركات.'
-                : 'Seera AI is a comprehensive career-building platform featuring resume creation, Career GPS, AI interview prep, and a talent pool for connecting with companies.',
-        },
-        {
-            q: locale === 'ar' ? 'هل الخدمة مجانية؟' : 'Is the service free?',
-            a: locale === 'ar'
-                ? 'نعم! إنشاء السيرة الذاتية والانضمام لمجموعة المواهب مجاني تماماً. الميزات المتقدمة مثل GPS المهني وتحضير المقابلات متاحة مع الاشتراك المميز.'
-                : 'Yes! Resume creation and joining the Talent Pool is completely free. Advanced features like Career GPS and Interview Prep are available with a Pro subscription.',
+                ? 'لدينا خطتان واضحتان: برو للباحثين عن عمل، وإنتربرايز للشركات والمُوظِّفين.'
+                : 'We offer two plans: Pro for job seekers and Enterprise for recruiters.',
         },
         {
             q: locale === 'ar' ? 'كيف تعمل مجموعة المواهب؟' : 'How does the Talent Pool work?',
@@ -190,8 +184,9 @@ export default function Home() {
                         </div>
 
                         <p className="text-sm text-muted-foreground">
-                            ✓ {locale === 'ar' ? 'مجاني للباحثين عن عمل' : 'Free for job seekers'} •
-                            ✓ {locale === 'ar' ? 'لا حاجة لبطاقة ائتمان' : 'No credit card required'}
+                            {locale === 'ar'
+                                ? 'برو للباحثين عن عمل | إنتربرايز للشركات'
+                                : 'Pro for job seekers | Enterprise for recruiters'}
                         </p>
                     </div>
 
@@ -267,7 +262,7 @@ export default function Home() {
                     <div className="text-center mt-10">
                         <Link href="/register">
                             <Button size="lg" className="gap-2">
-                                {locale === 'ar' ? 'جرب الآن مجاناً' : 'Try Free Now'}
+                                {locale === 'ar' ? 'ابدأ الآن' : 'Get Started'}
                                 <ArrowRight className="h-5 w-5" />
                             </Button>
                         </Link>
@@ -413,7 +408,7 @@ export default function Home() {
                         <div className="flex flex-col sm:flex-row gap-4 justify-center">
                             <Link href="/register">
                                 <Button size="lg" className="h-14 px-8 text-lg gap-2">
-                                    {locale === 'ar' ? 'أنشئ سيرتك الذاتية مجاناً' : 'Create Your Resume Free'}
+                                    {locale === 'ar' ? 'أنشئ سيرتك الذاتية' : 'Create Your Resume'}
                                     <ArrowRight className="h-5 w-5" />
                                 </Button>
                             </Link>

@@ -27,9 +27,9 @@ export const PLANS = {
         priceMonthly: 0,
         priceYearly: 0,
         features: {
-            resumeLimit: 2,
-            downloadLimit: 3,
-            aiUsageLimit: 10,
+            resumeLimit: 0,
+            downloadLimit: 0,
+            aiUsageLimit: 0,
             premiumTemplates: false,
             docxExport: false,
             coverLetters: false,
@@ -41,8 +41,8 @@ export const PLANS = {
     pro: {
         id: 'pro',
         name: { ar: 'احترافي', en: 'Pro' },
-        priceMonthly: 29, // SAR
-        priceYearly: 290, // SAR (save ~17%)
+        priceMonthly: 39, // SAR
+        priceYearly: 299, // SAR
         stripePriceIdMonthly: process.env.STRIPE_PRO_MONTHLY_PRICE_ID,
         stripePriceIdYearly: process.env.STRIPE_PRO_YEARLY_PRICE_ID,
         features: {
@@ -60,8 +60,8 @@ export const PLANS = {
     enterprise: {
         id: 'enterprise',
         name: { ar: 'المؤسسات', en: 'Enterprise' },
-        priceMonthly: 99, // SAR
-        priceYearly: 990, // SAR
+        priceMonthly: 249, // SAR
+        priceYearly: 1990, // SAR
         stripePriceIdMonthly: process.env.STRIPE_ENTERPRISE_MONTHLY_PRICE_ID,
         stripePriceIdYearly: process.env.STRIPE_ENTERPRISE_YEARLY_PRICE_ID,
         features: {
@@ -125,19 +125,25 @@ export async function createCheckoutSession(
         });
         customerId = customer.id;
 
-        // Store customer ID
-        await prisma.subscription.upsert({
+        // Store customer ID without activating subscription
+        const existingSubscription = await prisma.subscription.findUnique({
             where: { userId },
-            create: {
-                userId,
-                stripeCustomerId: customerId,
-                plan: 'FREE',
-                status: 'ACTIVE',
-            },
-            update: {
-                stripeCustomerId: customerId,
-            },
         });
+        if (existingSubscription) {
+            await prisma.subscription.update({
+                where: { userId },
+                data: { stripeCustomerId: customerId },
+            });
+        } else {
+            await prisma.subscription.create({
+                data: {
+                    userId,
+                    stripeCustomerId: customerId,
+                    plan: planId.toUpperCase() as 'FREE' | 'PRO' | 'ENTERPRISE',
+                    status: 'UNPAID',
+                },
+            });
+        }
     }
 
     const session = await stripe.checkout.sessions.create({
@@ -322,7 +328,11 @@ export async function canPerformAction(
             where: { userId },
         });
 
-        const planId = (subscription?.plan?.toLowerCase() || 'free') as PlanId;
+        if (!subscription || (subscription.status !== 'ACTIVE' && subscription.status !== 'TRIALING')) {
+            return { allowed: false, remaining: 0, limit: 0 };
+        }
+
+        const planId = (subscription.plan?.toLowerCase() || 'free') as PlanId;
         const plan = PLANS[planId];
 
         // Map action type to limit type
@@ -562,10 +572,11 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
 
 // Subscription deleted/canceled
 async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
+    const planId = (subscription.metadata?.planId || 'pro') as PlanId;
     await prisma.subscription.updateMany({
         where: { stripeSubscriptionId: subscription.id },
         data: {
-            plan: 'FREE',
+            plan: planId.toUpperCase() as 'FREE' | 'PRO' | 'ENTERPRISE',
             status: 'CANCELED',
             cancelAtPeriodEnd: false,
         },

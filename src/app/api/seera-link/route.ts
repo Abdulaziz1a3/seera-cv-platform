@@ -94,6 +94,9 @@ export async function POST(request: Request) {
     // Check plan limits
     const limits = await canCreateProfile(session.user.id);
     if (!limits.allowed) {
+      if (limits.max === 0) {
+        return errors.subscriptionRequired('Subscription required to activate your account.');
+      }
       return errors.subscriptionRequired(
         `You've reached your profile limit (${limits.max}). Upgrade to create more profiles.`
       );

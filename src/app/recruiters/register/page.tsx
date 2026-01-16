@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { signIn } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -30,6 +31,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { INDUSTRIES } from '@/lib/talent-marketplace';
+import { isCompanyEmail } from '@/lib/company-email';
 
 export default function RecruiterRegisterPage() {
     const router = useRouter();
@@ -60,18 +62,60 @@ export default function RecruiterRegisterPage() {
         e.preventDefault();
 
         if (step === 1) {
+            if (!isCompanyEmail(formData.email)) {
+                toast.error('Please use your company email address.');
+                return;
+            }
             setStep(2);
             return;
         }
 
         setIsLoading(true);
 
-        // Simulate registration
-        setTimeout(() => {
+        try {
+            const response = await fetch('/api/recruiters/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    fullName: formData.fullName,
+                    email: formData.email,
+                    phone: formData.phone,
+                    password: formData.password,
+                    companyName: formData.companyName,
+                    companyWebsite: formData.companyWebsite,
+                    industry: formData.industry,
+                    companySize: formData.companySize,
+                    jobTitle: formData.jobTitle,
+                }),
+            });
+
+            const result = await response.json();
+            if (!response.ok) {
+                toast.error(result?.error || 'Registration failed');
+                setIsLoading(false);
+                return;
+            }
+
+            const login = await signIn('credentials', {
+                redirect: false,
+                email: formData.email,
+                password: formData.password,
+            });
+
+            if (login?.error) {
+                toast.success('Account created. Please sign in.');
+                router.push('/recruiters/login');
+                return;
+            }
+
             toast.success('Account created! Welcome to Seera AI for Recruiters.');
             router.push('/recruiters');
+        } catch (error) {
+            console.error('Recruiter registration error', error);
+            toast.error('Registration failed');
+        } finally {
             setIsLoading(false);
-        }, 1500);
+        }
     };
 
     const companySizes = [

@@ -80,7 +80,7 @@ export async function exportToPDF(resume: ResumeData, template: string = 'profes
         contact.website,
     ].filter(Boolean);
 
-    const contactText = contactItems.join('  •  ');
+    const contactText = contactItems.join('  |  ');
     addText(contactText, pageWidth / 2, yPos, { fontSize: 9, color: COLORS.muted });
     yPos += 10;
 
@@ -107,13 +107,13 @@ export async function exportToPDF(resume: ResumeData, template: string = 'profes
             });
             yPos += 5;
 
-            addText(`${exp.company} • ${exp.location}`, margin, yPos, { fontSize: 10, color: COLORS.muted });
+            addText(`${exp.company} | ${exp.location}`, margin, yPos, { fontSize: 10, color: COLORS.muted });
             yPos += 6;
 
             // Bullets
             if (exp.bullets) {
                 for (const bullet of exp.bullets) {
-                    addText(`• ${bullet}`, margin + 3, yPos, {
+                    addText(`- ${bullet}`, margin + 3, yPos, {
                         maxWidth: pageWidth - 2 * margin - 3,
                         fontSize: 10,
                     });
@@ -133,7 +133,7 @@ export async function exportToPDF(resume: ResumeData, template: string = 'profes
             addText(edu.graduationDate, pageWidth - margin, yPos, { fontSize: 9, color: COLORS.muted });
             yPos += 5;
 
-            addText(`${edu.institution} • ${edu.location}`, margin, yPos, { fontSize: 10, color: COLORS.muted });
+            addText(`${edu.institution} | ${edu.location}`, margin, yPos, { fontSize: 10, color: COLORS.muted });
             if (edu.gpa) {
                 yPos += 4;
                 addText(`GPA: ${edu.gpa}`, margin, yPos, { fontSize: 9 });
@@ -145,7 +145,7 @@ export async function exportToPDF(resume: ResumeData, template: string = 'profes
     // Skills
     if (resume.skills && resume.skills.length > 0) {
         addSection('Skills');
-        const skillsText = resume.skills.join('  •  ');
+        const skillsText = resume.skills.join('  |  ');
         addText(skillsText, margin, yPos, { maxWidth: pageWidth - 2 * margin });
         yPos += 8;
     }
@@ -190,7 +190,7 @@ export async function exportToPDF(resume: ResumeData, template: string = 'profes
     // Languages
     if (resume.languages && resume.languages.length > 0) {
         addSection('Languages');
-        const langText = resume.languages.map(l => `${l.name} (${l.proficiency})`).join('  •  ');
+        const langText = resume.languages.map(l => `${l.name} (${l.proficiency})`).join('  |  ');
         addText(langText, margin, yPos);
     }
 
@@ -228,7 +228,7 @@ export function exportToText(resume: ResumeData): string {
             text += `${exp.company} | ${exp.location} | ${exp.startDate} - ${exp.current ? 'Present' : exp.endDate}\n`;
             if (exp.bullets) {
                 for (const bullet of exp.bullets) {
-                    text += `• ${bullet}\n`;
+                    text += `- ${bullet}\n`;
                 }
             }
             text += '\n';

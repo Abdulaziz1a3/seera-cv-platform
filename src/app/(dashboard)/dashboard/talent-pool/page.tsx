@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useLocale } from '@/components/providers/locale-provider';
 import { useResumes } from '@/components/providers/resume-provider';
 import { Button } from '@/components/ui/button';
@@ -42,25 +42,25 @@ export default function TalentPoolPage() {
     const { resumes } = useResumes();
 
     // Pool membership state
-    const [isJoined, setIsJoined] = useState(false);
-    const [selectedResumeId, setSelectedResumeId] = useState<string>('');
+    const [isJoined, setIsJoined] = useEffect, useState(false);
+    const [selectedResumeId, setSelectedResumeId] = useEffect, useState<string>('');
 
     // Settings
-    const [isVisible, setIsVisible] = useState(true);
-    const [availabilityStatus, setAvailabilityStatus] = useState<string>('open_to_offers');
-    const [hideCurrentEmployer, setHideCurrentEmployer] = useState(false);
-    const [hideSalaryHistory, setHideSalaryHistory] = useState(true);
-    const [verifiedCompaniesOnly, setVerifiedCompaniesOnly] = useState(false);
-    const [blockedCompanies, setBlockedCompanies] = useState<string>('');
+    const [isVisible, setIsVisible] = useEffect, useState(true);
+    const [availabilityStatus, setAvailabilityStatus] = useEffect, useState<string>('open_to_offers');
+    const [hideCurrentEmployer, setHideCurrentEmployer] = useEffect, useState(false);
+    const [hideSalaryHistory, setHideSalaryHistory] = useEffect, useState(true);
+    const [verifiedCompaniesOnly, setVerifiedCompaniesOnly] = useEffect, useState(false);
+    const [blockedCompanies, setBlockedCompanies] = useEffect, useState<string>('');
 
     // Preferences
-    const [desiredRoles, setDesiredRoles] = useState<string>('');
-    const [desiredSalaryMin, setDesiredSalaryMin] = useState<string>('');
-    const [desiredSalaryMax, setDesiredSalaryMax] = useState<string>('');
-    const [willingToRelocate, setWillingToRelocate] = useState(false);
-    const [preferredLocations, setPreferredLocations] = useState<string[]>([]);
-    const [noticePeriod, setNoticePeriod] = useState<string>('2_weeks');
-    const [preferredIndustries, setPreferredIndustries] = useState<string[]>([]);
+    const [desiredRoles, setDesiredRoles] = useEffect, useState<string>('');
+    const [desiredSalaryMin, setDesiredSalaryMin] = useEffect, useState<string>('');
+    const [desiredSalaryMax, setDesiredSalaryMax] = useEffect, useState<string>('');
+    const [willingToRelocate, setWillingToRelocate] = useEffect, useState(false);
+    const [preferredLocations, setPreferredLocations] = useEffect, useState<string[]>([]);
+    const [noticePeriod, setNoticePeriod] = useEffect, useState<string>('2_weeks');
+    const [preferredIndustries, setPreferredIndustries] = useEffect, useState<string[]>([]);
 
     // Stats (mock)
     const stats = {
@@ -72,17 +72,83 @@ export default function TalentPoolPage() {
 
     const selectedResume = resumes.find(r => r.id === selectedResumeId);
 
-    const handleJoinPool = () => {
+    const handleJoinPool = async () => {
         if (!selectedResumeId) {
-            toast.error(locale === 'ar' ? 'اختر سيرة ذاتية أولاً' : 'Please select a resume first');
+            toast.error(locale === 'ar' ? 'يرجى اختيار سيرة ذاتية' : 'Please select a resume first');
             return;
         }
-        setIsJoined(true);
-        toast.success(locale === 'ar' ? 'تم الانضمام لمجموعة المواهب!' : 'Joined the Talent Pool!');
+        try {
+            const res = await fetch('/api/talent-pool/profile', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    resumeId: selectedResumeId,
+                    isVisible,
+                    availabilityStatus,
+                    hideCurrentEmployer,
+                    hideSalaryHistory,
+                    verifiedCompaniesOnly,
+                    desiredRoles: desiredRoles
+                        .split(',')
+                        .map((role) => role.trim())
+                        .filter(Boolean),
+                    desiredSalaryMin: desiredSalaryMin ? Number(desiredSalaryMin) : undefined,
+                    desiredSalaryMax: desiredSalaryMax ? Number(desiredSalaryMax) : undefined,
+                    noticePeriod,
+                    preferredLocations,
+                    preferredIndustries,
+                }),
+            });
+            if (!res.ok) {
+                const data = await res.json();
+                toast.error(data?.error || 'Failed to join');
+                return;
+            }
+            setIsJoined(true);
+            toast.success(locale === 'ar' ? 'تم الانضمام لقاعدة المواهب!' : 'Joined the Talent Pool!');
+        } catch (error) {
+            console.error('Join pool error', error);
+            toast.error(locale === 'ar' ? 'حدث خطأ أثناء الانضمام' : 'Failed to join');
+        }
     };
 
-    const handleSaveSettings = () => {
-        toast.success(locale === 'ar' ? 'تم حفظ الإعدادات' : 'Settings saved');
+    const handleSaveSettings = async () => {
+        if (!selectedResumeId) {
+            toast.error(locale === 'ar' ? 'يرجى اختيار سيرة ذاتية' : 'Please select a resume first');
+            return;
+        }
+        try {
+            const res = await fetch('/api/talent-pool/profile', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    resumeId: selectedResumeId,
+                    isVisible,
+                    availabilityStatus,
+                    hideCurrentEmployer,
+                    hideSalaryHistory,
+                    verifiedCompaniesOnly,
+                    desiredRoles: desiredRoles
+                        .split(',')
+                        .map((role) => role.trim())
+                        .filter(Boolean),
+                    desiredSalaryMin: desiredSalaryMin ? Number(desiredSalaryMin) : undefined,
+                    desiredSalaryMax: desiredSalaryMax ? Number(desiredSalaryMax) : undefined,
+                    noticePeriod,
+                    preferredLocations,
+                    preferredIndustries,
+                }),
+            });
+            if (!res.ok) {
+                const data = await res.json();
+                toast.error(data?.error || 'Failed to save');
+                return;
+            }
+            toast.success(locale === 'ar' ? 'تم حفظ الإعدادات' : 'Settings saved');
+        } catch (error) {
+            console.error('Save settings error', error);
+            toast.error(locale === 'ar' ? 'تعذر حفظ الإعدادات' : 'Failed to save settings');
+        }
     };
 
     return (

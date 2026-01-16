@@ -78,6 +78,13 @@ export async function POST(request: Request) {
             where: { userId: session.user.id },
         });
 
+        if (!subscription || !['ACTIVE', 'TRIALING'].includes(subscription.status)) {
+            return NextResponse.json(
+                { error: 'Subscription required to create resumes. Please subscribe to activate your account.' },
+                { status: 402 }
+            );
+        }
+
         if (subscription?.plan === 'FREE') {
             const resumeCount = await prisma.resume.count({
                 where: { userId: session.user.id, deletedAt: null },

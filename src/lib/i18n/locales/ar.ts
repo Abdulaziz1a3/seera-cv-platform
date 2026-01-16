@@ -40,7 +40,7 @@ export const ar = {
         contact: 'اتصل بنا',
         signIn: 'تسجيل الدخول',
         signUp: 'إنشاء حساب',
-        getStartedFree: 'ابدأ مجاناً',
+        getStartedFree: 'ابدأ الآن',
         dashboard: 'لوحة التحكم',
         myResumes: 'سيرتي الذاتية',
         seeraLink: 'سيرة لينك',
@@ -58,9 +58,9 @@ export const ar = {
         headlineHighlight: 'متوافقة مع أنظمة التوظيف',
         headlineEnd: '',
         description: 'أنشئ سيرة ذاتية احترافية تتجاوز أنظمة تتبع المتقدمين. دعم كامل للغة العربية مع تخطيط RTL. احصل على المزيد من المقابلات مع تحسين الذكاء الاصطناعي.',
-        cta: 'ابدأ مجاناً الآن',
+        cta: 'ابدأ الآن',
         viewTemplates: 'عرض القوالب',
-        noCreditCard: 'لا حاجة لبطاقة ائتمان • خطة مجانية للأبد',
+        noCreditCard: 'لا حاجة لبطاقة ائتمان',
 
         // Stats
         stats: {
@@ -156,8 +156,8 @@ export const ar = {
             },
             pro: {
                 name: 'احترافي',
-                price: '12',
-                yearlyPrice: '99',
+                price: '39',
+                yearlyPrice: '299',
                 description: 'للباحثين الجادين عن عمل',
                 features: [
                     'سير ذاتية غير محدودة',
@@ -169,14 +169,14 @@ export const ar = {
                     'متتبع الطلبات',
                     'دعم أولوية',
                 ],
-                cta: 'ابدأ التجربة المجانية',
+                cta: 'ابدأ برو',
                 badge: 'الأكثر شيوعاً',
             },
             enterprise: {
                 name: 'المؤسسات',
-                price: '29',
-                yearlyPrice: '249',
-                description: 'للفرق والوكالات',
+                price: '249',
+                yearlyPrice: '1990',
+                description: 'للشركات وفرق التوظيف',
                 features: [
                     'كل مميزات الاحترافي',
                     'توليدات AI غير محدودة',
@@ -236,7 +236,7 @@ export const ar = {
             forgotPassword: 'نسيت كلمة المرور؟',
             signIn: 'تسجيل الدخول',
             noAccount: 'ليس لديك حساب؟',
-            signUpLink: 'أنشئ حساباً مجاناً',
+            signUpLink: 'سجل الآن',
             orContinueWith: 'أو تابع مع',
             continueWithGoogle: 'المتابعة مع Google',
         },
@@ -266,7 +266,7 @@ export const ar = {
         },
         branding: {
             title: 'ابنِ سيرتك الذاتية المثالية',
-            description: 'أنشئ سيرة ذاتية احترافية ومُحسّنة لأنظمة ATS تساعدك على الحصول على وظيفة. دعم متعدد اللغات بما فيه العربية مع تخطيط RTL.',
+                description: 'للشركات وفرق التوظيف',
             feature1: 'نسبة نجاح ATS أكثر من 95%',
             feature2: 'مساعدة الكتابة بالذكاء الاصطناعي',
             feature3: 'دعم الإنجليزية والعربية',
@@ -292,7 +292,7 @@ export const ar = {
             viewAll: 'عرض الكل',
             empty: {
                 title: 'لا توجد سير ذاتية بعد',
-                description: 'أنشئ سيرتك الذاتية الأولى للبدء',
+                description: 'للشركات وفرق التوظيف',
             },
             updated: 'تم التحديث',
         },
@@ -302,22 +302,22 @@ export const ar = {
             subtitle: 'ابدأ في تحسين بحثك عن وظيفة',
             create: {
                 title: 'إنشاء سيرة ذاتية جديدة',
-                description: 'ابدأ من الصفر أو استورد الموجودة',
+                description: 'للشركات وفرق التوظيف',
             },
             target: {
                 title: 'استهداف وظيفة',
-                description: 'الصق وصف وظيفي لتحسين سيرتك الذاتية',
+                description: 'للشركات وفرق التوظيف',
             },
             track: {
                 title: 'تتبع الطلبات',
-                description: 'راقب طلبات التوظيف في مكان واحد',
+                description: 'للشركات وفرق التوظيف',
             },
         },
 
         tip: {
             title: 'نصيحة احترافية: حسّن لكل طلب',
-            description: 'استخدم ميزة استهداف الوصف الوظيفي لتخصيص سيرتك الذاتية لكل وظيفة. هذا يمكن أن يزيد معدل المقابلات حتى 3 أضعاف!',
-            cta: 'جرب الآن',
+                description: 'للشركات وفرق التوظيف',
+            cta: 'جرّب الآن',
         },
     },
 
@@ -342,7 +342,7 @@ export const ar = {
 
         contact: {
             title: 'معلومات الاتصال',
-            description: 'تفاصيل الاتصال تساعد أصحاب العمل على التواصل معك. أضف معلومات دقيقة ومهنية.',
+                description: 'للشركات وفرق التوظيف',
             basicInfo: 'المعلومات الأساسية',
             basicInfoDesc: 'اسمك وتفاصيل الاتصال الرئيسية',
             fullName: 'الاسم الكامل',
@@ -360,7 +360,7 @@ export const ar = {
 
         summary: {
             title: 'الملخص المهني',
-            description: 'نظرة موجزة على خلفيتك المهنية ومهاراتك الأساسية وأبرز إنجازاتك.',
+                description: 'للشركات وفرق التوظيف',
             yourSummary: 'ملخصك',
             yourSummaryDesc: '2-4 جمل تبرز قيمتك المضافة',
             generateAi: 'توليد بالذكاء الاصطناعي',
@@ -378,14 +378,14 @@ export const ar = {
             },
             examples: {
                 title: 'أمثلة على الملخصات',
-                description: 'انقر للاستخدام كنقطة بداية',
+                description: 'للشركات وفرق التوظيف',
                 useTemplate: 'استخدم هذا القالب',
             },
         },
 
         experience: {
             title: 'الخبرة العملية',
-            description: 'أضف تاريخك الوظيفي، بدءاً من أحدث وظيفة.',
+                description: 'للشركات وفرق التوظيف',
             addExperience: 'إضافة خبرة',
             empty: 'لم تُضف خبرة عملية بعد. أضف أول وظيفة للبدء.',
             jobTitle: 'المسمى الوظيفي',
@@ -402,7 +402,7 @@ export const ar = {
 
         education: {
             title: 'التعليم',
-            description: 'أضف خلفيتك التعليمية، بما في ذلك الشهادات والدورات ذات الصلة.',
+                description: 'للشركات وفرق التوظيف',
             addEducation: 'إضافة تعليم',
             empty: 'لم يُضف تعليم بعد. أضف خلفيتك التعليمية.',
             institution: 'المؤسسة',
@@ -415,7 +415,7 @@ export const ar = {
 
         skills: {
             title: 'المهارات',
-            description: 'اذكر مهاراتك التقنية وأدواتك وكفاءاتك المتعلقة بالوظيفة المستهدفة.',
+                description: 'للشركات وفرق التوظيف',
             extractFromJob: 'استخراج من الوظيفة',
             simpleList: 'قائمة بسيطة',
             byCategory: 'حسب الفئة',
@@ -424,7 +424,7 @@ export const ar = {
             noSkills: 'لم تُضف مهارات بعد',
             suggested: {
                 title: 'مهارات مقترحة',
-                description: 'انقر لإضافة المهارات الشائعة المطلوبة',
+                description: 'للشركات وفرق التوظيف',
                 technical: 'تقنية',
                 softSkills: 'مهارات شخصية',
                 tools: 'أدوات',
@@ -465,7 +465,7 @@ export const ar = {
     // Job Targeting
     jobTarget: {
         title: 'استهداف وظيفة',
-        description: 'الصق وصفاً وظيفياً لتحليل مدى تطابق سيرتك الذاتية والحصول على توصيات.',
+                description: 'للشركات وفرق التوظيف',
         steps: {
             jobDetails: 'تفاصيل الوظيفة',
             selectResume: 'اختر السيرة الذاتية',
@@ -473,7 +473,7 @@ export const ar = {
         },
         jobDetails: {
             title: 'تفاصيل الوظيفة',
-            description: 'الصق الوصف الوظيفي الذي تريد استهدافه',
+                description: 'للشركات وفرق التوظيف',
             company: 'اسم الشركة',
             position: 'المسمى الوظيفي',
             jobDescription: 'الوصف الوظيفي',
@@ -482,7 +482,7 @@ export const ar = {
         },
         selectResume: {
             title: 'اختر السيرة الذاتية',
-            description: 'اختر السيرة الذاتية لتحليلها مقابل هذه الوظيفة',
+                description: 'للشركات وفرق التوظيف',
             placeholder: 'اختر سيرة ذاتية',
             whatWeAnalyze: 'ما سنحلله:',
             analysis1: 'نسبة التطابق (0-100%)',
@@ -510,7 +510,7 @@ export const ar = {
     // Settings
     settings: {
         title: 'الإعدادات',
-        description: 'إدارة إعدادات حسابك وتفضيلاتك',
+                description: 'للشركات وفرق التوظيف',
         tabs: {
             profile: 'الملف الشخصي',
             security: 'الأمان',
@@ -572,7 +572,7 @@ export const ar = {
 
     // Footer
     footer: {
-        description: 'منشئ السيرة الذاتية بالذكاء الاصطناعي يساعد الباحثين عن عمل على الحصول على وظائف أحلامهم بسير ذاتية مُحسّنة لـ ATS.',
+                description: 'للشركات وفرق التوظيف',
         product: 'المنتج',
         resources: 'الموارد',
         company: 'الشركة',

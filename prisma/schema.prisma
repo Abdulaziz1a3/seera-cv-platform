@@ -39,7 +39,10 @@ model User {
   usageRecords  UsageRecord[]
   tickets       SupportTicket[]
   auditLogs     AuditLog[]        @relation("UserAuditLogs")
-  seeraProfiles SeeraProfile[]
+    seeraProfiles SeeraProfile[]
+    talentProfile TalentProfile?
+    recruiterShortlists RecruiterShortlist[]
+    recruiterSavedSearches RecruiterSavedSearch[]
 
   // Two-factor authentication
   twoFactorEnabled Boolean @default(false)
@@ -167,12 +170,97 @@ model Resume {
   sections    ResumeSection[]
   exports     Export[]
   jobTargets  JobTargetResume[]
-  profilesAsSource SeeraProfile[] @relation("ProfileSourceResume")
-  profilesAsCv     SeeraProfile[] @relation("ProfileCvResume")
+    profilesAsSource SeeraProfile[] @relation("ProfileSourceResume")
+    profilesAsCv     SeeraProfile[] @relation("ProfileCvResume")
+    talentProfiles   TalentProfile[]
 
   @@index([userId])
   @@index([publicSlug])
   @@index([createdAt])
+}
+
+// ==========================================
+// TALENT POOL (Recruiter Search)
+// ==========================================
+
+model TalentProfile {
+  id                   String   @id @default(cuid())
+  userId               String   @unique
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  resumeId             String
+  resume               Resume   @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+
+  displayName          String
+  currentTitle         String?
+  currentCompany       String?
+  location             String?
+  yearsExperience      Int?
+  skills               String[]
+  education            String?
+  summary              String?
+  availabilityStatus   String   @default("open_to_offers")
+  desiredSalaryMin     Int?
+  desiredSalaryMax     Int?
+
+  isVisible            Boolean  @default(true)
+  hideCurrentEmployer  Boolean  @default(false)
+  hideSalaryHistory    Boolean  @default(true)
+  verifiedCompaniesOnly Boolean @default(false)
+
+  noticePeriod         String?
+  preferredLocations   String[]
+  preferredIndustries  String[]
+  desiredRoles         String[]
+
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  shortlistedBy        RecruiterShortlistCandidate[]
+
+  @@index([resumeId])
+  @@index([location])
+  @@index([availabilityStatus])
+  @@index([yearsExperience])
+}
+
+model RecruiterShortlist {
+  id          String   @id @default(cuid())
+  recruiterId String
+  recruiter   User     @relation(fields: [recruiterId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  candidates  RecruiterShortlistCandidate[]
+
+  @@index([recruiterId])
+}
+
+model RecruiterShortlistCandidate {
+  id              String        @id @default(cuid())
+  shortlistId     String
+  shortlist       RecruiterShortlist @relation(fields: [shortlistId], references: [id], onDelete: Cascade)
+  talentProfileId String
+  talentProfile   TalentProfile @relation(fields: [talentProfileId], references: [id], onDelete: Cascade)
+  note            String?
+  addedAt         DateTime      @default(now())
+
+  @@unique([shortlistId, talentProfileId])
+  @@index([talentProfileId])
+}
+
+model RecruiterSavedSearch {
+  id          String   @id @default(cuid())
+  recruiterId String
+  recruiter   User     @relation(fields: [recruiterId], references: [id], onDelete: Cascade)
+  name        String
+  filters     Json
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([recruiterId])
 }
 
 model ResumeVersion {

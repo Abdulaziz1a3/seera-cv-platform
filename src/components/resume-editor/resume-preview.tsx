@@ -20,13 +20,13 @@ export function ResumePreview({ resume }: ResumePreviewProps) {
                         {resume.contact.email && <span>{resume.contact.email}</span>}
                         {resume.contact.phone && (
                             <>
-                                <span>•</span>
+                                <span aria-hidden="true">|</span>
                                 <span>{resume.contact.phone}</span>
                             </>
                         )}
                         {resume.contact.location && (
                             <>
-                                <span>•</span>
+                                <span aria-hidden="true">|</span>
                                 <span>{resume.contact.location}</span>
                             </>
                         )}
@@ -75,7 +75,7 @@ export function ResumePreview({ resume }: ResumePreviewProps) {
                                     <ul className="mt-1 space-y-0.5">
                                         {exp.bullets.map((bullet) => (
                                             <li key={bullet.id} className="text-xs text-gray-700 flex">
-                                                <span className="mr-1">•</span>
+                                                <span className="mr-1" aria-hidden="true">-</span>
                                                 <span>{bullet.content || 'Bullet point'}</span>
                                             </li>
                                         ))}

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
@@ -54,6 +54,32 @@ export default function DashboardLayout({
     const { theme, setTheme } = useTheme();
     const { t, locale, dir } = useLocale();
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+    const [subscriptionState, setSubscriptionState] = useState<{
+        isActive: boolean;
+        status: string;
+    } | null>(null);
+
+    useEffect(() => {
+        let mounted = true;
+        fetch('/api/billing/status')
+            .then((res) => (res.ok ? res.json() : null))
+            .then((data) => {
+                if (!mounted || !data) return;
+                setSubscriptionState({
+                    isActive: Boolean(data.isActive),
+                    status: data.status || 'UNPAID',
+                });
+            })
+            .catch(() => {
+                if (!mounted) return;
+                setSubscriptionState({ isActive: true, status: 'ACTIVE' });
+            });
+        return () => {
+            mounted = false;
+        };
+    }, []);
+
+    const isSubscriptionActive = subscriptionState?.isActive ?? true;
 
     const navigation = [
         { name: t.nav.dashboard, href: '/dashboard', icon: LayoutDashboard, isPro: false },
@@ -181,8 +207,12 @@ export default function DashboardLayout({
                     {/* Actions */}
                     <div className="flex items-center gap-2">
                         {/* New Resume Button */}
-                        <Button asChild size="sm">
-                            <Link href="/dashboard/resumes/new">
+                        <Button asChild size="sm" disabled={!isSubscriptionActive}>
+                            <Link
+                                href="/dashboard/resumes/new"
+                                aria-disabled={!isSubscriptionActive}
+                                className={!isSubscriptionActive ? 'pointer-events-none opacity-70' : undefined}
+                            >
                                 <Plus className="h-4 w-4 me-1" />
                                 {t.dashboard.newResume}
                             </Link>
@@ -263,7 +293,62 @@ export default function DashboardLayout({
                     role="main"
                     aria-label={locale === 'ar' ? 'المحتوى الرئيسي' : 'Main content'}
                 >
-                    {children}
+                    <div className="relative min-h-[60vh]">
+                        <div className={!isSubscriptionActive ? 'pointer-events-none opacity-50' : undefined}>
+                            {children}
+                        </div>
+                        {!isSubscriptionActive && (
+                            <div className="absolute inset-0 flex items-center justify-center">
+                                <div className="max-w-md w-full rounded-2xl border bg-card p-6 shadow-xl text-center">
+                                    <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-amber-500/10 text-amber-600">
+                                        <Crown className="h-6 w-6" />
+                                    </div>
+                                    <h2 className="text-xl font-semibold">
+                                        {locale === 'ar' ? 'اشترك لتفعيل الحساب' : 'Subscribe to activate your account'}
+                                    </h2>
+                                    <p className="mt-2 text-sm text-muted-foreground">
+                                        {locale === 'ar'
+                                            ? 'يلزم الاشتراك في برو أو المؤسسات لتفعيل جميع الميزات.'
+                                            : 'A Pro or Enterprise subscription is required to unlock all features.'}
+                                    </p>
+                                    <div className="mt-6 grid gap-3 sm:grid-cols-2">
+                                        <Button
+                                            className="w-full"
+                                            onClick={async () => {
+                                                const res = await fetch('/api/billing/checkout', {
+                                                    method: 'POST',
+                                                    headers: { 'Content-Type': 'application/json' },
+                                                    body: JSON.stringify({ plan: 'pro', interval: 'monthly' }),
+                                                });
+                                                const data = await res.json();
+                                                if (data?.url) window.location.href = data.url;
+                                            }}
+                                        >
+                                            {locale === 'ar' ? 'برو شهري' : 'Pro Monthly'}
+                                        </Button>
+                                        <Button
+                                            variant="outline"
+                                            className="w-full"
+                                            onClick={async () => {
+                                                const res = await fetch('/api/billing/checkout', {
+                                                    method: 'POST',
+                                                    headers: { 'Content-Type': 'application/json' },
+                                                    body: JSON.stringify({ plan: 'pro', interval: 'yearly' }),
+                                                });
+                                                const data = await res.json();
+                                                if (data?.url) window.location.href = data.url;
+                                            }}
+                                        >
+                                            {locale === 'ar' ? 'برو سنوي' : 'Pro Yearly'}
+                                        </Button>
+                                    </div>
+                                    <p className="mt-3 text-xs text-muted-foreground">
+                                        {locale === 'ar' ? 'الدفع آمن عبر Stripe' : 'Secure payment via Stripe'}
+                                    </p>
+                                </div>
+                            </div>
+                        )}
+                    </div>
                 </main>
             </div>
 

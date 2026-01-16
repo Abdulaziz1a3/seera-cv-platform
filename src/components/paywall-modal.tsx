@@ -58,13 +58,12 @@ export function PaywallModal({ isOpen, onClose, feature }: PaywallModalProps) {
     const handleUpgrade = async () => {
         setLoading(true);
         try {
-            const response = await fetch('/api/stripe/checkout', {
+            const response = await fetch('/api/billing/checkout', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    planId: 'pro',
-                    billing,
-                    userId: 'current-user', // Would come from auth
+                    plan: 'pro',
+                    interval: billing,
                 }),
             });
 
@@ -130,7 +129,7 @@ export function PaywallModal({ isOpen, onClose, feature }: PaywallModalProps) {
                     {/* Price */}
                     <div className="text-center">
                         <div className="text-4xl font-bold">
-                            {billing === 'monthly' ? '29' : '290'}{' '}
+                            {billing === 'monthly' ? '39' : '299'}{' '}
                             <span className="text-lg font-normal text-muted-foreground">
                                 {locale === 'ar' ? 'ر.س' : 'SAR'}/{billing === 'monthly'
                                     ? (locale === 'ar' ? 'شهر' : 'mo')

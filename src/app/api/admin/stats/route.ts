@@ -92,8 +92,8 @@ export async function GET() {
             where: { status: 'ACTIVE', plan: 'ENTERPRISE' }
         });
 
-        // Assuming PRO = $29.99/mo, ENTERPRISE = $99.99/mo
-        const monthlyRevenue = (proSubscriptions * 29.99) + (enterpriseSubscriptions * 99.99);
+        // Assuming PRO = SAR 39/mo, ENTERPRISE = SAR 249/mo
+        const monthlyRevenue = (proSubscriptions * 39) + (enterpriseSubscriptions * 249);
 
         // Recent users (last 5)
         const recentUsers = await prisma.user.findMany({
