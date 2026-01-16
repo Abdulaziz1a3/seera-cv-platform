@@ -97,6 +97,14 @@ class PDFRenderer {
     this.doc.text(name, margin, this.y);
     this.y += 10;
 
+    if (resume.title) {
+      this.doc.setFont('helvetica', 'normal');
+      this.doc.setFontSize(11);
+      this.setColor(this.theme.muted);
+      this.doc.text(resume.title, margin, this.y);
+      this.y += 6;
+    }
+
     // Gold accent line under name
     this.setColor(this.theme.accent, 'draw');
     this.doc.setLineWidth(1.5);
@@ -298,6 +306,14 @@ class PDFRenderer {
     this.doc.text(resume.contact.fullName || 'Your Name', margin, this.y);
     this.y += 12;
 
+    if (resume.title) {
+      this.doc.setFont('helvetica', 'normal');
+      this.doc.setFontSize(11);
+      this.setColor(this.theme.muted);
+      this.doc.text(resume.title, margin, this.y);
+      this.y += 6;
+    }
+
     // Single thin accent line
     this.setColor(this.theme.accent, 'draw');
     this.doc.setLineWidth(0.3);
@@ -434,7 +450,7 @@ class PDFRenderer {
     this.doc.setTextColor(255, 255, 255);
     this.doc.setFontSize(10);
     this.doc.setFont('helvetica', 'bold');
-    this.doc.text('CONTACT', 8, sideY);
+    this.doc.text(getSectionHeader('contact', this.locale), 8, sideY);
     sideY += 8;
 
     this.doc.setFont('helvetica', 'normal');
@@ -468,7 +484,7 @@ class PDFRenderer {
       sideY += 15;
       this.doc.setFontSize(10);
       this.doc.setFont('helvetica', 'bold');
-      this.doc.text('SKILLS', 8, sideY);
+      this.doc.text(getSectionHeader('skills', this.locale), 8, sideY);
       sideY += 8;
 
       this.doc.setFont('helvetica', 'normal');
@@ -494,7 +510,7 @@ class PDFRenderer {
       sideY += 12;
       this.doc.setFontSize(10);
       this.doc.setFont('helvetica', 'bold');
-      this.doc.text('LANGUAGES', 8, sideY);
+      this.doc.text(getSectionHeader('languages', this.locale), 8, sideY);
       sideY += 8;
 
       this.doc.setFont('helvetica', 'normal');
@@ -597,7 +613,7 @@ class PDFRenderer {
           this.doc.setFontSize(9);
           exp.bullets.filter(b => b?.trim()).forEach((bullet) => {
             this.setColor(this.theme.accent);
-            this.doc.text('▸', mainX, y);
+            this.doc.text('-', mainX, y);
             this.setColor(this.theme.text);
             const bulletLines = this.doc.splitTextToSize(bullet, mainWidth - 8);
             bulletLines.forEach((line: string) => {
@@ -656,6 +672,14 @@ class PDFRenderer {
     const name = resume.contact.fullName || 'Your Name';
     this.doc.text(name, centerX, this.y, { align: 'center' });
     this.y += 8;
+
+    if (resume.title) {
+      this.doc.setFont('helvetica', 'normal');
+      this.doc.setFontSize(11);
+      this.setColor(this.theme.muted);
+      this.doc.text(resume.title, centerX, this.y, { align: 'center' });
+      this.y += 5;
+    }
 
     // Contact line centered
     this.doc.setFontSize(this.config.typography.smallSize);

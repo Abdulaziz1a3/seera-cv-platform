@@ -12,10 +12,10 @@ export * from './themes';
 export const TEMPLATES: Record<TemplateId, TemplateMetadata> = {
   'prestige-executive': {
     id: 'prestige-executive',
-    name: { en: 'Prestige Executive', ar: 'المدير التنفيذي' },
+    name: { en: 'Prestige Executive', ar: 'هيبة تنفيذية' },
     description: {
       en: 'Luxury corporate design with bold name header and gold accents',
-      ar: 'تصميم فاخر للشركات مع رأس اسم بارز ولمسات ذهبية',
+      ar: 'تصميم مؤسسي فاخر مع عنوان اسم بارز ولمسات ذهبية',
     },
     thumbnail: '/templates/prestige-executive.png',
     isPremium: false,
@@ -24,10 +24,10 @@ export const TEMPLATES: Record<TemplateId, TemplateMetadata> = {
   },
   'nordic-minimal': {
     id: 'nordic-minimal',
-    name: { en: 'Nordic Minimal', ar: 'الشمالي المبسط' },
+    name: { en: 'Nordic Minimal', ar: 'الشمالي البسيط' },
     description: {
       en: 'Ultra-clean Scandinavian design with generous white space',
-      ar: 'تصميم اسكندنافي فائق النظافة مع مساحة بيضاء واسعة',
+      ar: 'تصميم اسكندنافي شديد النظافة مع مساحات بيضاء واسعة',
     },
     thumbnail: '/templates/nordic-minimal.png',
     isPremium: false,
@@ -36,10 +36,10 @@ export const TEMPLATES: Record<TemplateId, TemplateMetadata> = {
   },
   'metropolitan-split': {
     id: 'metropolitan-split',
-    name: { en: 'Metropolitan Split', ar: 'المتروبوليتان المقسم' },
+    name: { en: 'Metropolitan Split', ar: 'المتروبوليتان المقسّم' },
     description: {
       en: 'Two-column layout with dark sidebar and photo support',
-      ar: 'تخطيط عمودين مع شريط جانبي داكن ودعم للصور',
+      ar: 'تنسيق بعمودين مع شريط جانبي داكن ودعم للصورة',
     },
     thumbnail: '/templates/metropolitan-split.png',
     isPremium: false,
@@ -48,10 +48,10 @@ export const TEMPLATES: Record<TemplateId, TemplateMetadata> = {
   },
   'classic-professional': {
     id: 'classic-professional',
-    name: { en: 'Classic Professional', ar: 'الكلاسيكي المحترف' },
+    name: { en: 'Classic Professional', ar: 'الكلاسيكي الاحترافي' },
     description: {
       en: 'Traditional single-column layout optimized for ATS systems',
-      ar: 'تخطيط تقليدي عمود واحد محسن لأنظمة ATS',
+      ar: 'تنسيق تقليدي بعمود واحد محسّن لأنظمة ATS',
     },
     thumbnail: '/templates/classic-professional.png',
     isPremium: false,
@@ -60,10 +60,10 @@ export const TEMPLATES: Record<TemplateId, TemplateMetadata> = {
   },
   'impact-modern': {
     id: 'impact-modern',
-    name: { en: 'Impact Modern', ar: 'التأثير الحديث' },
+    name: { en: 'Impact Modern', ar: 'التأثير العصري' },
     description: {
       en: 'Bold hero header with timeline experience and skill tags',
-      ar: 'رأس بطولي جريء مع تجربة زمنية ووسوم المهارات',
+      ar: 'عنوان جريء مع تسلسل خبرة وعلامات مهارات',
     },
     thumbnail: '/templates/impact-modern.png',
     isPremium: false,
@@ -131,7 +131,7 @@ export const SECTION_HEADERS = {
   projects: { en: 'PROJECTS', ar: 'المشاريع' },
   certifications: { en: 'CERTIFICATIONS', ar: 'الشهادات' },
   languages: { en: 'LANGUAGES', ar: 'اللغات' },
-  contact: { en: 'CONTACT', ar: 'التواصل' },
+  contact: { en: 'CONTACT', ar: 'معلومات التواصل' },
 };
 
 // ============================================

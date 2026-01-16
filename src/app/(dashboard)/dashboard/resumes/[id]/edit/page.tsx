@@ -432,6 +432,7 @@ export default function ResumeEditorPage() {
                             selectedTheme={(resume.theme as ThemeId) || 'obsidian'}
                             onTemplateChange={handleTemplateChange}
                             onThemeChange={handleThemeChange}
+                            previewResume={previewResume as any}
                         />
                     </div>
 

@@ -40,6 +40,7 @@ export function LivePreview({ resume, scale = PREVIEW_SCALE }: LivePreviewProps)
   return (
     <div
       className="bg-white shadow-xl rounded-sm origin-top overflow-hidden"
+      dir={locale === 'ar' ? 'rtl' : 'ltr'}
       style={{
         width: `${A4_WIDTH}mm`,
         minHeight: `${A4_HEIGHT}mm`,
@@ -75,6 +76,11 @@ function PrestigeExecutivePreview({
         >
           {resume.contact.fullName || 'Your Name'}
         </h1>
+        {resume.title && (
+          <div className="text-xs uppercase tracking-wide mt-1" style={{ color: theme.muted }}>
+            {resume.title}
+          </div>
+        )}
         <div className="w-16 h-1 mt-2 rounded" style={{ backgroundColor: theme.accent }} />
         <div className="flex flex-wrap gap-2 mt-3 text-xs" style={{ color: theme.muted }}>
           {resume.contact.email && <span>{resume.contact.email}</span>}
@@ -198,6 +204,11 @@ function NordicMinimalPreview({
     <div className="p-10 font-sans" style={{ color: theme.text }}>
       {/* Header */}
       <h1 className="text-4xl font-bold">{resume.contact.fullName || 'Your Name'}</h1>
+      {resume.title && (
+        <p className="text-sm mt-1" style={{ color: theme.muted }}>
+          {resume.title}
+        </p>
+      )}
       <div className="w-8 h-0.5 my-4 rounded" style={{ backgroundColor: theme.accent }} />
       <p className="text-sm" style={{ color: theme.muted }}>
         {[resume.contact.email, resume.contact.phone, resume.contact.location].filter(Boolean).join('  /  ')}
@@ -284,7 +295,9 @@ function MetropolitanSplitPreview({
 
         {/* Contact */}
         <div className="text-white text-[8px] mb-6">
-          <h3 className="font-bold text-[9px] mb-2">CONTACT</h3>
+          <h3 className="font-bold text-[9px] mb-2">
+            {getSectionHeader('contact', locale)}
+          </h3>
           {resume.contact.email && (
             <p className="break-all mb-1">{resume.contact.email}</p>
           )}
@@ -295,7 +308,9 @@ function MetropolitanSplitPreview({
         {/* Skills */}
         {resume.skills.length > 0 && (
           <div className="text-white text-[8px] mb-6">
-            <h3 className="font-bold text-[9px] mb-2">SKILLS</h3>
+            <h3 className="font-bold text-[9px] mb-2">
+              {getSectionHeader('skills', locale)}
+            </h3>
             <div className="space-y-1">
               {resume.skills.slice(0, 10).map((skill, i) => (
                 <div
@@ -313,7 +328,9 @@ function MetropolitanSplitPreview({
         {/* Languages */}
         {resume.languages.length > 0 && (
           <div className="text-white text-[8px]">
-            <h3 className="font-bold text-[9px] mb-2">LANGUAGES</h3>
+            <h3 className="font-bold text-[9px] mb-2">
+              {getSectionHeader('languages', locale)}
+            </h3>
             {resume.languages.map((lang, i) => (
               <p key={i} className="mb-1">
                 {lang.name}
@@ -340,7 +357,7 @@ function MetropolitanSplitPreview({
           <div className="mt-6">
             <div className="flex items-center gap-2 mb-2">
               <div className="w-0.5 h-4" style={{ backgroundColor: theme.accent }} />
-              <h2 className="font-bold text-sm">PROFILE</h2>
+              <h2 className="font-bold text-sm">{getSectionHeader('summary', locale)}</h2>
             </div>
             <p className="text-[10px] leading-relaxed" style={{ color: theme.muted }}>
               {resume.summary}
@@ -353,7 +370,7 @@ function MetropolitanSplitPreview({
           <div className="mt-6">
             <div className="flex items-center gap-2 mb-3">
               <div className="w-0.5 h-4" style={{ backgroundColor: theme.accent }} />
-              <h2 className="font-bold text-sm">EXPERIENCE</h2>
+              <h2 className="font-bold text-sm">{getSectionHeader('experience', locale)}</h2>
             </div>
             {resume.experience.map((exp, idx) => (
               <div key={exp.id} className={cn(idx > 0 && 'mt-3')}>
@@ -369,7 +386,7 @@ function MetropolitanSplitPreview({
                 <ul className="mt-1 space-y-0.5">
                   {exp.bullets.filter(b => b?.trim()).map((bullet, i) => (
                     <li key={i} className="flex text-[9px]">
-                      <span className="mr-1" style={{ color: theme.accent }}>▸</span>
+                      <span className="mr-1" style={{ color: theme.accent }}>-</span>
                       <span>{bullet}</span>
                     </li>
                   ))}
@@ -382,7 +399,7 @@ function MetropolitanSplitPreview({
         {/* Education */}
         {resume.education.length > 0 && (
           <div className="mt-6">
-            <h2 className="font-bold text-sm mb-2">EDUCATION</h2>
+            <h2 className="font-bold text-sm mb-2">{getSectionHeader('education', locale)}</h2>
             {resume.education.map((edu) => (
               <div key={edu.id} className="flex justify-between text-[10px] mb-2">
                 <div>
@@ -561,7 +578,7 @@ function ImpactModernPreview({
           <div className="mt-4">
             <div className="flex items-center gap-2 mb-2">
               <div className="w-2 h-2 rounded-full" style={{ backgroundColor: theme.accent }} />
-              <h2 className="font-bold text-xs uppercase">PROFILE</h2>
+              <h2 className="font-bold text-xs uppercase">{getSectionHeader('summary', locale)}</h2>
             </div>
             <p className="text-[10px] leading-relaxed" style={{ color: theme.muted }}>
               {resume.summary}
@@ -574,7 +591,7 @@ function ImpactModernPreview({
           <div className="mt-5">
             <div className="flex items-center gap-2 mb-3">
               <div className="w-2 h-2 rounded-full" style={{ backgroundColor: theme.accent }} />
-              <h2 className="font-bold text-xs uppercase">EXPERIENCE</h2>
+              <h2 className="font-bold text-xs uppercase">{getSectionHeader('experience', locale)}</h2>
             </div>
             {resume.experience.map((exp, idx) => (
               <div key={exp.id} className={cn('flex gap-3', idx > 0 && 'mt-3')}>
@@ -603,7 +620,7 @@ function ImpactModernPreview({
           <div className="mt-5">
             <div className="flex items-center gap-2 mb-2">
               <div className="w-2 h-2 rounded-full" style={{ backgroundColor: theme.accent }} />
-              <h2 className="font-bold text-xs uppercase">EDUCATION</h2>
+              <h2 className="font-bold text-xs uppercase">{getSectionHeader('education', locale)}</h2>
             </div>
             {resume.education.map((edu) => (
               <div key={edu.id} className="mb-2">

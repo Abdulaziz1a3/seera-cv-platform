@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
@@ -29,6 +29,10 @@ import {
 } from '@/components/ui/select';
 import { useResumes } from '@/components/providers/resume-provider';
 import { useLocale } from '@/components/providers/locale-provider';
+import { LivePreview } from '@/components/resume-editor/live-preview';
+import { getTemplatePreviewData } from '@/components/resume-editor/template-preview-data';
+import type { TemplateId } from '@/lib/resume-types';
+import { TemplateThumbnail } from '@/components/resume-editor/template-thumbnail';
 
 type CreateMethod = 'scratch' | 'import' | 'linkedin' | null;
 
@@ -40,12 +44,13 @@ interface BasicInfo {
 }
 
 const templates = [
-    { id: 'prestige-executive', name: 'Prestige Executive', nameAr: 'المدير التنفيذي', description: 'Luxury corporate design with bold header', descriptionAr: 'تصميم فاخر للشركات مع رأس بارز' },
-    { id: 'metropolitan-split', name: 'Metropolitan Split', nameAr: 'المتروبوليتان', description: 'Two-column layout with dark sidebar', descriptionAr: 'تخطيط عمودين مع شريط جانبي داكن' },
-    { id: 'nordic-minimal', name: 'Nordic Minimal', nameAr: 'الشمالي المبسط', description: 'Ultra-clean Scandinavian design', descriptionAr: 'تصميم اسكندنافي فائق النظافة' },
-    { id: 'classic-professional', name: 'Classic Professional', nameAr: 'الكلاسيكي المحترف', description: 'Traditional ATS-optimized layout', descriptionAr: 'تخطيط تقليدي محسّن للأنظمة' },
-    { id: 'impact-modern', name: 'Impact Modern', nameAr: 'التأثير الحديث', description: 'Bold hero header with skill tags', descriptionAr: 'ترويسة جريئة مع علامات المهارات' },
+    { id: 'prestige-executive', name: 'Prestige Executive', nameAr: 'هيبة تنفيذية', description: 'Luxury corporate design with bold name header', descriptionAr: 'تصميم مؤسسي فاخر بعنوان بارز' },
+    { id: 'metropolitan-split', name: 'Metropolitan Split', nameAr: 'المتروبوليتان المقسّم', description: 'Two-column layout with dark sidebar', descriptionAr: 'تنسيق بعمودين مع شريط جانبي داكن' },
+    { id: 'nordic-minimal', name: 'Nordic Minimal', nameAr: 'الشمالي البسيط', description: 'Ultra-clean Scandinavian design', descriptionAr: 'تصميم اسكندنافي نظيف بمساحات بيضاء' },
+    { id: 'classic-professional', name: 'Classic Professional', nameAr: 'الكلاسيكي الاحترافي', description: 'Traditional ATS-optimized layout', descriptionAr: 'تنسيق تقليدي محسّن لأنظمة ATS' },
+    { id: 'impact-modern', name: 'Impact Modern', nameAr: 'التأثير العصري', description: 'Bold hero header with skill tags', descriptionAr: 'عنوان جريء مع علامات مهارات' },
 ];
+
 
 export default function NewResumePage() {
     const router = useRouter();
@@ -66,6 +71,7 @@ export default function NewResumePage() {
         language: 'en',
         template: 'prestige-executive',
     });
+    const previewBase = useMemo(() => getTemplatePreviewData(locale), [locale]);
 
     // Handle file upload
     const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -495,31 +501,56 @@ export default function NewResumePage() {
 
             {/* Step 3: Select Template */}
             {step === 3 && (
-                <div className="grid gap-4 sm:grid-cols-3">
-                    {templates.map((template) => (
-                        <Card
-                            key={template.id}
-                            className={`cursor-pointer transition-all ${basicInfo.template === template.id
-                                ? 'ring-2 ring-primary'
-                                : 'hover:border-primary/50'
-                                }`}
-                            onClick={() =>
-                                setBasicInfo({ ...basicInfo, template: template.id })
-                            }
-                        >
-                            <CardContent className="p-0">
-                                <div className="h-40 bg-muted/50 flex items-center justify-center border-b">
-                                    <FileText className="h-12 w-12 text-muted-foreground/30" />
-                                </div>
-                                <div className="p-4">
-                                    <h3 className="font-semibold">{locale === 'ar' ? template.nameAr : template.name}</h3>
-                                    <p className="text-sm text-muted-foreground">
-                                        {locale === 'ar' ? template.descriptionAr : template.description}
-                                    </p>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    ))}
+                <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
+                    <div className="grid gap-4 sm:grid-cols-3">
+                        {templates.map((template) => (
+                            <Card
+                                key={template.id}
+                                className={`cursor-pointer transition-all ${basicInfo.template === template.id
+                                    ? 'ring-2 ring-primary'
+                                    : 'hover:border-primary/50'
+                                    }`}
+                                onClick={() =>
+                                    setBasicInfo({ ...basicInfo, template: template.id })
+                                }
+                            >
+                                <CardContent className="p-0">
+                                    <div className="h-40 bg-muted/50 flex items-center justify-center border-b">
+                                        <div className="h-full w-full p-3">
+                                            <TemplateThumbnail
+                                                templateId={template.id as TemplateId}
+                                                themeId="obsidian"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="p-4">
+                                        <h3 className="font-semibold">{locale === 'ar' ? template.nameAr : template.name}</h3>
+                                        <p className="text-sm text-muted-foreground">
+                                            {locale === 'ar' ? template.descriptionAr : template.description}
+                                        </p>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        ))}
+                    </div>
+                    <Card className="hidden lg:block">
+                        <CardContent className="p-4">
+                            <div className="text-sm font-medium mb-3">
+                                {locale === 'ar' ? 'معاينة القالب' : 'Template Preview'}
+                            </div>
+                            <div className="flex justify-center">
+                                <LivePreview
+                                    resume={{
+                                        ...previewBase,
+                                        template: basicInfo.template as TemplateId,
+                                        theme: 'obsidian',
+                                        locale,
+                                    }}
+                                    scale={0.5}
+                                />
+                            </div>
+                        </CardContent>
+                    </Card>
                 </div>
             )}
 
