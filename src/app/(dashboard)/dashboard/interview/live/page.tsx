@@ -178,6 +178,34 @@ export default function LiveInterviewPage() {
         }
     }, [audioUnlocked, audioErrorShown, locale]);
 
+    // Stop listening
+    const stopListening = useCallback(() => {
+        if (silenceTimerRef.current) {
+            clearTimeout(silenceTimerRef.current);
+            silenceTimerRef.current = null;
+        }
+        try { recognitionRef.current?.stop(); } catch (e) { }
+        setIsListening(false);
+    }, []);
+
+    // Start listening
+    const startListening = useCallback(() => {
+        if (!recognitionRef.current || isSpeaking || isLoading) return;
+        try {
+            pendingAnswerRef.current = '';
+            setLiveTranscript('');
+            recognitionRef.current.start();
+            setIsListening(true);
+        } catch (e) {
+            setIsListening(false);
+            setUseTextInput(true);
+            if (!micErrorShown) {
+                setMicErrorShown(true);
+                toast.error(locale === 'ar' ? 'الميكروفون غير متاح - استخدم الكتابة' : 'Microphone not available - use text input');
+            }
+        }
+    }, [isSpeaking, isLoading, locale, micErrorShown]);
+
     // Speak using OpenAI TTS
     const speak = useCallback(async (text: string): Promise<void> => {
         if (isMuted || !audioRef.current) return;
@@ -312,33 +340,7 @@ export default function LiveInterviewPage() {
         }
     }, [isLoading, isSpeaking, targetRole, questions, currentQuestionIndex, experienceLevel, interviewLang, phrases, speak]);
 
-    // Start listening
-    const startListening = useCallback(() => {
-        if (!recognitionRef.current || isSpeaking || isLoading) return;
-        try {
-            pendingAnswerRef.current = '';
-            setLiveTranscript('');
-            recognitionRef.current.start();
-            setIsListening(true);
-        } catch (e) {
-            setIsListening(false);
-            setUseTextInput(true);
-            if (!micErrorShown) {
-                setMicErrorShown(true);
-                toast.error(locale === 'ar' ? 'الميكروفون غير متاح - استخدم الكتابة' : 'Microphone not available - use text input');
-            }
-        }
-    }, [isSpeaking, isLoading, locale, micErrorShown]);
-
-    // Stop listening
-    const stopListening = useCallback(() => {
-        if (silenceTimerRef.current) {
-            clearTimeout(silenceTimerRef.current);
-            silenceTimerRef.current = null;
-        }
-        try { recognitionRef.current?.stop(); } catch (e) { }
-        setIsListening(false);
-    }, []);
+    
 
     // Initialize speech recognition
     useEffect(() => {
