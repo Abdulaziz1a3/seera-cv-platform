@@ -533,7 +533,7 @@ export default function RecruiterPortalPage() {
 
                                         {/* Skills */}
                                         <div className="flex flex-wrap gap-2 mt-3">
-                                            {candidate.skills.map((skill) => (
+                                            {candidate.skills.map((skill: string) => (
                                                 <Badge key={skill} variant="secondary">{skill}</Badge>
                                             ))}
                                         </div>
