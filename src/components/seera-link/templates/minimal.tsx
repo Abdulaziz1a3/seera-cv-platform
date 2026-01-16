@@ -22,6 +22,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { useAnalyticsTracker } from '../analytics-beacon';
 import { CvActions } from '../cv-actions';
+import { CvPreview } from '../cv-preview';
 import {
   buildWhatsAppUrl,
   buildMailtoUrl,
@@ -51,6 +52,7 @@ const translations = {
     downloadCv: 'Download CV',
     viewCv: 'View CV',
     preparingCv: 'Preparing CV...',
+    cvPreview: 'CV Preview',
   },
   ar: {
     highlights: 'أبرز الإنجازات',
@@ -68,6 +70,7 @@ const translations = {
     downloadCv: 'تحميل السيرة',
     viewCv: 'عرض السيرة',
     preparingCv: 'جاري تجهيز السيرة...',
+    cvPreview: 'معاينة السيرة',
   },
 };
 
@@ -422,6 +425,22 @@ export function ProfileMinimalTemplate({ profile }: MinimalTemplateProps) {
             </div>
           </section>
         )}
+
+        {profile.enableDownloadCv &&
+          profile.enabledCtas.includes('VIEW_CV') &&
+          profile.cvResumeId && (
+            <section className="mt-8">
+              <h2 className="text-lg font-semibold text-foreground mb-4">{t.cvPreview}</h2>
+              <CvPreview
+                slug={profile.slug}
+                cvResumeId={profile.cvResumeId}
+                enableDownloadCv={profile.enableDownloadCv}
+                enabledCtas={profile.enabledCtas}
+                hidePhoneNumber={profile.hidePhoneNumber}
+                isPreview={profile.isPreview}
+              />
+            </section>
+          )}
 
         {/* Footer */}
         <footer className="text-center pt-8 border-t">

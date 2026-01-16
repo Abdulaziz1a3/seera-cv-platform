@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { FileDown, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { downloadPDF, generatePDF } from '@/lib/templates/renderer';
+import { downloadPDF } from '@/lib/templates/renderer';
 import { mapResumeRecordToResumeData } from '@/lib/resume-normalizer';
 import { useAnalyticsTracker } from './analytics-beacon';
 
@@ -22,6 +22,7 @@ interface CvActionsProps {
   onDownload?: () => void;
   isPreview?: boolean;
   variant?: 'default' | 'inverse';
+  previewAnchorId?: string;
 }
 
 export function CvActions({
@@ -35,11 +36,12 @@ export function CvActions({
   onDownload,
   isPreview = false,
   variant = 'default',
+  previewAnchorId = 'cv-preview',
 }: CvActionsProps) {
   const { trackCTA } = useAnalyticsTracker(profileId);
   const [loading, setLoading] = useState<'view' | 'download' | null>(null);
 
-  const hasView = enabledCtas.includes('VIEW_CV') && enableDownloadCv && (cvFileUrl || cvResumeId);
+  const hasView = enabledCtas.includes('VIEW_CV') && enableDownloadCv && !!cvResumeId;
   const hasDownload = enabledCtas.includes('DOWNLOAD_CV') && enableDownloadCv && (cvFileUrl || cvResumeId);
 
   if (!hasView && !hasDownload) {
@@ -63,26 +65,12 @@ export function CvActions({
   };
 
   const handleView = async () => {
-    if (cvFileUrl) {
-      window.open(cvFileUrl, '_blank', 'noopener,noreferrer');
-      trackCTA('VIEW_CV');
-      return;
-    }
-
     if (!cvResumeId) return;
-    setLoading('view');
-    try {
-      const resumeRecord = await fetchResumeRecord();
-      if (!resumeRecord) return;
-      const resumeData = mapResumeRecordToResumeData(resumeRecord);
-      const blob = await generatePDF(resumeData);
-      const url = URL.createObjectURL(blob);
-      window.open(url, '_blank', 'noopener,noreferrer');
-      setTimeout(() => URL.revokeObjectURL(url), 10000);
-      trackCTA('VIEW_CV');
-    } finally {
-      setLoading(null);
+    const target = document.getElementById(previewAnchorId);
+    if (target) {
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
+    trackCTA('VIEW_CV');
   };
 
   const handleDownload = async () => {
