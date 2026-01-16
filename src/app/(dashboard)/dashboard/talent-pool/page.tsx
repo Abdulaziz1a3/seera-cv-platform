@@ -42,25 +42,25 @@ export default function TalentPoolPage() {
     const { resumes } = useResumes();
 
     // Pool membership state
-    const [isJoined, setIsJoined] = useEffect, useState(false);
-    const [selectedResumeId, setSelectedResumeId] = useEffect, useState<string>('');
+  const [isJoined, setIsJoined] = useState(false);
+  const [selectedResumeId, setSelectedResumeId] = useState<string>('');
 
     // Settings
-    const [isVisible, setIsVisible] = useEffect, useState(true);
-    const [availabilityStatus, setAvailabilityStatus] = useEffect, useState<string>('open_to_offers');
-    const [hideCurrentEmployer, setHideCurrentEmployer] = useEffect, useState(false);
-    const [hideSalaryHistory, setHideSalaryHistory] = useEffect, useState(true);
-    const [verifiedCompaniesOnly, setVerifiedCompaniesOnly] = useEffect, useState(false);
-    const [blockedCompanies, setBlockedCompanies] = useEffect, useState<string>('');
+  const [isVisible, setIsVisible] = useState(true);
+  const [availabilityStatus, setAvailabilityStatus] = useState<string>('open_to_offers');
+  const [hideCurrentEmployer, setHideCurrentEmployer] = useState(false);
+  const [hideSalaryHistory, setHideSalaryHistory] = useState(true);
+  const [verifiedCompaniesOnly, setVerifiedCompaniesOnly] = useState(false);
+  const [blockedCompanies, setBlockedCompanies] = useState<string>('');
 
     // Preferences
-    const [desiredRoles, setDesiredRoles] = useEffect, useState<string>('');
-    const [desiredSalaryMin, setDesiredSalaryMin] = useEffect, useState<string>('');
-    const [desiredSalaryMax, setDesiredSalaryMax] = useEffect, useState<string>('');
-    const [willingToRelocate, setWillingToRelocate] = useEffect, useState(false);
-    const [preferredLocations, setPreferredLocations] = useEffect, useState<string[]>([]);
-    const [noticePeriod, setNoticePeriod] = useEffect, useState<string>('2_weeks');
-    const [preferredIndustries, setPreferredIndustries] = useEffect, useState<string[]>([]);
+  const [desiredRoles, setDesiredRoles] = useState<string>('');
+  const [desiredSalaryMin, setDesiredSalaryMin] = useState<string>('');
+  const [desiredSalaryMax, setDesiredSalaryMax] = useState<string>('');
+  const [willingToRelocate, setWillingToRelocate] = useState(false);
+  const [preferredLocations, setPreferredLocations] = useState<string[]>([]);
+  const [noticePeriod, setNoticePeriod] = useState<string>('2_weeks');
+  const [preferredIndustries, setPreferredIndustries] = useState<string[]>([]);
 
     // Stats (mock)
     const stats = {
