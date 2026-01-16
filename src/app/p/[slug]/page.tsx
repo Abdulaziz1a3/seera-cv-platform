@@ -122,6 +122,7 @@ export default async function PublicProfilePage({ params, searchParams }: PagePr
   // Transform profile data for templates
   const profileData = {
     id: profile.id,
+    slug: profile.slug,
     displayName: profile.displayName,
     title: profile.title,
     location: profile.location,
@@ -134,6 +135,7 @@ export default async function PublicProfilePage({ params, searchParams }: PagePr
     hidePhoneNumber: profile.hidePhoneNumber,
     enableDownloadCv: profile.enableDownloadCv,
     cvFileUrl: profile.cvFileUrl,
+    cvResumeId: profile.cvResumeId,
     ctaWhatsappNumber: profile.ctaWhatsappNumber,
     ctaWhatsappMessage: profile.ctaWhatsappMessage,
     ctaPhoneNumber: profile.ctaPhoneNumber,

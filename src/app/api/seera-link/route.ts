@@ -4,7 +4,7 @@ import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { success, errors, handleZodError, handleError } from '@/lib/api-response';
 import { createProfileSchema } from '@/lib/seera-link/schemas';
-import { validateSlug, hashAccessCode, canCreateProfile } from '@/lib/seera-link/utils';
+import { validateSlug, hashAccessCode, canCreateProfile, normalizeSaudiPhone } from '@/lib/seera-link/utils';
 import { checkRateLimit, getRateLimitKey, getClientIP, rateLimitConfigs } from '@/lib/seera-link/rate-limit';
 import { headers } from 'next/headers';
 
@@ -100,7 +100,12 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const data = createProfileSchema.parse(body);
+    const normalizedBody = {
+      ...body,
+      ctaWhatsappNumber: normalizeSaudiPhone(body.ctaWhatsappNumber),
+      ctaPhoneNumber: normalizeSaudiPhone(body.ctaPhoneNumber),
+    };
+    const data = createProfileSchema.parse(normalizedBody);
 
     // Validate slug
     const slugValidation = await validateSlug(data.slug);

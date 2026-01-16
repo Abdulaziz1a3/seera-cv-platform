@@ -9,7 +9,6 @@ import {
   Phone,
   Mail,
   Linkedin,
-  FileDown,
   ExternalLink,
   Award,
   Briefcase,
@@ -22,6 +21,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { useAnalyticsTracker } from '../analytics-beacon';
+import { CvActions } from '../cv-actions';
 import {
   buildWhatsAppUrl,
   buildMailtoUrl,
@@ -49,6 +49,8 @@ const translations = {
     email: 'Email',
     linkedin: 'LinkedIn',
     downloadCv: 'Download CV',
+    viewCv: 'View CV',
+    preparingCv: 'Preparing CV...',
   },
   ar: {
     highlights: 'أبرز الإنجازات',
@@ -102,7 +104,6 @@ export function ProfileMinimalTemplate({ profile }: MinimalTemplateProps) {
   const hasCtaPhone = profile.enabledCtas.includes('PHONE') && phoneUrl && !profile.hidePhoneNumber;
   const hasCtaEmail = profile.enabledCtas.includes('EMAIL') && emailUrl;
   const hasCtaLinkedin = profile.enabledCtas.includes('LINKEDIN') && profile.ctaLinkedinUrl;
-  const hasCtaDownloadCv = profile.enabledCtas.includes('DOWNLOAD_CV') && profile.enableDownloadCv && profile.cvFileUrl;
 
   return (
     <div
@@ -217,21 +218,17 @@ export function ProfileMinimalTemplate({ profile }: MinimalTemplateProps) {
               </Button>
             )}
 
-            {hasCtaDownloadCv && (
-              <Button
-                asChild
-                variant="secondary"
-                onClick={() => {
-                  trackCTA('DOWNLOAD_CV');
-                  trackDownload();
-                }}
-              >
-                <a href={profile.cvFileUrl!} target="_blank" rel="noopener noreferrer" download>
-                  <FileDown className="w-4 h-4 mr-2" />
-                  {t.downloadCv}
-                </a>
-              </Button>
-            )}
+            <CvActions
+              profileId={profile.id}
+              slug={profile.slug}
+              cvResumeId={profile.cvResumeId}
+              cvFileUrl={profile.cvFileUrl}
+              enableDownloadCv={profile.enableDownloadCv}
+              enabledCtas={profile.enabledCtas}
+              labels={{ download: t.downloadCv, view: t.viewCv, preparing: t.preparingCv }}
+              isPreview={profile.isPreview}
+              onDownload={() => trackDownload()}
+            />
           </div>
         </div>
 

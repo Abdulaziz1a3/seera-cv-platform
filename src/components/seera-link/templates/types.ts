@@ -40,6 +40,7 @@ export interface ProfileCertificate {
 
 export interface ProfileData {
   id: string;
+  slug: string;
   displayName: string;
   title: string;
   location: string | null;
@@ -52,6 +53,8 @@ export interface ProfileData {
   hidePhoneNumber: boolean;
   enableDownloadCv: boolean;
   cvFileUrl: string | null;
+  cvResumeId: string | null;
+  isPreview?: boolean;
 
   // CTA settings
   ctaWhatsappNumber: string | null;

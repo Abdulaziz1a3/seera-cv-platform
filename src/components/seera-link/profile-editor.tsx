@@ -45,6 +45,7 @@ import { useDebounce } from '@/hooks/use-debounce';
 import { ProfileMinimalTemplate } from './templates/minimal';
 import { ProfileBoldTemplate } from './templates/bold';
 import { themeDisplayNames, templateConfigs, statusBadgeOptions } from '@/lib/seera-link/themes';
+import { normalizeSaudiPhone } from '@/lib/seera-link/utils';
 import type { CreateProfileInput, HighlightInput, ExperienceInput, ProjectInput, CertificateInput } from '@/lib/seera-link/schemas';
 import type { ProfileData } from './templates/types';
 
@@ -53,6 +54,12 @@ interface ProfileEditorProps {
   initialData: Partial<CreateProfileInput>;
   profileId?: string;
   onCancel?: () => void;
+}
+
+interface ResumeOption {
+  id: string;
+  title: string;
+  targetRole: string | null;
 }
 
 const defaultFormData: CreateProfileInput = {
@@ -88,8 +95,24 @@ export function ProfileEditor({ mode, initialData, profileId, onCancel }: Profil
   const [slugStatus, setSlugStatus] = useState<'idle' | 'checking' | 'available' | 'taken'>('idle');
   const [previewMode, setPreviewMode] = useState<'desktop' | 'mobile'>('desktop');
   const [activeTab, setActiveTab] = useState('hero');
+  const [resumes, setResumes] = useState<ResumeOption[]>([]);
 
   const debouncedSlug = useDebounce(formData.slug, 500);
+
+  useEffect(() => {
+    async function fetchResumes() {
+      try {
+        const response = await fetch('/api/resumes');
+        const data = await response.json();
+        if (data.success || Array.isArray(data)) {
+          setResumes(Array.isArray(data) ? data : data.data || []);
+        }
+      } catch (error) {
+        console.error('Error fetching resumes:', error);
+      }
+    }
+    fetchResumes();
+  }, []);
 
   // Check slug availability
   useEffect(() => {
@@ -132,6 +155,13 @@ export function ProfileEditor({ mode, initialData, profileId, onCancel }: Profil
   ) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   }, []);
+
+  const handlePhoneBlur = (field: 'ctaWhatsappNumber' | 'ctaPhoneNumber', value: string | null) => {
+    const normalized = normalizeSaudiPhone(value);
+    if (normalized !== value) {
+      updateField(field, normalized as CreateProfileInput[typeof field]);
+    }
+  };
 
   // Add highlight
   const addHighlight = () => {
@@ -240,6 +270,8 @@ export function ProfileEditor({ mode, initialData, profileId, onCancel }: Profil
   // Generate preview data
   const previewData: ProfileData = {
     id: profileId || 'preview',
+    slug: formData.slug || 'preview',
+    isPreview: true,
     displayName: formData.displayName || 'Your Name',
     title: formData.title || 'Your Title',
     location: formData.location || null,
@@ -252,6 +284,7 @@ export function ProfileEditor({ mode, initialData, profileId, onCancel }: Profil
     hidePhoneNumber: formData.hidePhoneNumber,
     enableDownloadCv: formData.enableDownloadCv,
     cvFileUrl: formData.cvFileUrl || null,
+    cvResumeId: formData.cvResumeId || null,
     ctaWhatsappNumber: formData.ctaWhatsappNumber || null,
     ctaWhatsappMessage: formData.ctaWhatsappMessage || null,
     ctaPhoneNumber: formData.ctaPhoneNumber || null,
@@ -574,8 +607,10 @@ export function ProfileEditor({ mode, initialData, profileId, onCancel }: Profil
                       <Input
                         value={formData.ctaWhatsappNumber || ''}
                         onChange={(e) => updateField('ctaWhatsappNumber', e.target.value || null)}
-                        placeholder="Phone number (with country code)"
+                        onBlur={(e) => handlePhoneBlur('ctaWhatsappNumber', e.target.value || null)}
+                        placeholder="+9665XXXXXXXX"
                       />
+                      <p className="text-xs text-muted-foreground">Must start with +966</p>
                       <Textarea
                         value={formData.ctaWhatsappMessage || ''}
                         onChange={(e) => updateField('ctaWhatsappMessage', e.target.value || null)}
@@ -661,10 +696,44 @@ export function ProfileEditor({ mode, initialData, profileId, onCancel }: Profil
                       <Input
                         value={formData.ctaPhoneNumber || ''}
                         onChange={(e) => updateField('ctaPhoneNumber', e.target.value || null)}
-                        placeholder="Phone number"
+                        onBlur={(e) => handlePhoneBlur('ctaPhoneNumber', e.target.value || null)}
+                        placeholder="+9665XXXXXXXX"
                       />
+                      <p className="text-xs text-muted-foreground">Must start with +966</p>
                     </div>
                   )}
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label>Download CV</Label>
+                    <Switch
+                      checked={formData.enabledCtas.includes('DOWNLOAD_CV')}
+                      onCheckedChange={(checked) => {
+                        if (checked) {
+                          updateField('enabledCtas', [...formData.enabledCtas, 'DOWNLOAD_CV']);
+                        } else {
+                          updateField('enabledCtas', formData.enabledCtas.filter(c => c !== 'DOWNLOAD_CV'));
+                        }
+                      }}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label>View CV</Label>
+                    <Switch
+                      checked={formData.enabledCtas.includes('VIEW_CV')}
+                      onCheckedChange={(checked) => {
+                        if (checked) {
+                          updateField('enabledCtas', [...formData.enabledCtas, 'VIEW_CV']);
+                        } else {
+                          updateField('enabledCtas', formData.enabledCtas.filter(c => c !== 'VIEW_CV'));
+                        }
+                      }}
+                    />
+                  </div>
                 </div>
               </div>
             </TabsContent>
@@ -778,17 +847,69 @@ export function ProfileEditor({ mode, initialData, profileId, onCancel }: Profil
                 />
               </div>
 
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label>Hide Phone Number</Label>
-                  <p className="text-xs text-muted-foreground">Only show WhatsApp button</p>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label>Hide Phone Number</Label>
+                    <p className="text-xs text-muted-foreground">Only show WhatsApp button</p>
+                  </div>
+                  <Switch
+                    checked={formData.hidePhoneNumber}
+                    onCheckedChange={(v) => updateField('hidePhoneNumber', v)}
+                  />
                 </div>
-                <Switch
-                  checked={formData.hidePhoneNumber}
-                  onCheckedChange={(v) => updateField('hidePhoneNumber', v)}
-                />
-              </div>
-            </TabsContent>
+
+                <div className="space-y-2">
+                  <Label>CV Settings</Label>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label>Enable CV buttons</Label>
+                      <p className="text-xs text-muted-foreground">Show View/Download CV on your profile</p>
+                    </div>
+                    <Switch
+                      checked={formData.enableDownloadCv}
+                      onCheckedChange={(v) => updateField('enableDownloadCv', v)}
+                    />
+                  </div>
+
+                  {formData.enableDownloadCv && (
+                    <div className="space-y-3 pt-2">
+                      <div className="space-y-2">
+                        <Label>Select CV (Resume)</Label>
+                        <Select
+                          value={formData.cvResumeId || ''}
+                          onValueChange={(v) => updateField('cvResumeId', v || null)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Choose a resume" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {resumes.length === 0 && (
+                              <SelectItem value="no-resumes" disabled>
+                                No resumes available
+                              </SelectItem>
+                            )}
+                            {resumes.map((resume) => (
+                              <SelectItem key={resume.id} value={resume.id}>
+                                {resume.title}
+                                {resume.targetRole ? ` - ${resume.targetRole}` : ''}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label>Or PDF URL (optional)</Label>
+                        <Input
+                          value={formData.cvFileUrl || ''}
+                          onChange={(e) => updateField('cvFileUrl', e.target.value || null)}
+                          placeholder="https://..."
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </TabsContent>
           </Tabs>
         </div>
       </div>

@@ -3,7 +3,7 @@ import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { success, errors, handleZodError, handleError } from '@/lib/api-response';
 import { generateFromResumeSchema } from '@/lib/seera-link/schemas';
-import { generateSlugSuggestions } from '@/lib/seera-link/utils';
+import { generateSlugSuggestions, normalizeSaudiPhone } from '@/lib/seera-link/utils';
 
 // Interface for resume section content
 interface ContactContent {
@@ -88,7 +88,7 @@ export async function POST(request: Request) {
     const contact = contactSection?.content as ContactContent | undefined;
     const displayName = contact?.fullName || resume.title || 'Your Name';
     const email = contact?.email;
-    const phone = contact?.phone;
+    const phone = normalizeSaudiPhone(contact?.phone);
     const location = contact?.location;
     const linkedinUrl = contact?.linkedin;
 

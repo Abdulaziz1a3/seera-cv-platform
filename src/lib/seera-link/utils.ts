@@ -249,6 +249,33 @@ export function formatPhoneDisplay(phone: string): string {
 }
 
 /**
+ * Normalize Saudi phone numbers to +966 format
+ */
+export function normalizeSaudiPhone(input?: string | null): string | null {
+  if (!input) return null;
+  const trimmed = input.trim();
+  if (!trimmed) return null;
+
+  if (trimmed.startsWith('+966')) {
+    return trimmed;
+  }
+  if (trimmed.startsWith('00966')) {
+    return `+${trimmed.slice(2)}`;
+  }
+  if (trimmed.startsWith('966')) {
+    return `+${trimmed}`;
+  }
+  if (trimmed.startsWith('05') && trimmed.length >= 10) {
+    return `+966${trimmed.slice(1)}`;
+  }
+  if (trimmed.startsWith('5') && trimmed.length >= 9 && trimmed.length <= 12) {
+    return `+966${trimmed}`;
+  }
+
+  return trimmed;
+}
+
+/**
  * Check if user can create more profiles based on their plan
  */
 export async function canCreateProfile(userId: string): Promise<{

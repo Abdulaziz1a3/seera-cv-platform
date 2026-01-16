@@ -49,6 +49,9 @@ export const themeColorSchema = z.enum([
 // Language
 export const languageSchema = z.enum(['en', 'ar']);
 
+// Saudi phone number format: must start with +966
+const saudiPhoneRegex = /^\+966\d{8,12}$/;
+
 // Status badge options
 export const statusBadgeOptions = [
   'Open to work',
@@ -141,14 +144,28 @@ export const createProfileSchema = z.object({
   cvResumeId: z.string().optional().nullable(),
 
   // CTAs
-  ctaWhatsappNumber: z.string().max(20).optional().nullable(),
+  ctaWhatsappNumber: z
+    .string()
+    .max(20)
+    .optional()
+    .nullable()
+    .refine((value) => !value || saudiPhoneRegex.test(value), {
+      message: 'WhatsApp number must start with +966',
+    }),
   ctaWhatsappMessage: z
     .string()
     .max(200)
     .optional()
     .nullable()
     .default('Hi! I saw your Seera profile and would like to connect.'),
-  ctaPhoneNumber: z.string().max(20).optional().nullable(),
+  ctaPhoneNumber: z
+    .string()
+    .max(20)
+    .optional()
+    .nullable()
+    .refine((value) => !value || saudiPhoneRegex.test(value), {
+      message: 'Phone number must start with +966',
+    }),
   ctaEmail: z.string().email('Invalid email').optional().nullable().or(z.literal('')),
   ctaEmailSubject: z.string().max(100).optional().nullable().default("Let's Connect"),
   ctaEmailBody: z.string().max(500).optional().nullable(),

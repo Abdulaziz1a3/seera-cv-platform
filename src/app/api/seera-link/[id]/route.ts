@@ -4,7 +4,7 @@ import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { success, errors, handleZodError, handleError } from '@/lib/api-response';
 import { updateProfileSchema } from '@/lib/seera-link/schemas';
-import { validateSlug, hashAccessCode } from '@/lib/seera-link/utils';
+import { validateSlug, hashAccessCode, normalizeSaudiPhone } from '@/lib/seera-link/utils';
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -73,7 +73,12 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     }
 
     const body = await request.json();
-    const data = updateProfileSchema.parse({ ...body, id });
+    const normalizedBody = {
+      ...body,
+      ctaWhatsappNumber: normalizeSaudiPhone(body.ctaWhatsappNumber),
+      ctaPhoneNumber: normalizeSaudiPhone(body.ctaPhoneNumber),
+    };
+    const data = updateProfileSchema.parse({ ...normalizedBody, id });
 
     // Validate slug if changed
     if (data.slug && data.slug !== existing.slug) {
