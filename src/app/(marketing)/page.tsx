@@ -21,11 +21,14 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { useLocale } from '@/components/providers/locale-provider';
-import { SecurityBadges, FeaturedIn, GuaranteeBadge } from '@/components/marketing/trust-badges';
+import { SecurityBadges } from '@/components/marketing/trust-badges';
 import { SocialProofNotification } from '@/components/marketing/social-proof-notification';
+import { LivePreview } from '@/components/resume-editor/live-preview';
+import { getTemplatePreviewData } from '@/components/resume-editor/template-preview-data';
+import type { TemplateId, ThemeId } from '@/lib/resume-types';
 
 export default function Home() {
     const { t, locale, dir } = useLocale();
@@ -63,8 +66,8 @@ export default function Home() {
             icon: TrendingUp,
             title: locale === 'ar' ? 'مجموعة المواهب' : 'Talent Pool',
             description: locale === 'ar'
-                ? 'اجعل سيرتك مرئية لأكثر من 500 شركة في الخليج واستقبل عروض العمل مباشرة'
-                : 'Make your resume visible to 500+ GCC companies and receive job offers directly',
+                ? 'اجعل سيرتك مرئية لمئات الشركات في الخليج واستقبل عروض العمل مباشرة'
+                : 'Make your resume visible to hundreds of GCC companies and receive job offers directly',
             color: 'from-green-500 to-emerald-500',
             badge: 'INCLUDED',
         },
@@ -104,10 +107,19 @@ export default function Home() {
     ];
 
     const stats = [
-        { value: '50,000+', label: locale === 'ar' ? 'سيرة ذاتية' : 'Resumes Created' },
-        { value: '500+', label: locale === 'ar' ? 'شركة' : 'Companies Hiring' },
-        { value: '92%', label: locale === 'ar' ? 'معدل النجاح' : 'Success Rate' },
-        { value: '4.9/5', label: locale === 'ar' ? 'تقييم المستخدمين' : 'User Rating' },
+        { value: locale === 'ar' ? '?????' : 'Thousands', label: locale === 'ar' ? '???? ?????' : 'Resumes Created' },
+        { value: locale === 'ar' ? '?????' : 'Hundreds', label: locale === 'ar' ? '????' : 'Companies Hiring' },
+        { value: locale === 'ar' ? '???? ???' : 'Strong', label: locale === 'ar' ? '???? ??????' : 'Success Rate' },
+        { value: locale === 'ar' ? '????? ????' : 'Top-rated', label: locale === 'ar' ? '????? ??????????' : 'User Rating' },
+    ];
+
+    const templatePreviewBase = getTemplatePreviewData(locale === 'ar' ? 'ar' : 'en');
+    const templateShowcase: { id: TemplateId; name: string; theme: ThemeId }[] = [
+        { id: 'prestige-executive', name: locale === 'ar' ? '???????? ???????' : 'Prestige Executive', theme: 'obsidian' },
+        { id: 'metropolitan-split', name: locale === 'ar' ? '????? ???????' : 'Metropolitan Split', theme: 'sapphire' },
+        { id: 'nordic-minimal', name: locale === 'ar' ? '????? ???????' : 'Nordic Minimal', theme: 'ivory' },
+        { id: 'classic-professional', name: locale === 'ar' ? '?????? ???????' : 'Classic Professional', theme: 'emerald' },
+        { id: 'impact-modern', name: locale === 'ar' ? '???? ?????' : 'Impact Modern', theme: 'graphite' },
     ];
 
     const faq = [
@@ -200,9 +212,6 @@ export default function Home() {
                         ))}
                     </div>
 
-                    {/* Featured In / Trusted By */}
-                    <FeaturedIn className="mt-16" />
-
                     {/* Right Side Illustration - Career Journey */}
                     <div className="hidden lg:block absolute top-[50%] -translate-y-1/2 mt-[132px] -right-[320px] xl:-right-[180px] w-[900px] h-[900px] pointer-events-none -z-10 select-none">
                         <Image
@@ -226,7 +235,7 @@ export default function Home() {
                             {locale === 'ar' ? 'ميزات متقدمة' : 'Premium Features'}
                         </Badge>
                         <h2 className="text-4xl font-bold mb-4">
-                            {locale === 'ar' ? 'أدوات لا تجدها في أي مكان آخر' : 'Tools You Won\'t Find Anywhere Else'}
+                            {locale === 'ar' ? 'أدوات مهنية مميزة' : 'Premium Career Tools'}
                         </h2>
                         <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
                             {locale === 'ar'
@@ -286,8 +295,8 @@ export default function Home() {
                                 </h2>
                                 <p className="text-xl text-white/90 mb-8">
                                     {locale === 'ar'
-                                        ? 'ابحث في أكثر من 50,000 سيرة ذاتية لمحترفين في الخليج. ادفع فقط مقابل المرشحين الذين تريد التواصل معهم.'
-                                        : 'Search 50,000+ CVs of GCC professionals. Pay only for candidates you want to contact.'}
+                                        ? 'ابحث في آلاف السير الذاتية لمحترفين في الخليج. ادفع فقط مقابل المرشحين الذين تريد التواصل معهم.'
+                                        : 'Search thousands of GCC CVs. Pay only for candidates you want to contact.'}
                                 </p>
 
                                 <ul className="space-y-3 mb-8">
@@ -321,10 +330,10 @@ export default function Home() {
 
                             <div className="grid grid-cols-2 gap-4">
                                 {[
-                                    { icon: Users, value: '50,000+', label: locale === 'ar' ? 'سيرة ذاتية' : 'CVs' },
-                                    { icon: Building2, value: '500+', label: locale === 'ar' ? 'شركة' : 'Companies' },
-                                    { icon: Zap, value: '73%', label: locale === 'ar' ? 'معدل الاستجابة' : 'Response Rate' },
-                                    { icon: Award, value: '2', label: locale === 'ar' ? 'أيام للتوظيف' : 'Days to Hire' },
+                                    { icon: Users, value: locale === 'ar' ? '?????' : 'Thousands', label: locale === 'ar' ? 'سيرة ذاتية' : 'CVs' },
+                                    { icon: Building2, value: locale === 'ar' ? '?????' : 'Hundreds', label: locale === 'ar' ? 'شركة' : 'Companies' },
+                                    { icon: Zap, value: locale === 'ar' ? '???? ????' : 'High', label: locale === 'ar' ? 'معدل الاستجابة' : 'Response Rate' },
+                                    { icon: Award, value: locale === 'ar' ? '???? ??????' : 'Fast', label: locale === 'ar' ? 'أيام للتوظيف' : 'Days to Hire' },
                                 ].map((stat) => (
                                     <div key={stat.label} className="bg-white/10 backdrop-blur rounded-2xl p-6 text-center">
                                         <stat.icon className="h-8 w-8 mx-auto mb-2 text-white/80" />
@@ -366,6 +375,64 @@ export default function Home() {
                 </div>
             </section>
 
+            {/* Template Preview */}
+            <section className="py-20 bg-muted/20">
+                <div className="container mx-auto px-4">
+                    <div className="text-center mb-12">
+                        <Badge variant="outline" className="mb-4">
+                            {locale === 'ar' ? 'قوالب السيرة' : 'Resume Templates'}
+                        </Badge>
+                        <h2 className="text-3xl font-bold mb-4">
+                            {locale === 'ar' ? 'معاينة فعلية للقوالب' : 'Real Template Previews'}
+                        </h2>
+                        <p className="text-muted-foreground max-w-2xl mx-auto">
+                            {locale === 'ar'
+                                ? 'شاهد القوالب الحقيقية قبل اختيار القالب المناسب.'
+                                : 'See the actual templates you can use before you choose.'}
+                        </p>
+                    </div>
+
+                    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                        {templateShowcase.map((template) => {
+                            const previewResume = {
+                                ...templatePreviewBase,
+                                template: template.id,
+                                theme: template.theme,
+                            };
+
+                            return (
+                                <Card key={template.id} className="overflow-hidden">
+                                    <div className="bg-white/70 p-4">
+                                        <div className="h-[360px] overflow-hidden rounded-lg border bg-white">
+                                            <div className="flex justify-center pt-4">
+                                                <LivePreview resume={previewResume as any} scale={0.42} />
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <CardContent className="p-4">
+                                        <h3 className="font-semibold">{template.name}</h3>
+                                        <p className="text-sm text-muted-foreground">
+                                            {locale === 'ar'
+                                                ? 'منسق بشكل واضح ومتوافق مع أنظمة التتبع.'
+                                                : 'Clean layout with ATS-ready formatting.'}
+                                        </p>
+                                    </CardContent>
+                                </Card>
+                            );
+                        })}
+                    </div>
+
+                    <div className="text-center mt-10">
+                        <Link href="/templates">
+                            <Button size="lg" variant="outline" className="gap-2">
+                                {locale === 'ar' ? 'عرض جميع القوالب' : 'View All Templates'}
+                                <ArrowRight className="h-4 w-4" />
+                            </Button>
+                        </Link>
+                    </div>
+                </div>
+            </section>
+
             {/* FAQ */}
             <section className="py-20">
                 <div className="container mx-auto px-4">
@@ -401,8 +468,8 @@ export default function Home() {
                         </h2>
                         <p className="text-xl text-muted-foreground mb-8">
                             {locale === 'ar'
-                                ? 'انضم لأكثر من 50,000 محترف يستخدمون Seera AI لتحقيق أهدافهم'
-                                : 'Join 50,000+ professionals using Seera AI to achieve their goals'}
+                                ? 'انضم إلى مجتمع مهني متنامٍ يستخدم Seera AI لتحقيق أهدافهم'
+                                : 'Join a growing community using Seera AI to achieve their goals'}
                         </p>
 
                         <div className="flex flex-col sm:flex-row gap-4 justify-center">
