@@ -51,11 +51,11 @@ interface AnalyticsData {
     };
     planDistribution: Array<{ plan: string; count: number; percentage: number }>;
     conversionFunnel: {
-        visitors: number;
-        signups: number;
-        resumesCreated: number;
-        downloads: number;
-        subscriptions: number;
+        registeredUsers: number;
+        usersWithResumes: number;
+        exports: number;
+        activeSubscriptions: number;
+        enterpriseSubscriptions: number;
     };
 }
 
@@ -95,7 +95,7 @@ export default function AdminAnalyticsPage() {
     const formatCurrency = (num: number) => {
         return new Intl.NumberFormat(locale === 'ar' ? 'ar-SA' : 'en-US', {
             style: 'currency',
-            currency: 'USD',
+            currency: 'SAR',
             maximumFractionDigits: 0,
         }).format(num);
     };
@@ -211,36 +211,36 @@ export default function AdminAnalyticsPage() {
 
     const conversionFunnel = data ? [
         {
-            stage: locale === 'ar' ? 'زوار' : 'Visitors',
-            count: data.conversionFunnel.visitors,
+            stage: locale === 'ar' ? '??????? ???????' : 'Registered Users',
+            count: data.conversionFunnel.registeredUsers,
             rate: 100
         },
         {
-            stage: locale === 'ar' ? 'تسجيلات' : 'Signups',
-            count: data.conversionFunnel.signups,
-            rate: data.conversionFunnel.visitors > 0
-                ? (data.conversionFunnel.signups / data.conversionFunnel.visitors) * 100
+            stage: locale === 'ar' ? '????? ???????' : 'Users with Resumes',
+            count: data.conversionFunnel.usersWithResumes,
+            rate: data.conversionFunnel.registeredUsers > 0
+                ? (data.conversionFunnel.usersWithResumes / data.conversionFunnel.registeredUsers) * 100
                 : 0
         },
         {
-            stage: locale === 'ar' ? 'سير منشأة' : 'Resumes Created',
-            count: data.conversionFunnel.resumesCreated,
-            rate: data.conversionFunnel.signups > 0
-                ? (data.conversionFunnel.resumesCreated / data.conversionFunnel.signups) * 100
+            stage: locale === 'ar' ? '?????? ???????' : 'Resume Exports',
+            count: data.conversionFunnel.exports,
+            rate: data.conversionFunnel.usersWithResumes > 0
+                ? (data.conversionFunnel.exports / data.conversionFunnel.usersWithResumes) * 100
                 : 0
         },
         {
-            stage: locale === 'ar' ? 'تحميلات' : 'Downloads',
-            count: data.conversionFunnel.downloads,
-            rate: data.conversionFunnel.resumesCreated > 0
-                ? (data.conversionFunnel.downloads / data.conversionFunnel.resumesCreated) * 100
+            stage: locale === 'ar' ? '?????????? ??????' : 'Active Subscriptions',
+            count: data.conversionFunnel.activeSubscriptions,
+            rate: data.conversionFunnel.registeredUsers > 0
+                ? (data.conversionFunnel.activeSubscriptions / data.conversionFunnel.registeredUsers) * 100
                 : 0
         },
         {
-            stage: locale === 'ar' ? 'اشتراكات' : 'Subscriptions',
-            count: data.conversionFunnel.subscriptions,
-            rate: data.conversionFunnel.signups > 0
-                ? (data.conversionFunnel.subscriptions / data.conversionFunnel.signups) * 100
+            stage: locale === 'ar' ? '?????????? ????????' : 'Enterprise Subscribers',
+            count: data.conversionFunnel.enterpriseSubscriptions,
+            rate: data.conversionFunnel.activeSubscriptions > 0
+                ? (data.conversionFunnel.enterpriseSubscriptions / data.conversionFunnel.activeSubscriptions) * 100
                 : 0
         },
     ] : [];

@@ -81,6 +81,14 @@ export function AdminDashboardClient() {
         });
     };
 
+    const formatCurrency = (value: number) => {
+        return new Intl.NumberFormat(locale === 'ar' ? 'ar-SA' : 'en-US', {
+            style: 'currency',
+            currency: 'SAR',
+            maximumFractionDigits: 0,
+        }).format(value);
+    };
+
     const statCards = [
         {
             key: 'totalUsers',
@@ -109,7 +117,6 @@ export function AdminDashboardClient() {
             icon: DollarSign,
             color: 'text-amber-500',
             bg: 'bg-amber-500/10',
-            prefix: '$',
         },
     ];
 
@@ -194,7 +201,7 @@ export function AdminDashboardClient() {
                 {statCards.map((stat) => {
                     const statData = data.stats[stat.key as keyof typeof data.stats];
                     const value = stat.key === 'monthlyRevenue'
-                        ? `$${Number(statData.value).toLocaleString()}`
+                        ? formatCurrency(Number(statData.value))
                         : Number(statData.value).toLocaleString();
 
                     return (

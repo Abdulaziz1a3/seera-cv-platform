@@ -14,7 +14,6 @@ export async function GET(request: NextRequest) {
         const searchParams = request.nextUrl.searchParams;
         const period = searchParams.get('period') || '30d';
 
-        // Calculate date range
         const now = new Date();
         let startDate: Date;
 
@@ -35,156 +34,181 @@ export async function GET(request: NextRequest) {
                 startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
         }
 
-        // Get key metrics
+        const periodMs = now.getTime() - startDate.getTime();
+        const previousStartDate = new Date(startDate.getTime() - periodMs);
+        const previousEndDate = startDate;
+
         const [
             totalUsers,
-            newUsers,
+            newUsersThisPeriod,
+            newUsersPrevPeriod,
             totalResumes,
-            newResumes,
-            totalExports,
-            newExports,
-            activeSubscribers,
-            aiUsage
+            resumesThisPeriod,
+            resumesPrevPeriod,
+            totalPaidSubscriptions,
+            activeSubscriptions,
+            paidSubscriptionsThisPeriod,
+            paidSubscriptionsPrevPeriod,
+            usersWithResumes,
+            usersWithExports,
         ] = await Promise.all([
             prisma.user.count({ where: { deletedAt: null } }),
             prisma.user.count({
+                where: { deletedAt: null, createdAt: { gte: startDate } },
+            }),
+            prisma.user.count({
                 where: {
                     deletedAt: null,
-                    createdAt: { gte: startDate }
-                }
+                    createdAt: { gte: previousStartDate, lt: previousEndDate },
+                },
             }),
             prisma.resume.count({ where: { deletedAt: null } }),
             prisma.resume.count({
+                where: { deletedAt: null, createdAt: { gte: startDate } },
+            }),
+            prisma.resume.count({
                 where: {
                     deletedAt: null,
-                    createdAt: { gte: startDate }
-                }
+                    createdAt: { gte: previousStartDate, lt: previousEndDate },
+                },
             }),
-            prisma.export.count(),
-            prisma.export.count({
-                where: { createdAt: { gte: startDate } }
+            prisma.subscription.count({
+                where: { plan: { in: ['PRO', 'ENTERPRISE'] } },
+            }),
+            prisma.subscription.count({
+                where: { status: 'ACTIVE', plan: { in: ['PRO', 'ENTERPRISE'] } },
             }),
             prisma.subscription.count({
                 where: {
                     status: 'ACTIVE',
-                    plan: { in: ['PRO', 'ENTERPRISE'] }
-                }
+                    plan: { in: ['PRO', 'ENTERPRISE'] },
+                    createdAt: { gte: startDate },
+                },
             }),
-            prisma.usageRecord.count({
+            prisma.subscription.count({
                 where: {
-                    type: 'AI_GENERATION',
-                    createdAt: { gte: startDate }
-                }
-            })
+                    status: 'ACTIVE',
+                    plan: { in: ['PRO', 'ENTERPRISE'] },
+                    createdAt: { gte: previousStartDate, lt: previousEndDate },
+                },
+            }),
+            prisma.user.count({
+                where: { deletedAt: null, resumes: { some: {} } },
+            }),
+            prisma.user.count({
+                where: { deletedAt: null, exports: { some: {} } },
+            }),
         ]);
 
-        // Get daily user signups for chart
-        const dailySignups = await prisma.user.groupBy({
-            by: ['createdAt'],
-            where: {
-                createdAt: { gte: startDate },
-                deletedAt: null
-            },
-            _count: true,
-            orderBy: { createdAt: 'asc' }
-        });
+        const [planDistribution, activeProCount, activeEnterpriseCount] = await Promise.all([
+            prisma.subscription.groupBy({
+                by: ['plan'],
+                where: { status: 'ACTIVE' },
+                _count: true,
+            }),
+            prisma.subscription.count({
+                where: { status: 'ACTIVE', plan: 'PRO' },
+            }),
+            prisma.subscription.count({
+                where: { status: 'ACTIVE', plan: 'ENTERPRISE' },
+            }),
+        ]);
 
-        // Get plan distribution
-        const planDistribution = await prisma.subscription.groupBy({
-            by: ['plan'],
-            where: { status: 'ACTIVE' },
-            _count: true
-        });
+        const [newProThisPeriod, newEnterpriseThisPeriod, newProPrevPeriod, newEnterprisePrevPeriod] = await Promise.all([
+            prisma.subscription.count({
+                where: {
+                    status: 'ACTIVE',
+                    plan: 'PRO',
+                    createdAt: { gte: startDate },
+                },
+            }),
+            prisma.subscription.count({
+                where: {
+                    status: 'ACTIVE',
+                    plan: 'ENTERPRISE',
+                    createdAt: { gte: startDate },
+                },
+            }),
+            prisma.subscription.count({
+                where: {
+                    status: 'ACTIVE',
+                    plan: 'PRO',
+                    createdAt: { gte: previousStartDate, lt: previousEndDate },
+                },
+            }),
+            prisma.subscription.count({
+                where: {
+                    status: 'ACTIVE',
+                    plan: 'ENTERPRISE',
+                    createdAt: { gte: previousStartDate, lt: previousEndDate },
+                },
+            }),
+        ]);
 
-        // Get resume creation by day
-        const resumesByDay = await prisma.resume.groupBy({
-            by: ['createdAt'],
-            where: {
-                createdAt: { gte: startDate },
-                deletedAt: null
-            },
-            _count: true,
-            orderBy: { createdAt: 'asc' }
-        });
+        const [dailySignups, dailyResumes] = await Promise.all([
+            prisma.$queryRaw<{ date: Date; count: bigint }[]>`
+                SELECT date_trunc('day', "createdAt")::date AS date, COUNT(*)::bigint AS count
+                FROM "User"
+                WHERE "createdAt" >= ${startDate} AND "deletedAt" IS NULL
+                GROUP BY 1
+                ORDER BY 1
+            `,
+            prisma.$queryRaw<{ date: Date; count: bigint }[]>`
+                SELECT date_trunc('day', "createdAt")::date AS date, COUNT(*)::bigint AS count
+                FROM "Resume"
+                WHERE "createdAt" >= ${startDate} AND "deletedAt" IS NULL
+                GROUP BY 1
+                ORDER BY 1
+            `,
+        ]);
 
-        // Get export format distribution
-        const exportFormats = await prisma.export.groupBy({
-            by: ['format'],
-            where: { createdAt: { gte: startDate } },
-            _count: true
-        });
+        const totalActivePlans = planDistribution.reduce((sum, item) => sum + Number(item._count), 0);
 
-        // Calculate conversion funnel
-        const freeUsers = await prisma.subscription.count({
-            where: { plan: 'FREE' }
-        });
+        const toGrowth = (current: number, previous: number) =>
+            previous > 0 ? ((current - previous) / previous) * 100 : current > 0 ? 100 : 0;
 
-        const paidUsers = await prisma.subscription.count({
-            where: {
-                status: 'ACTIVE',
-                plan: { in: ['PRO', 'ENTERPRISE'] }
-            }
-        });
-
-        const usersWithResumes = await prisma.user.count({
-            where: {
-                deletedAt: null,
-                resumes: { some: {} }
-            }
-        });
-
-        const usersWithExports = await prisma.user.count({
-            where: {
-                deletedAt: null,
-                exports: { some: {} }
-            }
-        });
-
-        // Calculate revenue
-        const proCount = planDistribution.find(p => p.plan === 'PRO')?._count || 0;
-        const enterpriseCount = planDistribution.find(p => p.plan === 'ENTERPRISE')?._count || 0;
-        const monthlyRevenue = (proCount * 39) + (enterpriseCount * 249);
+        const totalRevenue = (activeProCount * 39) + (activeEnterpriseCount * 249);
+        const revenueThisPeriod = (newProThisPeriod * 39) + (newEnterpriseThisPeriod * 249);
+        const revenuePrevPeriod = (newProPrevPeriod * 39) + (newEnterprisePrevPeriod * 249);
 
         return NextResponse.json({
             overview: {
                 totalUsers,
-                newUsers,
+                newUsersThisPeriod,
+                userGrowth: toGrowth(newUsersThisPeriod, newUsersPrevPeriod),
                 totalResumes,
-                newResumes,
-                totalExports,
-                newExports,
-                activeSubscribers,
-                aiUsage,
-                monthlyRevenue: monthlyRevenue.toFixed(2)
+                resumesThisPeriod,
+                resumeGrowth: toGrowth(resumesThisPeriod, resumesPrevPeriod),
+                totalSubscriptions: totalPaidSubscriptions,
+                activeSubscriptions,
+                subscriptionGrowth: toGrowth(paidSubscriptionsThisPeriod, paidSubscriptionsPrevPeriod),
+                totalRevenue,
+                revenueThisPeriod,
+                revenueGrowth: toGrowth(revenueThisPeriod, revenuePrevPeriod),
             },
             charts: {
-                dailySignups: dailySignups.map(d => ({
-                    date: d.createdAt,
-                    count: d._count
+                dailySignups: dailySignups.map((row) => ({
+                    date: row.date.toISOString(),
+                    count: Number(row.count),
                 })),
-                resumesByDay: resumesByDay.map(r => ({
-                    date: r.createdAt,
-                    count: r._count
-                }))
-            },
-            distributions: {
-                plans: planDistribution.map(p => ({
-                    plan: p.plan,
-                    count: p._count
+                dailyResumes: dailyResumes.map((row) => ({
+                    date: row.date.toISOString(),
+                    count: Number(row.count),
                 })),
-                exportFormats: exportFormats.map(e => ({
-                    format: e.format,
-                    count: e._count
-                }))
             },
-            funnel: {
-                visitors: totalUsers * 10, // Estimated
-                signups: totalUsers,
-                resumesCreated: usersWithResumes,
+            planDistribution: planDistribution.map((plan) => ({
+                plan: plan.plan,
+                count: Number(plan._count),
+                percentage: totalActivePlans > 0 ? (Number(plan._count) / totalActivePlans) * 100 : 0,
+            })),
+            conversionFunnel: {
+                registeredUsers: totalUsers,
+                usersWithResumes,
                 exports: usersWithExports,
-                subscriptions: paidUsers
+                activeSubscriptions,
+                enterpriseSubscriptions: activeEnterpriseCount,
             },
-            period
+            period,
         });
     } catch (error) {
         console.error('Admin analytics error:', error);
