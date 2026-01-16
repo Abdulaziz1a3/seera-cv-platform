@@ -43,6 +43,7 @@ export const en = {
         getStartedFree: 'Get Started Free',
         dashboard: 'Dashboard',
         myResumes: 'My Resumes',
+        seeraLink: 'Seera Link',
         jobTargets: 'Job Targets',
         applications: 'Applications',
         settings: 'Settings',

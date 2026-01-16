@@ -61,6 +61,7 @@ export default function DashboardLayout({
         { name: locale === 'ar' ? 'GPS المهني' : 'Career GPS', href: '/dashboard/career', icon: Compass, isPro: true },
         { name: locale === 'ar' ? 'تحضير المقابلة' : 'Interview Prep', href: '/dashboard/interview', icon: Brain, isPro: true },
         { name: locale === 'ar' ? 'مجموعة المواهب' : 'Talent Pool', href: '/dashboard/talent-pool', icon: Users, isPro: false },
+        { name: t.nav.seeraLink, href: '/dashboard/seera-link', icon: PenTool, isPro: false },
         { name: locale === 'ar' ? 'وضع التخفي' : 'Stealth Mode', href: '/dashboard/stealth', icon: Shield, isPro: true },
         { name: 'LinkedIn', href: '/dashboard/linkedin', icon: User, isPro: true },
     ];

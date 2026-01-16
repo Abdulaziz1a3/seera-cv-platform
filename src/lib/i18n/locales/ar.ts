@@ -43,6 +43,7 @@ export const ar = {
         getStartedFree: 'ابدأ مجاناً',
         dashboard: 'لوحة التحكم',
         myResumes: 'سيرتي الذاتية',
+        seeraLink: 'سيرة لينك',
         jobTargets: 'الوظائف المستهدفة',
         applications: 'طلبات التوظيف',
         settings: 'الإعدادات',
