@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, lazy, ComponentType, useEffect, useState, LazyExoticComponent } from 'react';
+import { Suspense, lazy, ComponentType, useEffect, useState } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 
 // Generic lazy load wrapper with intersection observer
@@ -70,7 +70,7 @@ export function createLazyComponent<P extends Record<string, unknown>>(
     importFn: () => Promise<{ default: ComponentType<P> }>,
     fallback?: React.ReactNode
 ) {
-    const LazyComponent = lazy(importFn) as LazyExoticComponent<ComponentType<P>>;
+    const LazyComponent = lazy(importFn) as unknown as ComponentType<P>;
 
     const Component = (props: P) => (
         <Suspense fallback={fallback || <Skeleton className="h-32 w-full" />}>
