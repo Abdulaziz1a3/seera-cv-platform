@@ -66,7 +66,7 @@ export function withLazyLoad<P extends object>(
 }
 
 // Lazy import helper with preload capability
-export function createLazyComponent<P extends object>(
+export function createLazyComponent<P extends Record<string, unknown>>(
     importFn: () => Promise<{ default: ComponentType<P> }>,
     fallback?: React.ReactNode
 ) {
@@ -74,7 +74,7 @@ export function createLazyComponent<P extends object>(
 
     const Component = (props: P) => (
         <Suspense fallback={fallback || <Skeleton className="h-32 w-full" />}>
-            <LazyComponent {...props} />
+            <LazyComponent {...props as P & JSX.IntrinsicAttributes} />
         </Suspense>
     );
 
