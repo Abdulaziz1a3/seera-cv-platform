@@ -147,7 +147,12 @@ export function ProfileEditor({ mode, initialData, profileId, onCancel }: Profil
   const addExperience = () => {
     updateField('experiences', [
       ...formData.experiences,
-      { company: '', role: '', sortOrder: formData.experiences.length },
+      {
+        company: '',
+        role: '',
+        sortOrder: formData.experiences.length,
+        isFeatured: false,
+      },
     ]);
   };
 
