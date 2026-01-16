@@ -48,7 +48,10 @@ export async function POST(request: Request) {
             resumeData[key] = section.content;
         });
 
-        const analysis = await analyzeJobMatch(resumeData, jobDescription);
+        const analysis = await analyzeJobMatch(resumeData, jobDescription, {
+            userId: session.user.id,
+            operation: 'analyze_match',
+        });
 
         return NextResponse.json(analysis);
     } catch (error) {

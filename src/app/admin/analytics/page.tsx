@@ -57,6 +57,14 @@ interface AnalyticsData {
         activeSubscriptions: number;
         enterpriseSubscriptions: number;
     };
+    aiUsage: {
+        totalRequests: number;
+        totalTokens: number;
+        avgTokensPerRequest: number;
+        operations: Array<{ operation: string; requests: number; tokens: number }>;
+        topUsers: Array<{ id: string; name: string | null; email: string; requests: number; tokens: number }>;
+        daily: Array<{ date: string; requests: number; tokens: number }>;
+    };
 }
 
 export default function AdminAnalyticsPage() {
@@ -245,6 +253,10 @@ export default function AdminAnalyticsPage() {
         },
     ] : [];
 
+    const topOperation = data?.aiUsage.operations[0];
+    const aiOperations = data?.aiUsage.operations ?? [];
+    const aiTopUsers = data?.aiUsage.topUsers ?? [];
+
     return (
         <div className="space-y-6">
             {/* Header */}
@@ -422,6 +434,107 @@ export default function AdminAnalyticsPage() {
                                 </div>
                             ))}
                         </div>
+                    </CardContent>
+                </Card>
+            </div>
+
+            {/* AI Usage */}
+            <div className="grid gap-6 lg:grid-cols-2">
+                <Card>
+                    <CardHeader>
+                        <CardTitle>{locale === 'ar' ? 'استخدام الذكاء الاصطناعي' : 'AI Usage'}</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="grid gap-4 sm:grid-cols-3">
+                            <div className="rounded-lg bg-muted/50 p-4">
+                                <p className="text-sm text-muted-foreground">
+                                    {locale === 'ar' ? 'إجمالي الطلبات' : 'Total Requests'}
+                                </p>
+                                <p className="text-xl font-semibold mt-1">
+                                    {formatNumber(data?.aiUsage.totalRequests || 0)}
+                                </p>
+                            </div>
+                            <div className="rounded-lg bg-muted/50 p-4">
+                                <p className="text-sm text-muted-foreground">
+                                    {locale === 'ar' ? 'إجمالي الرموز' : 'Total Tokens'}
+                                </p>
+                                <p className="text-xl font-semibold mt-1">
+                                    {formatNumber(data?.aiUsage.totalTokens || 0)}
+                                </p>
+                            </div>
+                            <div className="rounded-lg bg-muted/50 p-4">
+                                <p className="text-sm text-muted-foreground">
+                                    {locale === 'ar' ? 'متوسط الرموز لكل طلب' : 'Avg Tokens / Request'}
+                                </p>
+                                <p className="text-xl font-semibold mt-1">
+                                    {formatNumber(Math.round(data?.aiUsage.avgTokensPerRequest || 0))}
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="space-y-3">
+                            <div className="flex items-center justify-between text-sm text-muted-foreground">
+                                <span>{locale === 'ar' ? 'أعلى العمليات' : 'Top Operations'}</span>
+                                <span>{topOperation ? topOperation.operation : '-'}</span>
+                            </div>
+                            {aiOperations.length ? (
+                                aiOperations.map((op) => (
+                                    <div key={op.operation}>
+                                        <div className="flex items-center justify-between mb-1">
+                                            <span className="text-sm font-medium">{op.operation}</span>
+                                            <span className="text-xs text-muted-foreground">
+                                                {formatNumber(op.tokens)} tokens
+                                            </span>
+                                        </div>
+                                        <div className="h-2 bg-muted rounded-full overflow-hidden">
+                                            <div
+                                                className="h-full bg-primary rounded-full transition-all"
+                                                style={{
+                                                    width: `${Math.min(
+                                                    (op.tokens / Math.max(aiOperations[0]?.tokens || 1, 1)) * 100,
+                                                        100
+                                                    )}%`,
+                                                }}
+                                            />
+                                        </div>
+                                    </div>
+                                ))
+                            ) : (
+                                <p className="text-sm text-muted-foreground">
+                                    {locale === 'ar' ? 'لا توجد بيانات بعد' : 'No AI usage data yet'}
+                                </p>
+                            )}
+                        </div>
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardHeader>
+                        <CardTitle>{locale === 'ar' ? 'أعلى المستخدمين حسب الرموز' : 'Top Users by Tokens'}</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        {aiTopUsers.length ? (
+                            <div className="space-y-4">
+                                {aiTopUsers.map((user) => (
+                                    <div key={user.id} className="flex items-center justify-between">
+                                        <div>
+                                            <p className="text-sm font-medium">{user.name || user.email}</p>
+                                            <p className="text-xs text-muted-foreground">{user.email}</p>
+                                        </div>
+                                        <div className="text-end">
+                                            <p className="text-sm font-semibold">{formatNumber(user.tokens)} tokens</p>
+                                            <p className="text-xs text-muted-foreground">
+                                                {formatNumber(user.requests)} requests
+                                            </p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <p className="text-sm text-muted-foreground">
+                                {locale === 'ar' ? 'لا توجد بيانات بعد' : 'No AI usage data yet'}
+                            </p>
+                        )}
                     </CardContent>
                 </Card>
             </div>

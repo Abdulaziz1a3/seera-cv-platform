@@ -55,7 +55,6 @@ import {
 import { toast } from 'sonner';
 import { formatDistanceToNow, format } from 'date-fns';
 import { ar, enUS } from 'date-fns/locale';
-import { AdminServerGuard } from '../_components/admin-server-guard';
 
 interface User {
     id: string;
@@ -522,8 +521,6 @@ function AdminUsersContent() {
 
 export default function AdminUsersPage() {
     return (
-        <AdminServerGuard>
-            <AdminUsersContent />
-        </AdminServerGuard>
+        <AdminUsersContent />
     );
 }

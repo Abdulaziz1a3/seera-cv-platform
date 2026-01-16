@@ -2,6 +2,7 @@
 // Provides AI-powered content generation for resumes
 
 import OpenAI from 'openai';
+import { recordUsage } from './stripe';
 
 // Singleton OpenAI client
 let openaiClient: OpenAI | null = null;
@@ -33,11 +34,46 @@ export interface AIContentOptions {
     yearsExperience?: number;
     locale?: 'ar' | 'en';
     tone?: 'professional' | 'confident' | 'creative';
+    tracking?: {
+        userId?: string;
+        operation?: string;
+    };
+}
+
+type OpenAIUsage = {
+    prompt_tokens?: number;
+    completion_tokens?: number;
+    total_tokens?: number;
+};
+
+async function recordOpenAIUsage(
+    tracking: AIContentOptions['tracking'] | undefined,
+    response: { usage?: OpenAIUsage; model?: string },
+    fallbackOperation: string
+): Promise<void> {
+    if (!tracking?.userId || !response.usage?.total_tokens) {
+        return;
+    }
+
+    await recordUsage(tracking.userId, 'AI_GENERATION', {
+        provider: 'openai',
+        model: response.model || 'gpt-4o-mini',
+        operation: tracking.operation || fallbackOperation,
+        promptTokens: response.usage.prompt_tokens ?? 0,
+        completionTokens: response.usage.completion_tokens ?? 0,
+        totalTokens: response.usage.total_tokens ?? 0,
+    });
 }
 
 // Generate professional summary
 export async function generateSummary(options: AIContentOptions): Promise<string> {
-    const { targetRole = 'professional', yearsExperience = 3, locale = 'ar', tone = 'professional' } = options;
+    const {
+        targetRole = 'professional',
+        yearsExperience = 3,
+        locale = 'ar',
+        tone = 'professional',
+        tracking,
+    } = options;
 
     const systemPrompt = locale === 'ar'
         ? `أنت خبير في كتابة السير الذاتية للسوق السعودي والخليجي. اكتب ملخصات مهنية قوية ومختصرة وحقيقية. استخدم أفعال قوية وأرقام محددة عند الإمكان. يجب أن يكون الملخص 3-4 جمل فقط. اللهجة: ${tone === 'confident' ? 'واثقة' : tone === 'creative' ? 'إبداعية' : 'مهنية'}.`
@@ -58,6 +94,7 @@ export async function generateSummary(options: AIContentOptions): Promise<string
         temperature: 0.7,
     });
 
+    await recordOpenAIUsage(tracking, response, 'summary');
     return response.choices[0]?.message?.content || '';
 }
 
@@ -67,7 +104,7 @@ export async function generateBullets(
     company: string,
     options: AIContentOptions = {}
 ): Promise<string[]> {
-    const { industry = '', locale = 'ar' } = options;
+    const { industry = '', locale = 'ar', tracking } = options;
 
     const systemPrompt = locale === 'ar'
         ? `أنت خبير في كتابة نقاط الإنجازات للسير الذاتية. اكتب 4-5 نقاط قوية تبدأ بأفعال وتتضمن أرقاماً وإنجازات محددة. كل نقطة يجب أن تكون جملة واحدة مختصرة.`
@@ -88,6 +125,7 @@ export async function generateBullets(
         temperature: 0.7,
     });
 
+    await recordOpenAIUsage(tracking, response, 'bullets');
     const content = response.choices[0]?.message?.content || '';
     return content.split('\n').filter(line => line.trim()).map(line => line.replace(/^[-•*]\s*/, '').trim());
 }
@@ -98,7 +136,7 @@ export async function suggestSkills(
     existingSkills: string[] = [],
     options: AIContentOptions = {}
 ): Promise<string[]> {
-    const { locale = 'ar' } = options;
+    const { locale = 'ar', tracking } = options;
 
     const systemPrompt = locale === 'ar'
         ? `أنت خبير في سوق العمل السعودي والخليجي. اقترح المهارات الأكثر طلباً والمتوافقة مع أنظمة ATS.`
@@ -119,6 +157,7 @@ export async function suggestSkills(
         temperature: 0.5,
     });
 
+    await recordOpenAIUsage(tracking, response, 'skills');
     const content = response.choices[0]?.message?.content || '';
     return content.split('\n')
         .map(line => line.replace(/^[\d.-•*]\s*/, '').trim())
@@ -131,7 +170,7 @@ export async function improveContent(
     type: 'summary' | 'bullet' | 'description' | 'fix_grammar' | 'make_concise' | 'make_professional' | 'expand' | 'active_voice',
     options: AIContentOptions = {}
 ): Promise<string> {
-    const { locale = 'ar' } = options;
+    const { locale = 'ar', tracking } = options;
 
     const instructions: Record<string, { ar: string; en: string }> = {
         summary: {
@@ -182,13 +221,15 @@ export async function improveContent(
         temperature: 0.4,
     });
 
+    await recordOpenAIUsage(tracking, response, 'improve');
     return response.choices[0]?.message?.content || content;
 }
 
 // Analyze job description and extract keywords
 export async function analyzeJobDescription(
     jobDescription: string,
-    locale: 'ar' | 'en' = 'ar'
+    locale: 'ar' | 'en' = 'ar',
+    tracking?: AIContentOptions['tracking']
 ): Promise<{
     keywords: string[];
     requirements: string[];
@@ -209,6 +250,8 @@ export async function analyzeJobDescription(
         temperature: 0.3,
         response_format: { type: 'json_object' },
     });
+
+    await recordOpenAIUsage(tracking, response, 'analyze_job');
 
     try {
         const result = JSON.parse(response.choices[0]?.message?.content || '{}');
@@ -233,7 +276,7 @@ export async function generateCoverLetter(
     jobDescription: string,
     options: AIContentOptions = {}
 ): Promise<string> {
-    const { locale = 'ar', tone = 'professional' } = options;
+    const { locale = 'ar', tone = 'professional', tracking } = options;
 
     const systemPrompt = locale === 'ar'
         ? `أنت خبير في كتابة رسائل التغطية للسوق السعودي والخليجي. اكتب رسالة مختصرة (3 فقرات) ومقنعة تربط خبرات المتقدم بمتطلبات الوظيفة.`
@@ -254,6 +297,7 @@ export async function generateCoverLetter(
         temperature: 0.7,
     });
 
+    await recordOpenAIUsage(tracking, response, 'cover_letter');
     return response.choices[0]?.message?.content || '';
 }
 

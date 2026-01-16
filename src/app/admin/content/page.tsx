@@ -46,7 +46,6 @@ import {
     CheckCircle2,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { AdminServerGuard } from '../_components/admin-server-guard';
 
 type ContentTab = 'blog' | 'faq' | 'help';
 
@@ -730,8 +729,6 @@ function AdminContentPageInner() {
 
 export default function AdminContentPage() {
     return (
-        <AdminServerGuard>
-            <AdminContentPageInner />
-        </AdminServerGuard>
+        <AdminContentPageInner />
     );
 }

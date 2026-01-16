@@ -21,7 +21,10 @@ export async function POST(request: Request) {
         const { company, position, description = '', existingBullets = [] } = requestSchema.parse(body);
 
         // Generate bullet points
-        const bullets = await generateBulletPoints(company, position, description, existingBullets);
+        const bullets = await generateBulletPoints(company, position, description, existingBullets, {
+            userId: session.user.id,
+            operation: 'bullets',
+        });
 
         return NextResponse.json({ bullets });
     } catch (error) {

@@ -29,7 +29,6 @@ import {
     AlertTriangle,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { AdminServerGuard } from '../_components/admin-server-guard';
 
 interface FeatureFlag {
     id: string;
@@ -504,8 +503,6 @@ function AdminFeatureFlagsContent() {
 
 export default function AdminFeatureFlagsPage() {
     return (
-        <AdminServerGuard>
-            <AdminFeatureFlagsContent />
-        </AdminServerGuard>
+        <AdminFeatureFlagsContent />
     );
 }

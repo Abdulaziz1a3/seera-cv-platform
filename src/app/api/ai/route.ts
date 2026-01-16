@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@/lib/auth';
 import {
     generateSummary,
     generateBullets,
@@ -10,6 +11,11 @@ import {
 
 export async function POST(request: NextRequest) {
     try {
+        const session = await auth();
+        if (!session?.user?.id) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
         const body = await request.json();
         const { action, ...params } = body;
 
@@ -25,32 +31,50 @@ export async function POST(request: NextRequest) {
 
         switch (action) {
             case 'summary':
-                result = await generateSummary(params);
+                result = await generateSummary({
+                    ...params,
+                    tracking: { userId: session.user.id, operation: 'summary' },
+                });
                 break;
 
             case 'bullets':
                 const { position, company, ...bulletOptions } = params;
-                result = await generateBullets(position, company, bulletOptions);
+                result = await generateBullets(position, company, {
+                    ...bulletOptions,
+                    tracking: { userId: session.user.id, operation: 'bullets' },
+                });
                 break;
 
             case 'skills':
                 const { targetRole, existingSkills, ...skillOptions } = params;
-                result = await suggestSkills(targetRole, existingSkills, skillOptions);
+                result = await suggestSkills(targetRole, existingSkills, {
+                    ...skillOptions,
+                    tracking: { userId: session.user.id, operation: 'skills' },
+                });
                 break;
 
             case 'improve':
                 const { content, type, ...improveOptions } = params;
-                result = await improveContent(content, type, improveOptions);
+                result = await improveContent(content, type, {
+                    ...improveOptions,
+                    tracking: { userId: session.user.id, operation: 'improve' },
+                });
                 break;
 
             case 'analyze-job':
                 const { jobDescription, locale } = params;
-                result = await analyzeJobDescription(jobDescription, locale);
+                result = await analyzeJobDescription(jobDescription, locale, {
+                    userId: session.user.id,
+                    operation: 'analyze_job',
+                });
                 break;
 
             case 'cover-letter':
                 const { resumeData, jobDescription: jd, ...coverOptions } = params;
-                result = await generateCoverLetter(resumeData, jd, coverOptions);
+                result = await generateCoverLetter(resumeData, jd, {
+                    ...coverOptions,
+                    tracking: { userId: session.user.id, operation: 'cover_letter' },
+                });
                 break;
 
             default:

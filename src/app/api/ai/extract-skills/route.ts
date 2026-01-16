@@ -17,7 +17,10 @@ export async function POST(request: Request) {
         const body = await request.json();
         const { jobDescription } = requestSchema.parse(body);
 
-        const skills = await extractSkillsFromJobDescription(jobDescription);
+        const skills = await extractSkillsFromJobDescription(jobDescription, {
+            userId: session.user.id,
+            operation: 'extract_skills',
+        });
 
         return NextResponse.json({ skills });
     } catch (error) {

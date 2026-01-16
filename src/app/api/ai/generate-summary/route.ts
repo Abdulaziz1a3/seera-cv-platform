@@ -21,7 +21,10 @@ export async function POST(request: Request) {
         const { experience = [], skills = [], targetRole } = requestSchema.parse(body);
 
         // Generate summary
-        const summary = await generateSummary(experience, skills, targetRole);
+        const summary = await generateSummary(experience, skills, targetRole, {
+            userId: session.user.id,
+            operation: 'summary',
+        });
 
         return NextResponse.json({ summary });
     } catch (error) {

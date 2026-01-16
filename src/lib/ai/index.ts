@@ -1,6 +1,8 @@
 // AI Provider Abstraction Layer
 // Supports multiple LLM providers: OpenAI, Anthropic, Google
 
+import { recordUsage } from '@/lib/stripe';
+
 export type AIProvider = 'openai' | 'anthropic' | 'google';
 
 export interface AIMessage {
@@ -21,6 +23,30 @@ export interface AIResponse {
         completionTokens: number;
         totalTokens: number;
     };
+}
+
+const MODEL_BY_PROVIDER: Record<AIProvider, string> = {
+    openai: 'gpt-4o-mini',
+    anthropic: 'claude-3-opus-20240229',
+    google: 'gemini-pro',
+};
+
+interface AITracking {
+    userId?: string;
+    operation?: string;
+}
+
+async function recordAIUsage(tracking: AITracking | undefined, usage?: AIResponse['usage'], provider?: AIProvider) {
+    if (!tracking?.userId || !usage?.totalTokens) return;
+
+    await recordUsage(tracking.userId, 'AI_GENERATION', {
+        provider: provider || 'openai',
+        model: MODEL_BY_PROVIDER[provider || 'openai'],
+        operation: tracking.operation || 'ai_generation',
+        promptTokens: usage.promptTokens || 0,
+        completionTokens: usage.completionTokens || 0,
+        totalTokens: usage.totalTokens || 0,
+    });
 }
 
 // Prompt templates with guardrails
@@ -148,6 +174,10 @@ class AIClient {
             throw new Error('GOOGLE_AI_API_KEY is not configured');
         }
         return apiKey;
+    }
+
+    getProvider(): AIProvider {
+        return this.provider;
     }
 
     async complete(
@@ -341,7 +371,8 @@ export async function generateBulletPoints(
     company: string,
     position: string,
     description: string,
-    existingBullets: string[] = []
+    existingBullets: string[] = [],
+    tracking?: AITracking
 ): Promise<string[]> {
     const context = `
 Company: ${company}
@@ -361,6 +392,8 @@ Existing bullets: ${existingBullets.join('\n')}
         },
     ]);
 
+    await recordAIUsage(tracking, response.usage, aiClient.getProvider());
+
     try {
         return JSON.parse(response.content);
     } catch {
@@ -375,7 +408,8 @@ Existing bullets: ${existingBullets.join('\n')}
 export async function generateSummary(
     experience: any[],
     skills: string[],
-    targetRole?: string
+    targetRole?: string,
+    tracking?: AITracking
 ): Promise<string> {
     const context = `
 Years of experience: ${experience.length > 0 ? 'Yes' : 'Entry level'}
@@ -395,12 +429,14 @@ Target role: ${targetRole || 'Not specified'}
         },
     ]);
 
+    await recordAIUsage(tracking, response.usage, aiClient.getProvider());
     return response.content.trim();
 }
 
 export async function analyzeJobMatch(
     resume: any,
-    jobDescription: string
+    jobDescription: string,
+    tracking?: AITracking
 ): Promise<{
     matchScore: number;
     matchingKeywords: string[];
@@ -421,6 +457,8 @@ export async function analyzeJobMatch(
         },
     ]);
 
+    await recordAIUsage(tracking, response.usage, aiClient.getProvider());
+
     try {
         return JSON.parse(response.content);
     } catch {
@@ -437,7 +475,8 @@ export async function generateCoverLetter(
     resumeSummary: string,
     jobDescription: string,
     companyName: string,
-    position: string
+    position: string,
+    tracking?: AITracking
 ): Promise<string> {
     const response = await aiClient.complete([
         {
@@ -455,11 +494,13 @@ export async function generateCoverLetter(
         },
     ]);
 
+    await recordAIUsage(tracking, response.usage, aiClient.getProvider());
     return response.content.trim();
 }
 
 export async function extractSkillsFromJobDescription(
-    jobDescription: string
+    jobDescription: string,
+    tracking?: AITracking
 ): Promise<string[]> {
     const response = await aiClient.complete([
         {
@@ -473,6 +514,8 @@ export async function extractSkillsFromJobDescription(
             content: 'Extract relevant skills.',
         },
     ]);
+
+    await recordAIUsage(tracking, response.usage, aiClient.getProvider());
 
     try {
         const parsed = JSON.parse(response.content);

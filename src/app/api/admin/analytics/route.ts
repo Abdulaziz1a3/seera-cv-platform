@@ -162,6 +162,55 @@ export async function GET(request: NextRequest) {
             `,
         ]);
 
+        const [aiUsageSummary, aiOperations, aiTopUsers, aiDailyUsage] = await Promise.all([
+            prisma.$queryRaw<{ total_requests: bigint; total_tokens: bigint }[]>`
+                SELECT
+                    COUNT(*)::bigint AS total_requests,
+                    COALESCE(SUM((metadata->>'totalTokens')::bigint), 0) AS total_tokens
+                FROM "UsageRecord"
+                WHERE "type" = 'AI_GENERATION'
+                  AND "createdAt" >= ${startDate}
+            `,
+            prisma.$queryRaw<{ operation: string; requests: bigint; tokens: bigint }[]>`
+                SELECT
+                    COALESCE(metadata->>'operation', 'unknown') AS operation,
+                    COUNT(*)::bigint AS requests,
+                    COALESCE(SUM((metadata->>'totalTokens')::bigint), 0) AS tokens
+                FROM "UsageRecord"
+                WHERE "type" = 'AI_GENERATION'
+                  AND "createdAt" >= ${startDate}
+                GROUP BY 1
+                ORDER BY tokens DESC
+                LIMIT 6
+            `,
+            prisma.$queryRaw<{ id: string; name: string | null; email: string; requests: bigint; tokens: bigint }[]>`
+                SELECT
+                    u.id,
+                    u.name,
+                    u.email,
+                    COUNT(*)::bigint AS requests,
+                    COALESCE(SUM((ur.metadata->>'totalTokens')::bigint), 0) AS tokens
+                FROM "UsageRecord" ur
+                JOIN "User" u ON u.id = ur."userId"
+                WHERE ur."type" = 'AI_GENERATION'
+                  AND ur."createdAt" >= ${startDate}
+                GROUP BY u.id, u.name, u.email
+                ORDER BY tokens DESC
+                LIMIT 5
+            `,
+            prisma.$queryRaw<{ date: Date; requests: bigint; tokens: bigint }[]>`
+                SELECT
+                    date_trunc('day', "createdAt")::date AS date,
+                    COUNT(*)::bigint AS requests,
+                    COALESCE(SUM((metadata->>'totalTokens')::bigint), 0) AS tokens
+                FROM "UsageRecord"
+                WHERE "type" = 'AI_GENERATION'
+                  AND "createdAt" >= ${startDate}
+                GROUP BY 1
+                ORDER BY 1
+            `,
+        ]);
+
         const totalActivePlans = planDistribution.reduce((sum, item) => sum + Number(item._count), 0);
 
         const toGrowth = (current: number, previous: number) =>
@@ -170,6 +219,11 @@ export async function GET(request: NextRequest) {
         const totalRevenue = (activeProCount * 39) + (activeEnterpriseCount * 249);
         const revenueThisPeriod = (newProThisPeriod * 39) + (newEnterpriseThisPeriod * 249);
         const revenuePrevPeriod = (newProPrevPeriod * 39) + (newEnterprisePrevPeriod * 249);
+
+        const aiTotals = aiUsageSummary[0] || { total_requests: 0, total_tokens: 0 };
+        const aiTotalRequests = Number(aiTotals.total_requests || 0);
+        const aiTotalTokens = Number(aiTotals.total_tokens || 0);
+        const aiAvgTokensPerRequest = aiTotalRequests > 0 ? aiTotalTokens / aiTotalRequests : 0;
 
         return NextResponse.json({
             overview: {
@@ -207,6 +261,28 @@ export async function GET(request: NextRequest) {
                 exports: usersWithExports,
                 activeSubscriptions,
                 enterpriseSubscriptions: activeEnterpriseCount,
+            },
+            aiUsage: {
+                totalRequests: aiTotalRequests,
+                totalTokens: aiTotalTokens,
+                avgTokensPerRequest: aiAvgTokensPerRequest,
+                operations: aiOperations.map((row) => ({
+                    operation: row.operation,
+                    requests: Number(row.requests),
+                    tokens: Number(row.tokens),
+                })),
+                topUsers: aiTopUsers.map((row) => ({
+                    id: row.id,
+                    name: row.name,
+                    email: row.email,
+                    requests: Number(row.requests),
+                    tokens: Number(row.tokens),
+                })),
+                daily: aiDailyUsage.map((row) => ({
+                    date: row.date.toISOString(),
+                    requests: Number(row.requests),
+                    tokens: Number(row.tokens),
+                })),
             },
             period,
         });

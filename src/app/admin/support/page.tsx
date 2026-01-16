@@ -47,7 +47,6 @@ import {
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
 import { ar, enUS } from 'date-fns/locale';
-import { AdminServerGuard } from '../_components/admin-server-guard';
 
 interface Ticket {
     id: string;
@@ -471,8 +470,6 @@ function AdminSupportContent() {
 
 export default function AdminSupportPage() {
     return (
-        <AdminServerGuard>
-            <AdminSupportContent />
-        </AdminServerGuard>
+        <AdminSupportContent />
     );
 }

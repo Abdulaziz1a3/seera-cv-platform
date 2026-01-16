@@ -46,7 +46,6 @@ import {
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ar, enUS } from 'date-fns/locale';
-import { AdminServerGuard } from '../_components/admin-server-guard';
 
 interface Subscription {
     id: string;
@@ -448,8 +447,6 @@ function AdminSubscriptionsContent() {
 
 export default function AdminSubscriptionsPage() {
     return (
-        <AdminServerGuard>
-            <AdminSubscriptionsContent />
-        </AdminServerGuard>
+        <AdminSubscriptionsContent />
     );
 }

@@ -52,6 +52,10 @@ export async function POST(request: Request) {
 
         let polishedText = await improveContent(content, promptType as any, {
             locale: 'en', // Default to EN for now, can be passed from body later
+            tracking: {
+                userId: session.user.id,
+                operation: 'polish',
+            },
         });
 
         return NextResponse.json({ polishedText });
