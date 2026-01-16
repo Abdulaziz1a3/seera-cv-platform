@@ -39,6 +39,7 @@ model User {
   usageRecords  UsageRecord[]
   tickets       SupportTicket[]
   auditLogs     AuditLog[]        @relation("UserAuditLogs")
+  seeraProfiles SeeraProfile[]
 
   // Two-factor authentication
   twoFactorEnabled Boolean @default(false)
@@ -166,7 +167,9 @@ model Resume {
   sections    ResumeSection[]
   exports     Export[]
   jobTargets  JobTargetResume[]
-  
+  profilesAsSource SeeraProfile[] @relation("ProfileSourceResume")
+  profilesAsCv     SeeraProfile[] @relation("ProfileCvResume")
+
   @@index([userId])
   @@index([publicSlug])
   @@index([createdAt])
@@ -682,8 +685,237 @@ model RateLimitRecord {
   endpoint  String
   count     Int      @default(1)
   windowStart DateTime
-  
+
   @@unique([key, endpoint, windowStart])
   @@index([key])
   @@index([windowStart])
+}
+
+// ==========================================
+// SEERA LINK - PUBLIC PROFILE PAGES
+// ==========================================
+
+enum ProfileVisibility {
+  PUBLIC
+  UNLISTED
+  PASSWORD_PROTECTED
+}
+
+enum ProfilePersona {
+  JOBS
+  FREELANCE
+  NETWORKING
+  CUSTOM
+}
+
+enum ProfileTemplate {
+  MINIMAL
+  BOLD
+}
+
+enum ProfileStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum CTAType {
+  WHATSAPP
+  PHONE
+  EMAIL
+  LINKEDIN
+  DOWNLOAD_CV
+  VIEW_CV
+  CUSTOM
+}
+
+enum AnalyticsEventType {
+  PAGE_VIEW
+  CTA_CLICK
+  PDF_DOWNLOAD
+}
+
+model SeeraProfile {
+  id                String              @id @default(cuid())
+  userId            String
+  user              User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // URL & Identity
+  slug              String              @unique
+  persona           ProfilePersona      @default(JOBS)
+  template          ProfileTemplate     @default(MINIMAL)
+  status            ProfileStatus       @default(DRAFT)
+
+  // Privacy
+  visibility        ProfileVisibility   @default(PUBLIC)
+  accessCode        String?             // Hashed password for protected profiles
+  noIndex           Boolean             @default(false)
+  hidePhoneNumber   Boolean             @default(false)
+
+  // Hero Section
+  displayName       String
+  title             String
+  location          String?
+  bio               String?             @db.Text
+  avatarUrl         String?
+
+  // Status Badges (JSON array of strings like "Open to work", "Freelance")
+  statusBadges      String[]            @default([])
+
+  // Language & Theme
+  language          String              @default("en") // "en" | "ar"
+  themeColor        String              @default("sapphire") // Matches resume themes
+  customColors      Json?               // Optional custom color overrides
+
+  // Resume Integration
+  sourceResumeId    String?             // Resume used to generate this profile
+  sourceResume      Resume?             @relation("ProfileSourceResume", fields: [sourceResumeId], references: [id], onDelete: SetNull)
+
+  // CV Settings
+  enableDownloadCv  Boolean             @default(false)
+  cvFileUrl         String?             // Uploaded PDF URL
+  cvResumeId        String?             // Or link to existing resume for PDF generation
+  cvResume          Resume?             @relation("ProfileCvResume", fields: [cvResumeId], references: [id], onDelete: SetNull)
+
+  // CTA Customization
+  ctaWhatsappNumber String?
+  ctaWhatsappMessage String?            @default("Hi! I saw your Seera profile and would like to connect.")
+  ctaPhoneNumber    String?
+  ctaEmail          String?
+  ctaEmailSubject   String?             @default("Let's Connect")
+  ctaEmailBody      String?             @db.Text
+  ctaLinkedinUrl    String?
+  enabledCtas       CTAType[]           @default([WHATSAPP, EMAIL, LINKEDIN])
+
+  // Metadata
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  publishedAt       DateTime?
+  deletedAt         DateTime?
+
+  // Relations
+  highlights        SeeraProfileHighlight[]
+  experiences       SeeraProfileExperience[]
+  projects          SeeraProfileProject[]
+  certificates      SeeraProfileCertificate[]
+  analytics         SeeraProfileAnalytics[]
+
+  @@index([userId])
+  @@index([slug])
+  @@index([status])
+  @@index([visibility])
+  @@map("seera_profiles")
+}
+
+model SeeraProfileHighlight {
+  id            String        @id @default(cuid())
+  profileId     String
+  profile       SeeraProfile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  content       String        @db.Text // The highlight text with metrics
+  icon          String?       // Optional icon identifier (e.g., "trophy", "chart", "users")
+  sortOrder     Int           @default(0)
+
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@index([profileId])
+  @@map("seera_profile_highlights")
+}
+
+model SeeraProfileExperience {
+  id            String        @id @default(cuid())
+  profileId     String
+  profile       SeeraProfile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  company       String
+  role          String
+  location      String?
+  startDate     String?       // "Jan 2020" format
+  endDate       String?       // "Present" or "Dec 2023"
+  description   String?       @db.Text
+  isFeatured    Boolean       @default(false)
+  sortOrder     Int           @default(0)
+
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@index([profileId])
+  @@map("seera_profile_experiences")
+}
+
+model SeeraProfileProject {
+  id            String        @id @default(cuid())
+  profileId     String
+  profile       SeeraProfile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  title         String
+  description   String?       @db.Text
+  url           String?
+  imageUrl      String?
+  tags          String[]      @default([])
+  sortOrder     Int           @default(0)
+
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@index([profileId])
+  @@map("seera_profile_projects")
+}
+
+model SeeraProfileCertificate {
+  id            String        @id @default(cuid())
+  profileId     String
+  profile       SeeraProfile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  name          String
+  issuer        String
+  date          String?       // "2023" or "Jan 2023"
+  url           String?       // Credential URL
+  sortOrder     Int           @default(0)
+
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@index([profileId])
+  @@map("seera_profile_certificates")
+}
+
+model SeeraProfileAnalytics {
+  id            String              @id @default(cuid())
+  profileId     String
+  profile       SeeraProfile        @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  eventType     AnalyticsEventType
+  ctaType       CTAType?            // If event is CTA_CLICK
+
+  // Privacy-friendly tracking
+  visitorHash   String              // Hashed IP + User Agent for unique visitor detection
+  deviceType    String?             // "desktop" | "mobile" | "tablet"
+  referrer      String?             @db.Text
+  country       String?             // From IP geolocation (coarse)
+
+  // UTM Tracking
+  utmSource     String?
+  utmMedium     String?
+  utmCampaign   String?
+  utmContent    String?
+  utmTerm       String?
+
+  createdAt     DateTime            @default(now())
+
+  @@index([profileId])
+  @@index([profileId, eventType])
+  @@index([profileId, createdAt])
+  @@index([createdAt])
+  @@map("seera_profile_analytics")
+}
+
+// Slug reservation table for profanity filter and reserved words
+model ReservedSlug {
+  slug          String    @id
+  reason        String    // "reserved" | "profanity" | "trademark"
+  createdAt     DateTime  @default(now())
+
+  @@map("reserved_slugs")
 }
