@@ -10,7 +10,6 @@ export function MarketingFooter() {
 
     const footerLinks = {
         product: [
-            { href: '/templates', label: t.footer.links.templates },
             { href: '/pricing', label: t.footer.links.pricing },
             { href: '/blog', label: t.footer.links.blog },
         ],

@@ -172,6 +172,11 @@ const nextConfig = {
                 permanent: true,
             },
             {
+                source: '/templates',
+                destination: '/',
+                permanent: true,
+            },
+            {
                 source: '/signup',
                 destination: '/register',
                 permanent: true,

@@ -423,9 +423,9 @@ export default function Home() {
                     </div>
 
                     <div className="text-center mt-10">
-                        <Link href="/templates">
+                        <Link href="/register">
                             <Button size="lg" variant="outline" className="gap-2">
-                                {locale === 'ar' ? 'عرض جميع القوالب' : 'View All Templates'}
+                                {locale === 'ar' ? 'ابدأ الآن' : 'Get Started'}
                                 <ArrowRight className="h-4 w-4" />
                             </Button>
                         </Link>

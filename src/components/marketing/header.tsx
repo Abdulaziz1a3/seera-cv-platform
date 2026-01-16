@@ -34,7 +34,6 @@ export function MarketingHeader() {
 
     const navLinks = [
         { href: '/pricing', label: t.nav.pricing },
-        { href: '/templates', label: t.nav.templates },
         { href: '/recruiters/login', label: locale === 'ar' ? 'للشركات' : 'For Recruiters' },
         { href: '/blog', label: t.nav.blog },
         { href: '/contact', label: t.nav.contact },
