@@ -68,6 +68,8 @@ const translations = {
     email: 'أرسل بريد',
     linkedin: 'تواصل',
     downloadCv: 'حمّل سيرتي',
+    viewCv: 'عرض السيرة',
+    preparingCv: 'جاري تجهيز السيرة...',
     letsConnect: 'لنتواصل',
   },
 };
