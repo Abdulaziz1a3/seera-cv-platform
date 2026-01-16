@@ -13,6 +13,9 @@ export async function GET() {
     if (!guard.allowed) {
         return NextResponse.json({ error: guard.error }, { status: guard.status });
     }
+    if (!guard.userId) {
+        return NextResponse.json({ error: 'Recruiter not found' }, { status: 401 });
+    }
 
     const shortlists = await prisma.recruiterShortlist.findMany({
         where: { recruiterId: guard.userId },
@@ -32,6 +35,9 @@ export async function POST(request: NextRequest) {
     const guard = await requireEnterpriseRecruiter();
     if (!guard.allowed) {
         return NextResponse.json({ error: guard.error }, { status: guard.status });
+    }
+    if (!guard.userId) {
+        return NextResponse.json({ error: 'Recruiter not found' }, { status: 401 });
     }
 
     const body = await request.json();
