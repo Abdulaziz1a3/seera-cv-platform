@@ -53,14 +53,15 @@ import { TemplateSelector } from '@/components/resume-editor/template-selector';
 import { LivePreview } from '@/components/resume-editor/live-preview';
 import { useLocale } from '@/components/providers/locale-provider';
 import { downloadPDF } from '@/lib/templates/renderer';
+import { PaywallModal } from '@/components/paywall-modal';
 import type { TemplateId, ThemeId } from '@/lib/resume-types';
 import type { ResumeRecord } from '@/lib/resume-data';
 import { mapResumeRecordToResumeData } from '@/lib/resume-normalizer';
 
 const sections = [
-    { id: 'contact', label: 'Contact', labelAr: 'الاتصال', icon: User },
+    { id: 'contact', label: 'Contact', labelAr: 'معلومات التواصل', icon: User },
     { id: 'summary', label: 'Summary', labelAr: 'الملخص', icon: FileText },
-    { id: 'experience', label: 'Experience', labelAr: 'الخبرة', icon: Briefcase },
+    { id: 'experience', label: 'Experience', labelAr: 'الخبرات', icon: Briefcase },
     { id: 'education', label: 'Education', labelAr: 'التعليم', icon: GraduationCap },
     { id: 'skills', label: 'Skills', labelAr: 'المهارات', icon: Wrench },
     { id: 'projects', label: 'Projects', labelAr: 'المشاريع', icon: FolderKanban },
@@ -86,6 +87,8 @@ export default function ResumeEditorPage() {
     const [atsScore, setAtsScore] = useState<number | null>(null);
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
     const [lastSaved, setLastSaved] = useState<Date | null>(null);
+    const [isSubscriptionActive, setIsSubscriptionActive] = useState(true);
+    const [paywallOpen, setPaywallOpen] = useState(false);
 
     const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
     const resumeRef = useRef<ResumeRecord | null>(null);
@@ -123,7 +126,7 @@ export default function ResumeEditorPage() {
                 setAtsScore(normalized.atsScore ?? null);
                 setLastSaved(new Date());
             } catch (error) {
-                toast.error(locale === 'ar' ? 'السيرة غير موجودة' : 'Resume not found');
+                toast.error(locale === 'ar' ? 'لم يتم العثور على السيرة الذاتية' : 'Resume not found');
                 router.push('/dashboard/resumes');
             } finally {
                 setIsLoading(false);
@@ -132,6 +135,23 @@ export default function ResumeEditorPage() {
 
         loadResume();
     }, [resumeId, router, locale]);
+
+    useEffect(() => {
+        let isMounted = true;
+        fetch('/api/billing/status')
+            .then((res) => res.ok ? res.json() : null)
+            .then((data) => {
+                if (!isMounted || !data) return;
+                setIsSubscriptionActive(Boolean(data.isActive));
+            })
+            .catch(() => {
+                if (!isMounted) return;
+                setIsSubscriptionActive(false);
+            });
+        return () => {
+            isMounted = false;
+        };
+    }, []);
 
     // Check screen size and show preview on desktop
     useEffect(() => {
@@ -194,10 +214,10 @@ export default function ResumeEditorPage() {
             setHasUnsavedChanges(false);
             setLastSaved(new Date());
             if (showToast) {
-                toast.success(locale === 'ar' ? 'تم الحفظ' : 'Resume saved');
+                toast.success(locale === 'ar' ? 'تم حفظ السيرة الذاتية' : 'Resume saved');
             }
         } catch (error) {
-            toast.error(locale === 'ar' ? 'فشل الحفظ' : 'Failed to save resume');
+            toast.error(locale === 'ar' ? 'فشل حفظ السيرة الذاتية' : 'Failed to save resume');
         } finally {
             setIsSaving(false);
         }
@@ -252,6 +272,10 @@ export default function ResumeEditorPage() {
     // Export resume
     const handleExport = async (format: 'pdf' | 'docx' | 'txt') => {
         if (!resume) return;
+        if (!isSubscriptionActive) {
+            setPaywallOpen(true);
+            return;
+        }
 
         try {
             const exportResume = mapResumeRecordToResumeData(resume);
@@ -308,8 +332,8 @@ export default function ResumeEditorPage() {
         const diff = Math.floor((now.getTime() - lastSaved.getTime()) / 1000);
 
         if (diff < 10) return locale === 'ar' ? 'الآن' : 'Just now';
-        if (diff < 60) return locale === 'ar' ? `منذ ${diff} ثانية` : `${diff}s ago`;
-        if (diff < 3600) return locale === 'ar' ? `منذ ${Math.floor(diff / 60)} دقيقة` : `${Math.floor(diff / 60)}m ago`;
+        if (diff < 60) return locale === 'ar' ? `قبل ${diff} ثانية` : `${diff}s ago`;
+        if (diff < 3600) return locale === 'ar' ? `قبل ${Math.floor(diff / 60)} دقيقة` : `${Math.floor(diff / 60)}m ago`;
         return lastSaved.toLocaleTimeString(locale === 'ar' ? 'ar-SA' : 'en-US', { hour: '2-digit', minute: '2-digit' });
     };
 
@@ -382,12 +406,12 @@ export default function ResumeEditorPage() {
                             {isSaving ? (
                                 <span className="flex items-center gap-1">
                                     <Loader2 className="h-3 w-3 animate-spin" />
-                                    {locale === 'ar' ? 'جاري الحفظ...' : 'Saving...'}
+                                    {locale === 'ar' ? 'جارٍ الحفظ...' : 'Saving...'}
                                 </span>
                             ) : hasUnsavedChanges ? (
                                 <span className="flex items-center gap-1 text-amber-500">
                                     <AlertTriangle className="h-3 w-3" />
-                                    {locale === 'ar' ? 'تغييرات غير محفوظة' : 'Unsaved'}
+                                    {locale === 'ar' ? 'غير محفوظ' : 'Unsaved'}
                                 </span>
                             ) : (
                                 <span className="flex items-center gap-1 text-green-500">
@@ -587,7 +611,7 @@ export default function ResumeEditorPage() {
                     <Tabs defaultValue="preview" className="flex-1 flex flex-col overflow-hidden">
                         <TabsList className="mx-4">
                             <TabsTrigger value="preview">{locale === 'ar' ? 'المعاينة' : 'Preview'}</TabsTrigger>
-                            <TabsTrigger value="ats">{locale === 'ar' ? 'نتيجة ATS' : 'ATS Score'}</TabsTrigger>
+                            <TabsTrigger value="ats">{locale === 'ar' ? 'درجة ATS' : 'ATS Score'}</TabsTrigger>
                         </TabsList>
                         <TabsContent value="preview" className="flex-1 overflow-auto p-4">
                             <div className="flex justify-center">
@@ -600,6 +624,11 @@ export default function ResumeEditorPage() {
                     </Tabs>
                 </DialogContent>
             </Dialog>
+            <PaywallModal
+                isOpen={paywallOpen}
+                onClose={() => setPaywallOpen(false)}
+                feature="download"
+            />
         </div>
     );
 }

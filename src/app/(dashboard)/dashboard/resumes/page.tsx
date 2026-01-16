@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useLocale } from '@/components/providers/locale-provider';
 import { useResumes } from '@/components/providers/resume-provider';
@@ -35,17 +35,37 @@ import {
     ArrowUpDown,
 } from 'lucide-react';
 import { EmptyState } from '@/components/ui/empty-state';
+import { PaywallModal } from '@/components/paywall-modal';
 
 export default function ResumesPage() {
     const { t, locale } = useLocale();
     const { resumes, isLoading, deleteResume, duplicateResume } = useResumes();
     const [searchQuery, setSearchQuery] = useState('');
     const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+    const [isSubscriptionActive, setIsSubscriptionActive] = useState(true);
+    const [paywallOpen, setPaywallOpen] = useState(false);
+
+    useEffect(() => {
+        let isMounted = true;
+        fetch('/api/billing/status')
+            .then((res) => res.ok ? res.json() : null)
+            .then((data) => {
+                if (!isMounted || !data) return;
+                setIsSubscriptionActive(Boolean(data.isActive));
+            })
+            .catch(() => {
+                if (!isMounted) return;
+                setIsSubscriptionActive(false);
+            });
+        return () => {
+            isMounted = false;
+        };
+    }, []);
 
     const resumesWithScores = resumes.map((resume) => ({
         ...resume,
         atsScore: resume.atsScore ?? 0,
-        targetRole: resume.targetRole || (locale === 'ar' ? 'بدون مسمى وظيفي' : 'No target role'),
+        targetRole: resume.targetRole || (locale === 'ar' ? 'لا يوجد مسمى وظيفي' : 'No target role'),
     }));
 
     const filteredResumes = resumesWithScores.filter(
@@ -59,9 +79,9 @@ export default function ResumesPage() {
     );
 
     const formatDate = (dateStr?: string | null) => {
-        if (!dateStr) return locale === 'ar' ? 'غير محدد' : 'Unknown';
+        if (!dateStr) return locale === 'ar' ? 'غير معروف' : 'Unknown';
         const date = new Date(dateStr);
-        if (Number.isNaN(date.getTime())) return locale === 'ar' ? 'غير محدد' : 'Unknown';
+        if (Number.isNaN(date.getTime())) return locale === 'ar' ? 'غير معروف' : 'Unknown';
         return date.toLocaleDateString(locale === 'ar' ? 'ar-SA' : 'en-US', {
             month: 'short',
             day: 'numeric',
@@ -82,7 +102,7 @@ export default function ResumesPage() {
     };
 
     const handleDelete = async (id: string) => {
-        if (confirm(locale === 'ar' ? 'هل أنت متأكد من الحذف؟' : 'Are you sure you want to delete this resume?')) {
+        if (confirm(locale === 'ar' ? 'هل أنت متأكد من حذف السيرة الذاتية؟' : 'Are you sure you want to delete this resume?')) {
             try {
                 await deleteResume(id);
             } catch (error) {
@@ -92,6 +112,10 @@ export default function ResumesPage() {
     };
 
     const handleDownload = async (id: string) => {
+        if (!isSubscriptionActive) {
+            setPaywallOpen(true);
+            return;
+        }
         try {
             const response = await fetch(`/api/resumes/${id}`);
             if (!response.ok) {
@@ -109,7 +133,7 @@ export default function ResumesPage() {
     if (isLoading) {
         return (
             <div className="flex items-center justify-center h-64">
-                <p className="text-muted-foreground">{locale === 'ar' ? 'جار التحميل...' : 'Loading...'}</p>
+                <p className="text-muted-foreground">{locale === 'ar' ? 'جارٍ التحميل...' : 'Loading...'}</p>
             </div>
         );
     }
@@ -152,7 +176,7 @@ export default function ResumesPage() {
                     <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
                         type="search"
-                        placeholder={locale === 'ar' ? 'البحث في السير الذاتية...' : 'Search resumes...'}
+                        placeholder={locale === 'ar' ? 'ابحث عن سيرتك الذاتية...' : 'Search resumes...'}
                         className="ps-10"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
@@ -191,16 +215,16 @@ export default function ResumesPage() {
                 <EmptyState
                     title={{
                         en: "Create your first Masterpiece",
-                        ar: "أنشئ تحفتك الفنية الأولى"
+                        ar: "أنشئ تحفتك الأولى"
                     }}
                     description={searchQuery
                         ? {
                             en: "We couldn't find any resumes matching your search. Try different keywords.",
-                            ar: "لم نعثر على أي سير ذاتية تطابق بحثك. جرب كلمات مفتاحية مختلفة."
+                            ar: "لم نعثر على سير ذاتية تطابق بحثك. جرّب كلمات مختلفة."
                         }
                         : {
                             en: "Your career journey begins here. Create a professional resume that stands out in seconds.",
-                            ar: "رحلتك المهنية تبدأ هنا. صمم سيرة ذاتية احترافية ومميزة في ثوانٍ."
+                            ar: "تبدأ رحلتك المهنية هنا. أنشئ سيرة احترافية خلال ثوانٍ."
                         }
                     }
                     action={!searchQuery ? {
@@ -271,12 +295,12 @@ export default function ResumesPage() {
                                         </DropdownMenuItem>
                                         <DropdownMenuItem onClick={() => handleDuplicate(resume.id)}>
                                             <Copy className="h-4 w-4 me-2" />
-                                            {locale === 'ar' ? 'نسخ' : 'Duplicate'}
+                                            {locale === 'ar' ? 'تكرار' : 'Duplicate'}
                                         </DropdownMenuItem>
-                                        <DropdownMenuItem onClick={() => handleDownload(resume.id)}>
-                                            <Download className="h-4 w-4 me-2" />
-                                            {t.common.download}
-                                        </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handleDownload(resume.id)}>
+                                        <Download className="h-4 w-4 me-2" />
+                                        {t.common.download}
+                                    </DropdownMenuItem>
                                         <DropdownMenuSeparator />
                                         <DropdownMenuItem
                                             className="text-destructive"
@@ -360,9 +384,9 @@ export default function ResumesPage() {
                                             </DropdownMenuItem>
                                             <DropdownMenuItem>
                                                 <Copy className="h-4 w-4 me-2" />
-                                                {locale === 'ar' ? 'نسخ' : 'Duplicate'}
+                                                {locale === 'ar' ? 'تكرار' : 'Duplicate'}
                                             </DropdownMenuItem>
-                                            <DropdownMenuItem>
+                                            <DropdownMenuItem onClick={() => handleDownload(resume.id)}>
                                                 <Download className="h-4 w-4 me-2" />
                                                 {t.common.download}
                                             </DropdownMenuItem>
@@ -379,6 +403,11 @@ export default function ResumesPage() {
                     ))}
                 </div>
             )}
+            <PaywallModal
+                isOpen={paywallOpen}
+                onClose={() => setPaywallOpen(false)}
+                feature="download"
+            />
         </div>
     );
 }

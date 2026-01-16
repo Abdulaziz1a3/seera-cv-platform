@@ -73,26 +73,21 @@ export async function POST(request: Request) {
         const body = await request.json();
         const data = createResumeSchema.parse(body);
 
-        // Check resume limit for free users
         const subscription = await prisma.subscription.findUnique({
             where: { userId: session.user.id },
         });
 
-        if (!subscription || !['ACTIVE', 'TRIALING'].includes(subscription.status)) {
-            return NextResponse.json(
-                { error: 'Subscription required to create resumes. Please subscribe to activate your account.' },
-                { status: 402 }
-            );
-        }
+        const isActive = Boolean(subscription && ['ACTIVE', 'TRIALING'].includes(subscription.status));
+        const isFreeTier = !isActive || subscription?.plan === 'FREE';
 
-        if (subscription?.plan === 'FREE') {
+        if (isFreeTier) {
             const resumeCount = await prisma.resume.count({
                 where: { userId: session.user.id, deletedAt: null },
             });
 
             if (resumeCount >= 1) {
                 return NextResponse.json(
-                    { error: 'Free plan allows only 1 resume. Upgrade to create more.' },
+                    { error: 'Free accounts can create only 1 resume. Subscribe to create more.' },
                     { status: 403 }
                 );
             }
@@ -114,7 +109,7 @@ export async function POST(request: Request) {
                     create: [
                         {
                             type: 'CONTACT',
-                            title: data.language === 'ar' ? 'معلومات الاتصال' : 'Contact Information',
+                            title: data.language === 'ar' ? 'معلومات التواصل' : 'Contact Information',
                             order: 0,
                             content: emptyResume.contact,
                         },
@@ -126,7 +121,7 @@ export async function POST(request: Request) {
                         },
                         {
                             type: 'EXPERIENCE',
-                            title: data.language === 'ar' ? 'الخبرة العملية' : 'Experience',
+                            title: data.language === 'ar' ? 'الخبرات' : 'Experience',
                             order: 2,
                             content: { items: [] },
                         },
