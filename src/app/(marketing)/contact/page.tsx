@@ -18,7 +18,7 @@ export default function ContactPage() {
         {
             icon: Mail,
             title: locale === 'ar' ? 'البريد الإلكتروني' : 'Email',
-            value: 'info@seera-sa.com',
+            value: 'info@seera-ai.com',
             description: locale === 'ar' ? 'نرد خلال 24 ساعة' : 'We respond within 24 hours',
         },
         {

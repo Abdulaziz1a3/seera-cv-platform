@@ -5,11 +5,10 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { signIn } from 'next-auth/react';
 import { toast } from 'sonner';
-import { Loader2, Mail, Lock, Eye, EyeOff, Chrome } from 'lucide-react';
+import { Loader2, Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
 import { useLocale } from '@/components/providers/locale-provider';
 
 function LoginForm() {
@@ -19,7 +18,6 @@ function LoginForm() {
     const { t } = useLocale();
 
     const [isLoading, setIsLoading] = useState(false);
-    const [isGoogleLoading, setIsGoogleLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -63,47 +61,11 @@ function LoginForm() {
         }
     };
 
-    const handleGoogleSignIn = async () => {
-        setIsGoogleLoading(true);
-        try {
-            await signIn('google', { callbackUrl });
-        } catch (error) {
-            toast.error(t.errors.generic);
-            setIsGoogleLoading(false);
-        }
-    };
-
     return (
         <div className="w-full max-w-md mx-auto">
             <div className="text-center mb-8">
                 <h1 className="text-2xl font-bold mb-2">{t.auth.login.title}</h1>
                 <p className="text-muted-foreground">{t.auth.login.subtitle}</p>
-            </div>
-
-            {/* Google Sign In */}
-            <Button
-                variant="outline"
-                className="w-full h-12 text-base mb-6"
-                onClick={handleGoogleSignIn}
-                disabled={isGoogleLoading}
-            >
-                {isGoogleLoading ? (
-                    <Loader2 className="h-5 w-5 me-2 animate-spin" />
-                ) : (
-                    <Chrome className="h-5 w-5 me-2" />
-                )}
-                {t.auth.login.continueWithGoogle}
-            </Button>
-
-            <div className="relative mb-6">
-                <div className="absolute inset-0 flex items-center">
-                    <Separator className="w-full" />
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-background px-2 text-muted-foreground">
-                        {t.auth.login.orContinueWith}
-                    </span>
-                </div>
             </div>
 
             {/* Email/Password Form */}
