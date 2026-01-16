@@ -32,7 +32,7 @@ const securityHeaders = [
     },
     {
         key: 'Permissions-Policy',
-        value: 'camera=(), microphone=(), geolocation=(), browsing-topics=(), payment=(self)',
+        value: 'camera=(), microphone=(self), geolocation=(), browsing-topics=(), payment=(self)',
     },
     {
         key: 'Strict-Transport-Security',
