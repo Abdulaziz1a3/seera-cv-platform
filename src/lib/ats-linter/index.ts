@@ -84,37 +84,36 @@ export function lintResume(resume: any, language: 'en' | 'ar' = 'en'): LintResul
     // 1. Check contact information
     const contactIssues = lintContactSection(resume.contact);
     issues.push(...contactIssues);
-    baseScore -= contactIssues.filter(i => i.severity === 'error').length * 10;
-    baseScore -= contactIssues.filter(i => i.severity === 'warning').length * 5;
+    baseScore -= contactIssues.filter(i => i.severity === 'error').length * 15;
+    baseScore -= contactIssues.filter(i => i.severity === 'warning').length * 7;
 
     // 2. Check summary/objective
     if (resume.summary) {
         const summaryIssues = lintSummarySection(resume.summary);
         issues.push(...summaryIssues);
-        baseScore -= summaryIssues.filter(i => i.severity === 'error').length * 5;
-        baseScore -= summaryIssues.filter(i => i.severity === 'warning').length * 3;
+        baseScore -= summaryIssues.filter(i => i.severity === 'error').length * 12;
+        baseScore -= summaryIssues.filter(i => i.severity === 'warning').length * 8;
     }
 
     // 3. Check experience section
     if (resume.experience?.items) {
         const expIssues = lintExperienceSection(resume.experience.items);
         issues.push(...expIssues);
-        baseScore -= expIssues.filter(i => i.severity === 'error').length * 8;
-        baseScore -= expIssues.filter(i => i.severity === 'warning').length * 4;
+        baseScore -= expIssues.filter(i => i.severity === 'error').length * 25;
+        baseScore -= expIssues.filter(i => i.severity === 'warning').length * 10;
     }
 
     // 4. Check education section
-    if (resume.education?.items) {
-        const eduIssues = lintEducationSection(resume.education.items);
-        issues.push(...eduIssues);
-        baseScore -= eduIssues.filter(i => i.severity === 'error').length * 5;
-    }
+    const eduIssues = lintEducationSection(resume.education?.items);
+    issues.push(...eduIssues);
+    baseScore -= eduIssues.filter(i => i.severity === 'error').length * 10;
+    baseScore -= eduIssues.filter(i => i.severity === 'warning').length * 6;
 
     // 5. Check skills section
     if (resume.skills) {
         const skillIssues = lintSkillsSection(resume.skills);
         issues.push(...skillIssues);
-        baseScore -= skillIssues.filter(i => i.severity === 'warning').length * 3;
+        baseScore -= skillIssues.filter(i => i.severity === 'warning').length * 10;
     }
 
     // 6. General formatting checks
@@ -356,8 +355,21 @@ function lintExperienceSection(items: any[]): LintIssue[] {
     return issues;
 }
 
-function lintEducationSection(items: any[]): LintIssue[] {
+function lintEducationSection(items: any[] | undefined): LintIssue[] {
     const issues: LintIssue[] = [];
+
+    if (!items || items.length === 0) {
+        issues.push({
+            id: 'education-missing',
+            severity: 'warning',
+            category: 'Education',
+            title: 'No education listed',
+            description: 'Education helps ATS and recruiters validate your background.',
+            suggestion: 'Add your highest degree or most recent education.',
+            section: 'education',
+        });
+        return issues;
+    }
 
     items.forEach((edu, index) => {
         if (!edu.institution) {
