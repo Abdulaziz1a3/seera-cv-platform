@@ -96,6 +96,9 @@ const PHRASES = {
     },
 };
 
+const SILENT_AUDIO_DATA_URL =
+    'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YQAAAAA=';
+
 export default function LiveInterviewPage() {
     const { locale } = useLocale();
 
@@ -120,6 +123,11 @@ export default function LiveInterviewPage() {
     const [isLoading, setIsLoading] = useState(false);
     const [liveTranscript, setLiveTranscript] = useState('');
     const [selectedVoice, setSelectedVoice] = useState<'nova' | 'alloy' | 'echo' | 'onyx' | 'shimmer'>('nova');
+    const [speechSupported, setSpeechSupported] = useState(true);
+    const [micPermissionDenied, setMicPermissionDenied] = useState(false);
+    const [audioUnlocked, setAudioUnlocked] = useState(false);
+    const [audioErrorShown, setAudioErrorShown] = useState(false);
+    const [micErrorShown, setMicErrorShown] = useState(false);
 
     // Text input mode
     const [useTextInput, setUseTextInput] = useState(false);
@@ -152,6 +160,24 @@ export default function LiveInterviewPage() {
         audioRef.current = new Audio();
     }, []);
 
+    const unlockAudio = useCallback(async () => {
+        if (!audioRef.current || audioUnlocked) return;
+        try {
+            audioRef.current.src = SILENT_AUDIO_DATA_URL;
+            audioRef.current.muted = true;
+            await audioRef.current.play();
+            audioRef.current.pause();
+            audioRef.current.currentTime = 0;
+            audioRef.current.muted = false;
+            setAudioUnlocked(true);
+        } catch {
+            if (!audioErrorShown) {
+                setAudioErrorShown(true);
+                toast.error(locale === 'ar' ? 'الرجاء النقر لتفعيل الصوت' : 'Please click once to enable audio');
+            }
+        }
+    }, [audioUnlocked, audioErrorShown, locale]);
+
     // Speak using OpenAI TTS
     const speak = useCallback(async (text: string): Promise<void> => {
         if (isMuted || !audioRef.current) return;
@@ -159,6 +185,7 @@ export default function LiveInterviewPage() {
         try {
             setIsSpeaking(true);
             stopListening();
+            await unlockAudio();
 
             const response = await fetch('/api/interview/tts', {
                 method: 'POST',
@@ -185,6 +212,10 @@ export default function LiveInterviewPage() {
                 };
                 audioRef.current!.play().catch(() => {
                     setIsSpeaking(false);
+                    if (!audioErrorShown) {
+                        setAudioErrorShown(true);
+                        toast.error(locale === 'ar' ? 'تعذر تشغيل الصوت' : 'Audio playback blocked');
+                    }
                     resolve();
                 });
             });
@@ -193,7 +224,7 @@ export default function LiveInterviewPage() {
             setIsSpeaking(false);
             setTimeout(() => startListening(), 500);
         }
-    }, [isMuted, selectedVoice]);
+    }, [isMuted, selectedVoice, audioErrorShown, locale, startListening, stopListening, unlockAudio]);
 
     // Process user response
     const processUserResponse = useCallback(async (answer: string) => {
@@ -289,8 +320,15 @@ export default function LiveInterviewPage() {
             setLiveTranscript('');
             recognitionRef.current.start();
             setIsListening(true);
-        } catch (e) { }
-    }, [isSpeaking, isLoading]);
+        } catch (e) {
+            setIsListening(false);
+            setUseTextInput(true);
+            if (!micErrorShown) {
+                setMicErrorShown(true);
+                toast.error(locale === 'ar' ? 'الميكروفون غير متاح - استخدم الكتابة' : 'Microphone not available - use text input');
+            }
+        }
+    }, [isSpeaking, isLoading, locale, micErrorShown]);
 
     // Stop listening
     const stopListening = useCallback(() => {
@@ -306,6 +344,7 @@ export default function LiveInterviewPage() {
     useEffect(() => {
         if (typeof window === 'undefined') return;
         if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+            setSpeechSupported(false);
             setUseTextInput(true);
             return;
         }
@@ -352,6 +391,7 @@ export default function LiveInterviewPage() {
             console.log('Speech recognition error:', event.error);
             if (event.error === 'not-allowed' || event.error === 'audio-capture') {
                 micPermissionDenied = true;
+                setMicPermissionDenied(true);
                 if (!errorShown) {
                     errorShown = true;
                     toast.error(interviewLang.startsWith('ar') ? 'الميكروفون غير متاح - استخدم الكتابة' : 'Microphone not available - use text input', {
@@ -397,6 +437,7 @@ export default function LiveInterviewPage() {
         setIsLoading(true);
 
         try {
+            await unlockAudio();
             const res = await fetch('/api/interview', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -450,6 +491,14 @@ export default function LiveInterviewPage() {
     };
 
     const toggleMicrophone = () => {
+        if (!speechSupported || micPermissionDenied) {
+            setUseTextInput(true);
+            if (!micErrorShown) {
+                setMicErrorShown(true);
+                toast.error(interviewLang.startsWith('ar') ? 'الميكروفون غير متاح - استخدم الكتابة' : 'Microphone not available - use text input');
+            }
+            return;
+        }
         if (isListening) stopListening();
         else startListening();
     };
@@ -697,7 +746,7 @@ export default function LiveInterviewPage() {
                                             size="lg"
                                             className={`h-20 w-20 rounded-full ${isListening ? 'bg-green-500 hover:bg-green-600' : isSpeaking ? 'bg-blue-500' : ''}`}
                                             onClick={toggleMicrophone}
-                                            disabled={isLoading || isSpeaking}
+                                            disabled={isLoading || isSpeaking || !speechSupported || micPermissionDenied}
                                         >
                                             {isListening ? <Mic className="h-8 w-8" /> : <MicOff className="h-8 w-8" />}
                                         </Button>
@@ -716,6 +765,11 @@ export default function LiveInterviewPage() {
                                             ? (interviewLang === 'ar-sa' ? '🎙️ أسمعك... تكلم!' : '🎙️ Listening...')
                                             : '🔇 Click mic'}
                                 </p>
+                                {!speechSupported && (
+                                    <p className="text-center text-xs text-amber-600">
+                                        {locale === 'ar' ? 'المتصفح لا يدعم التعرف على الصوت - استخدم الكتابة' : 'Browser does not support voice input - use text instead'}
+                                    </p>
+                                )}
 
                                 {useTextInput && (
                                     <div className="flex gap-2">

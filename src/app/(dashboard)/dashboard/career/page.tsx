@@ -110,6 +110,16 @@ export default function CareerGPSPage() {
     const [selectedPathIndex, setSelectedPathIndex] = useState(0);
     const [completedActions, setCompletedActions] = useState<Set<string>>(new Set());
 
+    const parseJsonResponse = async (response: Response) => {
+        const text = await response.text();
+        if (!text) return {};
+        try {
+            return JSON.parse(text);
+        } catch {
+            throw new Error(text);
+        }
+    };
+
     // Analyze career
     const analyzeCareer = async () => {
         if (!selectedResumeId) return;
@@ -134,7 +144,13 @@ export default function CareerGPSPage() {
                 }),
             });
 
-            const { result, error } = await response.json();
+            const payload = await parseJsonResponse(response);
+            if (!response.ok) {
+                const message = payload?.error || `Request failed (HTTP ${response.status})`;
+                throw new Error(message);
+            }
+
+            const { result, error } = payload || {};
             if (error) throw new Error(error);
 
             setAnalysis(result);
