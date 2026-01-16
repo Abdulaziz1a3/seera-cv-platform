@@ -501,8 +501,8 @@ export default function NewResumePage() {
 
             {/* Step 3: Select Template */}
             {step === 3 && (
-                <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
-                    <div className="grid gap-4 sm:grid-cols-3">
+                <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
+                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                         {templates.map((template) => (
                             <Card
                                 key={template.id}
