@@ -52,6 +52,7 @@ const templates = [
 ];
 
 
+
 export default function NewResumePage() {
     const router = useRouter();
     const { locale } = useLocale();
@@ -266,7 +267,7 @@ export default function NewResumePage() {
     };
 
     return (
-        <div className="max-w-3xl mx-auto space-y-8">
+        <div className="max-w-6xl mx-auto space-y-8">
             {/* Header */}
             <div>
                 <Link
@@ -501,7 +502,7 @@ export default function NewResumePage() {
 
             {/* Step 3: Select Template */}
             {step === 3 && (
-                <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
+                <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,480px)] items-start">
                     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                         {templates.map((template) => (
                             <Card
@@ -533,12 +534,12 @@ export default function NewResumePage() {
                             </Card>
                         ))}
                     </div>
-                    <Card className="hidden lg:block">
+                    <Card className="hidden lg:block lg:sticky lg:top-6">
                         <CardContent className="p-4">
                             <div className="text-sm font-medium mb-3">
                                 {locale === 'ar' ? 'معاينة القالب' : 'Template Preview'}
                             </div>
-                            <div className="flex justify-center">
+                            <div className="flex justify-center overflow-hidden">
                                 <LivePreview
                                     resume={{
                                         ...previewBase,
@@ -546,7 +547,7 @@ export default function NewResumePage() {
                                         theme: 'obsidian',
                                         locale,
                                     }}
-                                    scale={0.5}
+                                    scale={0.42}
                                 />
                             </div>
                         </CardContent>
