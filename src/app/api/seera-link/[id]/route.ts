@@ -5,6 +5,7 @@ import { prisma } from '@/lib/db';
 import { success, errors, handleZodError, handleError } from '@/lib/api-response';
 import { updateProfileSchema } from '@/lib/seera-link/schemas';
 import { validateSlug, hashAccessCode, normalizeSaudiPhone } from '@/lib/seera-link/utils';
+import { hasActiveSubscription } from '@/lib/subscription';
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -17,6 +18,10 @@ export async function GET(request: Request, { params }: RouteParams) {
     const session = await auth();
     if (!session?.user?.id) {
       return errors.unauthorized();
+    }
+    const hasAccess = await hasActiveSubscription(session.user.id);
+    if (!hasAccess) {
+      return errors.subscriptionRequired('Seera Link');
     }
 
     const profile = await prisma.seeraProfile.findFirst({
@@ -57,6 +62,10 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     const session = await auth();
     if (!session?.user?.id) {
       return errors.unauthorized();
+    }
+    const hasAccess = await hasActiveSubscription(session.user.id);
+    if (!hasAccess) {
+      return errors.subscriptionRequired('Seera Link');
     }
 
     // Check ownership
@@ -228,6 +237,10 @@ export async function DELETE(request: Request, { params }: RouteParams) {
     const session = await auth();
     if (!session?.user?.id) {
       return errors.unauthorized();
+    }
+    const hasAccess = await hasActiveSubscription(session.user.id);
+    if (!hasAccess) {
+      return errors.subscriptionRequired('Seera Link');
     }
 
     const profile = await prisma.seeraProfile.findFirst({

@@ -2,6 +2,7 @@ import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { success, errors, handleError } from '@/lib/api-response';
 import { getProfileUrl } from '@/lib/seera-link/utils';
+import { hasActiveSubscription } from '@/lib/subscription';
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -14,6 +15,10 @@ export async function POST(request: Request, { params }: RouteParams) {
     const session = await auth();
     if (!session?.user?.id) {
       return errors.unauthorized();
+    }
+    const hasAccess = await hasActiveSubscription(session.user.id);
+    if (!hasAccess) {
+      return errors.subscriptionRequired('Seera Link');
     }
 
     const profile = await prisma.seeraProfile.findFirst({
@@ -83,6 +88,10 @@ export async function DELETE(request: Request, { params }: RouteParams) {
     const session = await auth();
     if (!session?.user?.id) {
       return errors.unauthorized();
+    }
+    const hasAccess = await hasActiveSubscription(session.user.id);
+    if (!hasAccess) {
+      return errors.subscriptionRequired('Seera Link');
     }
 
     const profile = await prisma.seeraProfile.findFirst({

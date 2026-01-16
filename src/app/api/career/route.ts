@@ -1,4 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@/lib/auth';
+import { errors } from '@/lib/api-response';
+import { hasActiveSubscription } from '@/lib/subscription';
 import {
     analyzeCareer,
     generateActionPlan,
@@ -7,6 +10,15 @@ import {
 import { normalizeResumeForCareer } from '@/lib/resume-normalizer';
 
 export async function POST(request: NextRequest) {
+    const session = await auth();
+    if (!session?.user?.id) {
+        return errors.unauthorized();
+    }
+    const hasAccess = await hasActiveSubscription(session.user.id);
+    if (!hasAccess) {
+        return errors.subscriptionRequired('Career GPS');
+    }
+
     try {
         const body = await request.json();
         const { action, resume, options = {} } = body;

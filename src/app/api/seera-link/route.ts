@@ -7,6 +7,7 @@ import { createProfileSchema } from '@/lib/seera-link/schemas';
 import { validateSlug, hashAccessCode, canCreateProfile, normalizeSaudiPhone } from '@/lib/seera-link/utils';
 import { checkRateLimit, getRateLimitKey, getClientIP, rateLimitConfigs } from '@/lib/seera-link/rate-limit';
 import { headers } from 'next/headers';
+import { hasActiveSubscription } from '@/lib/subscription';
 
 // GET /api/seera-link - List user's profiles
 export async function GET() {
@@ -14,6 +15,10 @@ export async function GET() {
     const session = await auth();
     if (!session?.user?.id) {
       return errors.unauthorized();
+    }
+    const hasAccess = await hasActiveSubscription(session.user.id);
+    if (!hasAccess) {
+      return errors.subscriptionRequired('Seera Link');
     }
 
     const profiles = await prisma.seeraProfile.findMany({
@@ -75,6 +80,10 @@ export async function POST(request: Request) {
     const session = await auth();
     if (!session?.user?.id) {
       return errors.unauthorized();
+    }
+    const hasAccess = await hasActiveSubscription(session.user.id);
+    if (!hasAccess) {
+      return errors.subscriptionRequired('Seera Link');
     }
 
     // Rate limiting

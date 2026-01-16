@@ -278,7 +278,16 @@ export default function ResumeEditorPage() {
         }
 
         try {
-            const exportResume = mapResumeRecordToResumeData(resume);
+            const response = await fetch(`/api/resumes/${resumeId}/export`);
+            if (response.status === 403) {
+                setPaywallOpen(true);
+                return;
+            }
+            if (!response.ok) {
+                throw new Error('Failed to load resume');
+            }
+            const exportPayload = await response.json();
+            const exportResume = mapResumeRecordToResumeData(exportPayload);
 
             if (format === 'pdf') {
                 await downloadPDF(exportResume);

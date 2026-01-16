@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db';
+import { errors } from '@/lib/api-response';
+import { hasActiveSubscription } from '@/lib/subscription';
 
 const profileSchema = z.object({
     resumeId: z.string().min(1),
@@ -57,7 +59,11 @@ function extractProfileFromSnapshot(snapshot: any) {
 export async function GET() {
     const session = await auth();
     if (!session?.user?.id) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        return errors.unauthorized();
+    }
+    const hasAccess = await hasActiveSubscription(session.user.id);
+    if (!hasAccess) {
+        return errors.subscriptionRequired('Talent Pool');
     }
 
     const profile = await prisma.talentProfile.findUnique({
@@ -70,7 +76,11 @@ export async function GET() {
 export async function POST(request: NextRequest) {
     const session = await auth();
     if (!session?.user?.id) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        return errors.unauthorized();
+    }
+    const hasAccess = await hasActiveSubscription(session.user.id);
+    if (!hasAccess) {
+        return errors.subscriptionRequired('Talent Pool');
     }
 
     const body = await request.json();

@@ -2,6 +2,7 @@ import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { success, errors, handleError } from '@/lib/api-response';
 import { getAnalyticsRetentionDays } from '@/lib/seera-link/analytics';
+import { hasActiveSubscription } from '@/lib/subscription';
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -14,6 +15,10 @@ export async function GET(request: Request, { params }: RouteParams) {
     const session = await auth();
     if (!session?.user?.id) {
       return errors.unauthorized();
+    }
+    const hasAccess = await hasActiveSubscription(session.user.id);
+    if (!hasAccess) {
+      return errors.subscriptionRequired('Seera Link');
     }
 
     const { searchParams } = new URL(request.url);

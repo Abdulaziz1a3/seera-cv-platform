@@ -117,7 +117,7 @@ export default function ResumesPage() {
             return;
         }
         try {
-            const response = await fetch(`/api/resumes/${id}`);
+            const response = await fetch(`/api/resumes/${id}/export`);
             if (!response.ok) {
                 throw new Error('Failed to load resume');
             }
