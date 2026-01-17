@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
             const pdfData = await pdfParse(buffer);
             extractedText = pdfData.text || '';
         } else if (isDocx) {
-            const docxResult = await mammoth.extractRawText({ arrayBuffer });
+            const docxResult = await mammoth.extractRawText({ buffer });
             extractedText = docxResult.value || '';
         }
 
