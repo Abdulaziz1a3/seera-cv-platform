@@ -71,16 +71,20 @@ export async function GET(
         };
 
         const exportResult = await exportResume(exportPayload, format as 'docx' | 'txt');
-        const fileData =
+        const body =
             typeof exportResult.data === 'string'
-                ? Buffer.from(exportResult.data, 'utf-8')
-                : exportResult.data;
+                ? exportResult.data
+                : new Uint8Array(exportResult.data);
+        const byteLength =
+            typeof exportResult.data === 'string'
+                ? Buffer.byteLength(exportResult.data, 'utf-8')
+                : exportResult.data.length;
 
-        return new NextResponse(fileData, {
+        return new NextResponse(body, {
             headers: {
                 'Content-Type': exportResult.contentType,
                 'Content-Disposition': `attachment; filename="${exportResult.fileName}"`,
-                'Content-Length': fileData.length.toString(),
+                'Content-Length': byteLength.toString(),
             },
         });
     }
