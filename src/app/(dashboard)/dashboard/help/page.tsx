@@ -134,12 +134,6 @@ export default function DashboardHelpPage() {
                             {isArabic ? 'الاطلاع على الدليل الكامل' : 'Open full guide'}
                         </Link>
                     </Button>
-                    <Button variant="outline" asChild>
-                        <Link href="/contact">
-                            <LifeBuoy className="h-4 w-4 me-2" />
-                            {isArabic ? 'تواصل مع الدعم' : 'Contact support'}
-                        </Link>
-                    </Button>
                 </div>
             </div>
 
