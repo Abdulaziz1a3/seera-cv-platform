@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useLocale } from '@/components/providers/locale-provider';
 import { useResumes } from '@/components/providers/resume-provider';
@@ -26,6 +27,10 @@ export default function DashboardPage() {
     const { data: session } = useSession();
     const { locale, t } = useLocale();
     const { resumes, isLoading } = useResumes();
+    const [creditsSummary, setCreditsSummary] = useState<{
+        baseCredits: number;
+        remainingCredits: number;
+    } | null>(null);
 
     const firstName = session?.user?.name?.split(' ')[0] || 'User';
 
@@ -38,6 +43,8 @@ export default function DashboardPage() {
     };
 
     const recentResumes = resumes.slice(0, 3);
+    const baseCredits = creditsSummary?.baseCredits ?? 50;
+    const remainingCredits = creditsSummary?.remainingCredits ?? 0;
 
     const quickActions = [
         {
@@ -74,6 +81,24 @@ export default function DashboardPage() {
         if (diffDays < 7) return locale === 'ar' ? `منذ ${diffDays} أيام` : `${diffDays} days ago`;
         return date.toLocaleDateString(locale === 'ar' ? 'ar-SA' : 'en-US');
     };
+
+    useEffect(() => {
+        if (!session?.user?.id) return;
+        let mounted = true;
+        fetch('/api/credits')
+            .then((res) => (res.ok ? res.json() : null))
+            .then((data) => {
+                if (!mounted || !data) return;
+                setCreditsSummary({
+                    baseCredits: data.baseCredits ?? 50,
+                    remainingCredits: data.remainingCredits ?? 0,
+                });
+            })
+            .catch(() => null);
+        return () => {
+            mounted = false;
+        };
+    }, [session?.user?.id]);
 
     // Skeleton loader for stats
     const StatSkeleton = () => (
@@ -215,16 +240,16 @@ export default function DashboardPage() {
                     <Card className="relative overflow-hidden">
                         <div className="absolute top-0 end-0 h-24 w-24 bg-gradient-to-bl from-purple-500/10 to-transparent rounded-bl-full" />
                         <CardContent className="pt-6">
-                            <div className="flex items-center gap-3">
-                                <div className="h-12 w-12 rounded-xl bg-purple-500/10 flex items-center justify-center">
-                                    <Sparkles className="h-6 w-6 text-purple-500" />
-                                </div>
-                                <div>
-                                    <p className="text-2xl font-bold">0/3</p>
-                                    <p className="text-sm text-muted-foreground">{t.dashboard.stats.aiCredits}</p>
-                                </div>
+                        <div className="flex items-center gap-3">
+                            <div className="h-12 w-12 rounded-xl bg-purple-500/10 flex items-center justify-center">
+                                <Sparkles className="h-6 w-6 text-purple-500" />
                             </div>
-                        </CardContent>
+                            <div>
+                                <p className="text-2xl font-bold">{remainingCredits} / {baseCredits}</p>
+                                <p className="text-sm text-muted-foreground">{t.dashboard.stats.aiCredits}</p>
+                            </div>
+                        </div>
+                    </CardContent>
                     </Card>
                 </div>
             )}
