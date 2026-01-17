@@ -168,7 +168,9 @@ export default function LiveInterviewPage() {
     const [audioErrorShown, setAudioErrorShown] = useState(false);
     const [micErrorShown, setMicErrorShown] = useState(false);
     const [ttsFallbackActive, setTtsFallbackActive] = useState(false);
+    const [ttsErrorShown, setTtsErrorShown] = useState(false);
     const [micRequesting, setMicRequesting] = useState(false);
+    const [micReady, setMicReady] = useState(false);
 
     // Text input mode
     const [useTextInput, setUseTextInput] = useState(false);
@@ -246,8 +248,10 @@ export default function LiveInterviewPage() {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
             stream.getTracks().forEach((track) => track.stop());
             setMicPermissionDenied(false);
+            setMicReady(true);
             return true;
         } catch (error) {
+            setMicReady(false);
             setMicPermissionDenied(true);
             if (!micErrorShown) {
                 setMicErrorShown(true);
@@ -258,6 +262,13 @@ export default function LiveInterviewPage() {
             setMicRequesting(false);
         }
     }, [interviewLang, micErrorShown]);
+
+    const handleRequestMic = useCallback(async () => {
+        const ok = await requestMicAccess();
+        if (ok) {
+            toast.success(interviewLang.startsWith('ar') ? 'تم تفعيل الميكروفون' : 'Microphone enabled');
+        }
+    }, [interviewLang, requestMicAccess]);
 
     const pickSpeechVoice = useCallback(() => {
         if (typeof window === 'undefined' || !('speechSynthesis' in window)) return undefined;
@@ -396,7 +407,15 @@ export default function LiveInterviewPage() {
                 body: JSON.stringify({ text, voice: selectedVoice }),
             });
 
-            if (!response.ok) throw new Error('TTS failed');
+            if (!response.ok) {
+                const errorPayload = await response.json().catch(() => null);
+                const message =
+                    errorPayload?.error?.message ||
+                    errorPayload?.error ||
+                    errorPayload?.message ||
+                    `TTS failed (${response.status})`;
+                throw new Error(message);
+            }
 
             const audioBlob = await response.blob();
             const audioUrl = URL.createObjectURL(audioBlob);
@@ -428,9 +447,18 @@ export default function LiveInterviewPage() {
         } catch (error) {
             console.error('TTS error:', error);
             setIsSpeaking(false);
+            if (!ttsErrorShown) {
+                setTtsErrorShown(true);
+                const message = error instanceof Error ? error.message : 'TTS failed';
+                toast.error(
+                    interviewLang.startsWith('ar')
+                        ? `تعذر تشغيل صوت الذكاء الاصطناعي: ${message}`
+                        : `AI voice unavailable: ${message}`
+                );
+            }
             await speakWithBrowser(text);
         }
-    }, [isMuted, selectedVoice, audioErrorShown, locale, startListening, stopListening, unlockAudio, speakWithBrowser]);
+    }, [isMuted, selectedVoice, audioErrorShown, interviewLang, locale, startListening, stopListening, unlockAudio, speakWithBrowser, ttsErrorShown]);
 
     // Process user response
     const processUserResponse = useCallback(async (answer: string) => {
@@ -698,6 +726,8 @@ export default function LiveInterviewPage() {
         setIsLoading(true);
         setSummaryData(null);
         setSummaryLoading(false);
+        setTtsErrorShown(false);
+        setTtsFallbackActive(false);
 
         try {
             await unlockAudio();
@@ -1011,6 +1041,41 @@ export default function LiveInterviewPage() {
                                             <SelectItem value="onyx">Onyx (Male - Deep)</SelectItem>
                                         </SelectContent>
                                     </Select>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium flex items-center gap-2">
+                                        <Mic className="h-4 w-4" />
+                                        {locale === 'ar' ? 'الميكروفون' : 'Microphone'}
+                                    </label>
+                                    <div className="flex flex-wrap items-center gap-3">
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            onClick={handleRequestMic}
+                                            disabled={micRequesting || !speechSupported}
+                                        >
+                                            {micRequesting
+                                                ? (locale === 'ar' ? 'جارٍ التفعيل...' : 'Enabling...')
+                                                : micReady
+                                                    ? (locale === 'ar' ? 'الميكروفون جاهز' : 'Microphone ready')
+                                                    : (locale === 'ar' ? 'تفعيل الميكروفون' : 'Enable microphone')}
+                                        </Button>
+                                        <span className="text-xs text-muted-foreground">
+                                            {micPermissionDenied
+                                                ? (locale === 'ar'
+                                                    ? 'مرفوض - فعّل الإذن من إعدادات المتصفح'
+                                                    : 'Blocked - enable permission in browser settings')
+                                                : micReady
+                                                    ? (locale === 'ar' ? 'الإذن مفعّل ويمكنك البدء' : 'Permission granted and ready')
+                                                    : (locale === 'ar' ? 'يفتح نافذة الإذن قبل البداية' : 'Prompts permission before starting')}
+                                        </span>
+                                    </div>
+                                    {!speechSupported && (
+                                        <p className="text-xs text-amber-600">
+                                            {locale === 'ar' ? 'المتصفح لا يدعم التعرف على الصوت - استخدم الكتابة' : 'Browser does not support voice input - use text instead'}
+                                        </p>
+                                    )}
                                 </div>
 
                                 <Button className="w-full h-14 text-lg" onClick={startInterview} disabled={!targetRole || isLoading}>
