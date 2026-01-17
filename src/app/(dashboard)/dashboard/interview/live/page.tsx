@@ -167,6 +167,8 @@ export default function LiveInterviewPage() {
     const [audioUnlocked, setAudioUnlocked] = useState(false);
     const [audioErrorShown, setAudioErrorShown] = useState(false);
     const [micErrorShown, setMicErrorShown] = useState(false);
+    const [ttsFallbackActive, setTtsFallbackActive] = useState(false);
+    const [micRequesting, setMicRequesting] = useState(false);
 
     // Text input mode
     const [useTextInput, setUseTextInput] = useState(false);
@@ -232,6 +234,59 @@ export default function LiveInterviewPage() {
         }
     }, [audioUnlocked, audioErrorShown, locale]);
 
+    const requestMicAccess = useCallback(async () => {
+        if (!navigator?.mediaDevices?.getUserMedia) {
+            setSpeechSupported(false);
+            setUseTextInput(true);
+            return false;
+        }
+
+        try {
+            setMicRequesting(true);
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            stream.getTracks().forEach((track) => track.stop());
+            setMicPermissionDenied(false);
+            return true;
+        } catch (error) {
+            setMicPermissionDenied(true);
+            if (!micErrorShown) {
+                setMicErrorShown(true);
+                toast.error(interviewLang.startsWith('ar') ? 'الميكروفون غير مسموح' : 'Microphone permission denied');
+            }
+            return false;
+        } finally {
+            setMicRequesting(false);
+        }
+    }, [interviewLang, micErrorShown]);
+
+    const pickSpeechVoice = useCallback(() => {
+        if (typeof window === 'undefined' || !('speechSynthesis' in window)) return undefined;
+        const voices = window.speechSynthesis.getVoices();
+        if (!voices.length) return undefined;
+
+        const langPrefix = interviewLang === 'en' ? 'en' : 'ar';
+        const isFemalePreferred = selectedVoice === 'nova' || selectedVoice === 'shimmer';
+        const isMalePreferred = selectedVoice === 'echo' || selectedVoice === 'onyx';
+        const candidates = voices.filter((voice) => voice.lang.toLowerCase().startsWith(langPrefix));
+        const fallbackVoice = candidates[0] || voices[0];
+
+        const femaleHints = ['female', 'zira', 'samantha', 'victoria', 'karen', 'susan', 'tessa', 'serena', 'sara'];
+        const maleHints = ['male', 'david', 'alex', 'daniel', 'mark', 'fred', 'jorge', 'juan'];
+
+        const matchByHints = (hints: string[]) =>
+            candidates.find((voice) => hints.some((hint) => voice.name.toLowerCase().includes(hint)));
+
+        if (isFemalePreferred) {
+            return matchByHints(femaleHints) || fallbackVoice;
+        }
+
+        if (isMalePreferred) {
+            return matchByHints(maleHints) || fallbackVoice;
+        }
+
+        return fallbackVoice;
+    }, [interviewLang, selectedVoice]);
+
     // Stop listening
     const stopListening = useCallback(() => {
         if (silenceTimerRef.current) {
@@ -252,6 +307,7 @@ export default function LiveInterviewPage() {
 
     // Start listening
     const startListening = useCallback(() => {
+        if (micRequesting) return;
         if (!recognitionRef.current || isSpeaking || isLoading || useTextInput || !autoListenRef.current) return;
         try {
             pendingAnswerRef.current = '';
@@ -266,36 +322,59 @@ export default function LiveInterviewPage() {
                 toast.error(locale === 'ar' ? 'الميكروفون غير متاح - استخدم الكتابة' : 'Microphone not available - use text input');
             }
         }
-    }, [isSpeaking, isLoading, locale, micErrorShown, useTextInput]);
+    }, [isSpeaking, isLoading, locale, micErrorShown, micRequesting, useTextInput]);
 
     const speakWithBrowser = useCallback(async (text: string): Promise<void> => {
         if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
             return;
         }
 
-        return new Promise((resolve) => {
-            try {
-                const utterance = new SpeechSynthesisUtterance(text);
-                utterance.lang = interviewLang === 'en' ? 'en-US' : 'ar-SA';
-                utterance.rate = 0.95;
-                utterance.onend = () => {
-                    setIsSpeaking(false);
-                    setTimeout(() => startListening(), 500);
-                    resolve();
-                };
-                utterance.onerror = () => {
-                    setIsSpeaking(false);
-                    resolve();
-                };
+        setTtsFallbackActive(true);
 
-                window.speechSynthesis.cancel();
-                window.speechSynthesis.speak(utterance);
-            } catch {
-                setIsSpeaking(false);
-                resolve();
+        return new Promise((resolve) => {
+            const synth = window.speechSynthesis;
+            const speakNow = () => {
+                try {
+                    const utterance = new SpeechSynthesisUtterance(text);
+                    utterance.lang = interviewLang === 'en' ? 'en-US' : 'ar-SA';
+                    utterance.rate = 0.95;
+                    const preferredVoice = pickSpeechVoice();
+                    if (preferredVoice) {
+                        utterance.voice = preferredVoice;
+                    }
+                    utterance.onend = () => {
+                        setIsSpeaking(false);
+                        setTimeout(() => startListening(), 500);
+                        resolve();
+                    };
+                    utterance.onerror = () => {
+                        setIsSpeaking(false);
+                        resolve();
+                    };
+
+                    synth.cancel();
+                    synth.speak(utterance);
+                } catch {
+                    setIsSpeaking(false);
+                    resolve();
+                }
+            };
+
+            if (synth.getVoices().length === 0) {
+                const onVoicesChanged = () => {
+                    synth.removeEventListener('voiceschanged', onVoicesChanged);
+                    speakNow();
+                };
+                synth.addEventListener('voiceschanged', onVoicesChanged);
+                window.setTimeout(() => {
+                    synth.removeEventListener('voiceschanged', onVoicesChanged);
+                    speakNow();
+                }, 350);
+            } else {
+                speakNow();
             }
         });
-    }, [interviewLang, startListening]);
+    }, [interviewLang, pickSpeechVoice, startListening]);
 
     // Speak using OpenAI TTS
     const speak = useCallback(async (text: string): Promise<void> => {
@@ -321,6 +400,7 @@ export default function LiveInterviewPage() {
 
             const audioBlob = await response.blob();
             const audioUrl = URL.createObjectURL(audioBlob);
+            setTtsFallbackActive(false);
             audioRef.current.src = audioUrl;
 
             return new Promise((resolve) => {
@@ -330,8 +410,9 @@ export default function LiveInterviewPage() {
                     setTimeout(() => startListening(), 500);
                     resolve();
                 };
-                audioRef.current!.onerror = () => {
+                audioRef.current!.onerror = async () => {
                     setIsSpeaking(false);
+                    await speakWithBrowser(text);
                     resolve();
                 };
                 audioRef.current!.play().catch(() => {
@@ -340,6 +421,7 @@ export default function LiveInterviewPage() {
                         setAudioErrorShown(true);
                         toast.error(locale === 'ar' ? 'تعذر تشغيل الصوت' : 'Audio playback blocked');
                     }
+                    speakWithBrowser(text);
                     resolve();
                 });
             });
@@ -715,8 +797,8 @@ export default function LiveInterviewPage() {
         }
     };
 
-    const toggleMicrophone = () => {
-        if (!speechSupported || micPermissionDenied) {
+    const toggleMicrophone = async () => {
+        if (!speechSupported) {
             setUseTextInput(true);
             autoListenRef.current = false;
             if (!micErrorShown) {
@@ -729,6 +811,13 @@ export default function LiveInterviewPage() {
             autoListenRef.current = false;
             stopListening();
         } else {
+            if (micRequesting) return;
+            const micOk = await requestMicAccess();
+            if (!micOk) {
+                setUseTextInput(true);
+                autoListenRef.current = false;
+                return;
+            }
             setUseTextInput(false);
             autoListenRef.current = true;
             startListening();
@@ -1020,7 +1109,7 @@ export default function LiveInterviewPage() {
                                             size="lg"
                                             className={`h-20 w-20 rounded-full ${isListening ? 'bg-green-500 hover:bg-green-600' : isSpeaking ? 'bg-blue-500' : ''}`}
                                             onClick={toggleMicrophone}
-                                            disabled={isLoading || isSpeaking || !speechSupported || micPermissionDenied}
+                                            disabled={isLoading || isSpeaking || !speechSupported || micRequesting}
                                         >
                                             {isListening ? <Mic className="h-8 w-8" /> : <MicOff className="h-8 w-8" />}
                                         </Button>
@@ -1033,15 +1122,29 @@ export default function LiveInterviewPage() {
                                 </div>
 
                                 <p className="text-center text-sm text-muted-foreground">
-                                    {isSpeaking
-                                        ? (interviewLang === 'ar-sa' ? '🔊 سارة تتكلم...' : '🔊 Speaking...')
-                                        : isListening
-                                            ? (interviewLang === 'ar-sa' ? '🎙️ أسمعك... تكلم!' : '🎙️ Listening...')
-                                            : '🔇 Click mic'}
+                                    {micRequesting
+                                        ? (interviewLang.startsWith('ar') ? '🎙️ جاري طلب إذن الميكروفون...' : '🎙️ Requesting microphone permission...')
+                                        : isSpeaking
+                                            ? (interviewLang === 'ar-sa' ? '🔊 سارة تتكلم...' : '🔊 Speaking...')
+                                            : isListening
+                                                ? (interviewLang === 'ar-sa' ? '🎙️ أسمعك... تكلم!' : '🎙️ Listening...')
+                                                : '🔇 Click mic'}
                                 </p>
                                 {!speechSupported && (
                                     <p className="text-center text-xs text-amber-600">
                                         {locale === 'ar' ? 'المتصفح لا يدعم التعرف على الصوت - استخدم الكتابة' : 'Browser does not support voice input - use text instead'}
+                                    </p>
+                                )}
+                                {micPermissionDenied && (
+                                    <p className="text-center text-xs text-amber-600">
+                                        {interviewLang.startsWith('ar')
+                                            ? 'الميكروفون محظور - فعّل الإذن من إعدادات المتصفح ثم اضغط الميكروفون'
+                                            : 'Microphone blocked - enable permission in browser settings, then press the mic'}
+                                    </p>
+                                )}
+                                {ttsFallbackActive && (
+                                    <p className="text-center text-xs text-amber-600">
+                                        {interviewLang.startsWith('ar') ? 'الصوت من الجهاز (تعذر تفعيل صوت الذكاء الاصطناعي)' : 'Using device voice (AI voice unavailable)'}
                                     </p>
                                 )}
 
