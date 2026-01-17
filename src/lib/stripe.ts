@@ -431,6 +431,7 @@ export async function canPerformAction(
             EXPORT_DOCX: 'downloadLimit',
             RESUME_CREATE: 'resumeLimit',
             JD_ANALYSIS: 'aiUsageLimit',
+            AI_CREDIT_TOPUP: 'aiUsageLimit',
         };
 
         const limitKey = limitMap[actionType];
