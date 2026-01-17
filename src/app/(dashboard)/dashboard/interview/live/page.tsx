@@ -99,6 +99,39 @@ const PHRASES = {
 const SILENT_AUDIO_DATA_URL =
     'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABAAZGF0YQAAAAA=';
 
+const FALLBACK_QUESTIONS = {
+    en: [
+        'Why are you interested in this role?',
+        'Tell me about a professional achievement you are proud of.',
+        'Describe a time you faced a challenge and how you solved it.',
+        'How do you prioritize when you have multiple deadlines?',
+        'What makes you a strong fit for this position?',
+        'Tell me about a time you received feedback and what you did with it.',
+        'How do you collaborate with teammates under pressure?',
+        'What are your strengths and areas for improvement?',
+    ],
+    ar: [
+        'لماذا ترغب في هذه الوظيفة؟',
+        'حدثني عن إنجاز مهني تفخر به.',
+        'صف موقفاً واجهت فيه تحدياً وكيف حللته.',
+        'كيف ترتب أولوياتك عند وجود عدة مواعيد نهائية؟',
+        'ما الذي يجعلك مناسباً لهذا الدور؟',
+        'كيف تتعامل مع الملاحظات أو النقد البنّاء؟',
+        'كيف تتعاون مع فريقك تحت الضغط؟',
+        'ما هي نقاط قوتك ومجالات التحسين لديك؟',
+    ],
+    'ar-sa': [
+        'ليه مهتم بهالوظيفة؟',
+        'علمني عن إنجاز مهني تفتخر فيه.',
+        'قلي عن موقف صار فيه تحدي وكيف حلّيته.',
+        'كيف ترتّب أولوياتك لو عندك أكثر من موعد نهائي؟',
+        'وش اللي يخليك مناسب لهالدور؟',
+        'كيف تتعامل مع الملاحظات أو النقد البنّاء؟',
+        'كيف تتعاون مع فريقك وقت الضغط؟',
+        'وش نقاط قوتك وأشياء تبي تحسنها؟',
+    ],
+};
+
 export default function LiveInterviewPage() {
     const { locale } = useLocale();
 
@@ -172,6 +205,15 @@ export default function LiveInterviewPage() {
         audioRef.current = new Audio();
     }, []);
 
+    const buildFallbackQuestions = useCallback(() => {
+        const list = FALLBACK_QUESTIONS[interviewLang] || FALLBACK_QUESTIONS.en;
+        const count = Math.max(3, Math.min(questionCount, list.length));
+        return list.slice(0, count).map((question) => ({
+            question,
+            category: 'behavioral',
+        }));
+    }, [interviewLang, questionCount]);
+
     const unlockAudio = useCallback(async () => {
         if (!audioRef.current || audioUnlocked) return;
         try {
@@ -226,9 +268,43 @@ export default function LiveInterviewPage() {
         }
     }, [isSpeaking, isLoading, locale, micErrorShown, useTextInput]);
 
+    const speakWithBrowser = useCallback(async (text: string): Promise<void> => {
+        if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
+            return;
+        }
+
+        return new Promise((resolve) => {
+            try {
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = interviewLang === 'en' ? 'en-US' : 'ar-SA';
+                utterance.rate = 0.95;
+                utterance.onend = () => {
+                    setIsSpeaking(false);
+                    setTimeout(() => startListening(), 500);
+                    resolve();
+                };
+                utterance.onerror = () => {
+                    setIsSpeaking(false);
+                    resolve();
+                };
+
+                window.speechSynthesis.cancel();
+                window.speechSynthesis.speak(utterance);
+            } catch {
+                setIsSpeaking(false);
+                resolve();
+            }
+        });
+    }, [interviewLang, startListening]);
+
     // Speak using OpenAI TTS
     const speak = useCallback(async (text: string): Promise<void> => {
-        if (isMuted || !audioRef.current) return;
+        if (isMuted) return;
+        if (!audioRef.current) {
+            setIsSpeaking(true);
+            await speakWithBrowser(text);
+            return;
+        }
 
         try {
             setIsSpeaking(true);
@@ -270,9 +346,9 @@ export default function LiveInterviewPage() {
         } catch (error) {
             console.error('TTS error:', error);
             setIsSpeaking(false);
-            setTimeout(() => startListening(), 500);
+            await speakWithBrowser(text);
         }
-    }, [isMuted, selectedVoice, audioErrorShown, locale, startListening, stopListening, unlockAudio]);
+    }, [isMuted, selectedVoice, audioErrorShown, locale, startListening, stopListening, unlockAudio, speakWithBrowser]);
 
     // Process user response
     const processUserResponse = useCallback(async (answer: string) => {
@@ -543,31 +619,51 @@ export default function LiveInterviewPage() {
 
         try {
             await unlockAudio();
-            const res = await fetch('/api/interview', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    action: 'generate-questions',
-                    context: {
-                        targetRole,
-                        experienceLevel,
-                        locale: interviewLang,
-                        // Tell AI to use Saudi dialect if selected
-                        dialect: interviewLang === 'ar-sa' ? 'saudi_casual' : undefined,
-                    },
-                    count: questionCount,
-                }),
-            });
-            const payload = await res.json().catch(() => ({}));
-            if (!res.ok) {
-                throw new Error(payload?.error || 'Failed to generate questions');
+            let generatedQuestions: Array<{ question: string; category: string }> = [];
+
+            try {
+                const res = await fetch('/api/interview', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'generate-questions',
+                        context: {
+                            targetRole,
+                            experienceLevel,
+                            locale: interviewLang,
+                            // Tell AI to use Saudi dialect if selected
+                            dialect: interviewLang === 'ar-sa' ? 'saudi_casual' : undefined,
+                        },
+                        count: questionCount,
+                    }),
+                });
+
+                const payload = await res.json().catch(() => ({}));
+
+                if (res.ok && Array.isArray(payload?.result) && payload.result.length > 0) {
+                    generatedQuestions = payload.result;
+                } else {
+                    const apiError = payload?.error || payload?.message;
+                    if (apiError) {
+                        toast.error(
+                            interviewLang.startsWith('ar')
+                                ? `تعذر إنشاء الأسئلة: ${apiError}`
+                                : `Failed to generate questions: ${apiError}`
+                        );
+                    } else {
+                        toast.error(interviewLang.startsWith('ar') ? 'تعذر إنشاء الأسئلة' : 'Failed to generate questions');
+                    }
+                }
+            } catch (error) {
+                console.error('Question generation error:', error);
+                toast.error(interviewLang.startsWith('ar') ? 'تعذر الاتصال بالخادم' : 'Failed to contact server');
             }
-            const { result } = payload;
-            if (result?.length > 0) {
-                setQuestions(result);
-            } else {
-                setQuestions([]);
+
+            if (generatedQuestions.length === 0) {
+                generatedQuestions = buildFallbackQuestions();
             }
+
+            setQuestions(generatedQuestions);
 
             setMessages([]);
             setResults([]);
@@ -581,7 +677,6 @@ export default function LiveInterviewPage() {
 
             setMessages([{ id: '1', role: 'interviewer', content: greeting, timestamp: new Date() }]);
             await speak(greeting);
-
         } catch (error) {
             console.error('Start error:', error);
             toast.error(interviewLang.startsWith('ar') ? 'فشل البدء' : 'Failed to start');

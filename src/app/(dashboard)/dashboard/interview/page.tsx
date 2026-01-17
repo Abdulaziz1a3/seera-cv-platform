@@ -150,12 +150,41 @@ export default function InterviewPrepPage() {
         };
     }, [locale]);
 
+    const speakWithBrowser = useCallback(async (text: string) => {
+        if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
+            setIsPlaying(false);
+            return;
+        }
+
+        return new Promise<void>((resolve) => {
+            try {
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = locale === 'ar' ? 'ar-SA' : 'en-US';
+                utterance.rate = 0.95;
+                utterance.onend = () => {
+                    setIsPlaying(false);
+                    resolve();
+                };
+                utterance.onerror = () => {
+                    setIsPlaying(false);
+                    resolve();
+                };
+
+                window.speechSynthesis.cancel();
+                window.speechSynthesis.speak(utterance);
+            } catch {
+                setIsPlaying(false);
+                resolve();
+            }
+        });
+    }, [locale]);
+
     // Play AI voice
     const playInterviewerVoice = async (text: string) => {
         if (isMuted) return;
 
+        setIsPlaying(true);
         try {
-            setIsPlaying(true);
             const response = await fetch('/api/interview/tts', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -169,14 +198,17 @@ export default function InterviewPrepPage() {
 
             if (audioRef.current) {
                 audioRef.current.src = audioUrl;
+                audioRef.current.onended = () => setIsPlaying(false);
+                audioRef.current.onerror = () => setIsPlaying(false);
                 audioRef.current.play().catch(() => {
                     setIsPlaying(false);
                 });
+            } else {
+                setIsPlaying(false);
             }
         } catch (error) {
             console.error('TTS error:', error);
-        } finally {
-            setIsPlaying(false);
+            await speakWithBrowser(text);
         }
     };
 
