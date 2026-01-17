@@ -99,7 +99,7 @@ function coerceQuestions(
     context: InterviewContext,
     count: number
 ): InterviewQuestion[] {
-    const normalized = questions
+    const normalized: InterviewQuestion[] = questions
         .map((q: any, i: number) => ({
             id: q?.id || `q-${i + 1}`,
             question: q?.question || q?.text || q,
