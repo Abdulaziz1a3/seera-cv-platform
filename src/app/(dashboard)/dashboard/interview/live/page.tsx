@@ -158,14 +158,6 @@ export default function LiveInterviewPage() {
         phaseRef.current = phase;
     }, [phase]);
 
-    useEffect(() => {
-        const isInteractive = ['greeting', 'warmup', 'interview', 'closing'].includes(phase);
-        if (!isInteractive) {
-            autoListenRef.current = false;
-            stopListening();
-        }
-    }, [phase, stopListening]);
-
     // Auto-scroll
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -207,6 +199,14 @@ export default function LiveInterviewPage() {
         try { recognitionRef.current?.stop(); } catch (e) { }
         setIsListening(false);
     }, []);
+
+    useEffect(() => {
+        const isInteractive = ['greeting', 'warmup', 'interview', 'closing'].includes(phase);
+        if (!isInteractive) {
+            autoListenRef.current = false;
+            stopListening();
+        }
+    }, [phase, stopListening]);
 
     // Start listening
     const startListening = useCallback(() => {
