@@ -42,7 +42,8 @@ export async function POST(request: NextRequest) {
                 result = await conductInterview(
                     params.messages,
                     params.context,
-                    params.currentQuestion
+                    params.currentQuestion,
+                    params.nextQuestion
                 );
                 break;
 

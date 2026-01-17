@@ -52,7 +52,6 @@ import { ATSScorePanel } from '@/components/resume-editor/ats-score-panel';
 import { TemplateSelector } from '@/components/resume-editor/template-selector';
 import { LivePreview } from '@/components/resume-editor/live-preview';
 import { useLocale } from '@/components/providers/locale-provider';
-import { downloadPDF } from '@/lib/templates/renderer';
 import { PaywallModal } from '@/components/paywall-modal';
 import type { TemplateId, ThemeId } from '@/lib/resume-types';
 import type { ResumeRecord } from '@/lib/resume-data';
@@ -269,6 +268,37 @@ export default function ResumeEditorPage() {
         handleChange('theme', themeId);
     };
 
+    const getFileNameFromDisposition = (disposition: string | null) => {
+        if (!disposition) return '';
+        const match = /filename="([^"]+)"/i.exec(disposition);
+        return match?.[1] || '';
+    };
+
+    const downloadExportFile = async (format: 'docx' | 'txt') => {
+        const response = await fetch(`/api/resumes/${resumeId}/export?format=${format}`);
+        if (response.status === 403) {
+            setPaywallOpen(true);
+            return;
+        }
+        if (!response.ok) {
+            throw new Error('Failed to export resume');
+        }
+
+        const blob = await response.blob();
+        const fileName =
+            getFileNameFromDisposition(response.headers.get('Content-Disposition')) ||
+            `${resume?.title || 'resume'}.${format}`;
+
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    };
+
     // Export resume
     const handleExport = async (format: 'pdf' | 'docx' | 'txt') => {
         if (!resume) return;
@@ -278,56 +308,34 @@ export default function ResumeEditorPage() {
         }
 
         try {
-            const response = await fetch(`/api/resumes/${resumeId}/export`);
-            if (response.status === 403) {
-                setPaywallOpen(true);
-                return;
-            }
-            if (!response.ok) {
-                throw new Error('Failed to load resume');
-            }
-            const exportPayload = await response.json();
-            const exportResume = mapResumeRecordToResumeData(exportPayload);
-
             if (format === 'pdf') {
+                const response = await fetch(`/api/resumes/${resumeId}/export`);
+                if (response.status === 403) {
+                    setPaywallOpen(true);
+                    return;
+                }
+                if (!response.ok) {
+                    throw new Error('Failed to load resume');
+                }
+
+                const exportPayload = await response.json();
+                const exportResume = mapResumeRecordToResumeData(exportPayload);
+                const { downloadPDF } = await import('@/lib/templates/renderer');
                 await downloadPDF(exportResume);
                 toast.success(locale === 'ar' ? 'تم تصدير PDF' : 'PDF exported successfully');
-            } else if (format === 'txt') {
-                let text = `${exportResume.contact.fullName}\n`;
-                text += `${exportResume.contact.email} | ${exportResume.contact.phone}\n`;
-                if (exportResume.contact.location) text += `${exportResume.contact.location}\n`;
-                text += '\n';
-                if (exportResume.summary) text += `SUMMARY\n${exportResume.summary}\n\n`;
-                if (exportResume.experience.length) {
-                    text += 'EXPERIENCE\n';
-                    exportResume.experience.forEach(exp => {
-                        text += `${exp.position} at ${exp.company}\n`;
-                        exp.bullets.forEach(b => text += `• ${b}\n`);
-                        text += '\n';
-                    });
-                }
-                if (exportResume.education.length) {
-                    text += 'EDUCATION\n';
-                    exportResume.education.forEach(edu => {
-                        text += `${edu.degree}${edu.field ? ' in ' + edu.field : ''}\n`;
-                        text += `${edu.institution}\n\n`;
-                    });
-                }
-                if (exportResume.skills.length) {
-                    text += `SKILLS\n${exportResume.skills.join(', ')}\n`;
-                }
-
-                const blob = new Blob([text], { type: 'text/plain' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `${exportResume.title}.txt`;
-                a.click();
-                URL.revokeObjectURL(url);
-                toast.success(locale === 'ar' ? 'تم تصدير النص' : 'TXT exported successfully');
-            } else {
-                toast.info(locale === 'ar' ? 'تصدير DOCX قريبًا' : 'DOCX export coming soon');
+                return;
             }
+
+            await downloadExportFile(format);
+            toast.success(
+                locale === 'ar'
+                    ? format === 'docx'
+                        ? 'تم تصدير DOCX'
+                        : 'تم تصدير النص'
+                    : format === 'docx'
+                        ? 'DOCX exported successfully'
+                        : 'TXT exported successfully'
+            );
         } catch (error) {
             console.error('Export error:', error);
             toast.error(locale === 'ar' ? 'فشل التصدير' : 'Failed to export resume');

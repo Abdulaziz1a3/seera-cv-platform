@@ -27,7 +27,7 @@ function getRateLimitKey(ip: string, path: string): string {
     return `${ip}:/api`;
 }
 
-function checkRateLimit(ip: string, path: string): { allowed: boolean; remaining: number } {
+function checkRateLimit(ip: string, path: string): { allowed: boolean; remaining: number; resetTime: number } {
     const key = getRateLimitKey(ip, path);
     const now = Date.now();
     const windowMs = 60000;
@@ -52,21 +52,25 @@ function checkRateLimit(ip: string, path: string): { allowed: boolean; remaining
     }
 
     if (!existing || existing.resetTime < now) {
-        rateLimitMap.set(key, { count: 1, resetTime: now + windowMs });
-        return { allowed: true, remaining: limit - 1 };
+        const resetTime = now + windowMs;
+        rateLimitMap.set(key, { count: 1, resetTime });
+        return { allowed: true, remaining: limit - 1, resetTime };
     }
 
     existing.count++;
 
     if (existing.count > limit) {
-        return { allowed: false, remaining: 0 };
+        return { allowed: false, remaining: 0, resetTime: existing.resetTime };
     }
 
-    return { allowed: true, remaining: limit - existing.count };
+    return { allowed: true, remaining: limit - existing.count, resetTime: existing.resetTime };
 }
 
 export async function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl;
+    const requestId = request.headers.get('x-request-id') || crypto.randomUUID();
+    const requestHeaders = new Headers(request.headers);
+    requestHeaders.set('x-request-id', requestId);
 
     // Skip middleware for static files and internal Next.js routes
     if (
@@ -75,7 +79,9 @@ export async function middleware(request: NextRequest) {
         pathname.includes('.') ||
         pathname.startsWith('/favicon')
     ) {
-        return NextResponse.next();
+        return NextResponse.next({
+            request: { headers: requestHeaders },
+        });
     }
 
     // Rate limiting for API routes only
@@ -84,23 +90,30 @@ export async function middleware(request: NextRequest) {
                    request.headers.get('x-real-ip') ||
                    'unknown';
 
-        const { allowed, remaining } = checkRateLimit(ip, pathname);
+        const { allowed, remaining, resetTime } = checkRateLimit(ip, pathname);
 
         if (!allowed) {
+            const retryAfter = Math.max(0, Math.ceil((resetTime - Date.now()) / 1000));
             return NextResponse.json(
                 { error: 'Too many requests', code: 'RATE_LIMITED' },
                 {
                     status: 429,
                     headers: {
-                        'Retry-After': '60',
+                        'Retry-After': String(retryAfter || 60),
                         'X-RateLimit-Remaining': '0',
+                        'X-RateLimit-Reset': String(Math.floor(resetTime / 1000)),
+                        'X-Request-ID': requestId,
                     }
                 }
             );
         }
 
-        const response = NextResponse.next();
+        const response = NextResponse.next({
+            request: { headers: requestHeaders },
+        });
         response.headers.set('X-RateLimit-Remaining', String(remaining));
+        response.headers.set('X-RateLimit-Reset', String(Math.floor(resetTime / 1000)));
+        response.headers.set('X-Request-ID', requestId);
         return response;
     }
 
@@ -159,8 +172,10 @@ export async function middleware(request: NextRequest) {
     }
 
     // Add security headers
-    const response = NextResponse.next();
-    response.headers.set('X-Request-ID', crypto.randomUUID());
+    const response = NextResponse.next({
+        request: { headers: requestHeaders },
+    });
+    response.headers.set('X-Request-ID', requestId);
     return response;
 }
 

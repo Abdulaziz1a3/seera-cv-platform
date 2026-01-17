@@ -96,93 +96,94 @@ export async function POST(request: Request) {
         // Create empty resume structure
         const emptyResume = createEmptyResume(data.title);
 
-        // Create resume in database
-        const resume = await prisma.resume.create({
-            data: {
-                userId: session.user.id,
-                title: data.title,
-                targetRole: data.targetRole,
-                language: data.language,
-                template: data.template,
-                theme: data.theme || 'obsidian',
-                sections: {
-                    create: [
-                        {
-                            type: 'CONTACT',
-                            title: data.language === 'ar' ? 'معلومات التواصل' : 'Contact Information',
-                            order: 0,
-                            content: emptyResume.contact,
+        const resume = await prisma.$transaction(async (tx) => {
+            const created = await tx.resume.create({
+                data: {
+                    userId: session.user.id,
+                    title: data.title,
+                    targetRole: data.targetRole,
+                    language: data.language,
+                    template: data.template,
+                    theme: data.theme || 'obsidian',
+                    sections: {
+                        create: [
+                            {
+                                type: 'CONTACT',
+                                title: data.language === 'ar' ? 'معلومات التواصل' : 'Contact Information',
+                                order: 0,
+                                content: emptyResume.contact,
+                            },
+                            {
+                                type: 'SUMMARY',
+                                title: data.language === 'ar' ? 'الملخص المهني' : 'Professional Summary',
+                                order: 1,
+                                content: { content: '' },
+                            },
+                            {
+                                type: 'EXPERIENCE',
+                                title: data.language === 'ar' ? 'الخبرات' : 'Experience',
+                                order: 2,
+                                content: { items: [] },
+                            },
+                            {
+                                type: 'EDUCATION',
+                                title: data.language === 'ar' ? 'التعليم' : 'Education',
+                                order: 3,
+                                content: { items: [] },
+                            },
+                            {
+                                type: 'SKILLS',
+                                title: data.language === 'ar' ? 'المهارات' : 'Skills',
+                                order: 4,
+                                content: { categories: [], simpleList: [] },
+                            },
+                            {
+                                type: 'PROJECTS',
+                                title: data.language === 'ar' ? 'المشاريع' : 'Projects',
+                                order: 5,
+                                content: { items: [] },
+                            },
+                            {
+                                type: 'CERTIFICATIONS',
+                                title: data.language === 'ar' ? 'الشهادات' : 'Certifications',
+                                order: 6,
+                                content: { items: [] },
+                            },
+                            {
+                                type: 'LANGUAGES',
+                                title: data.language === 'ar' ? 'اللغات' : 'Languages',
+                                order: 7,
+                                content: { items: [] },
+                            },
+                        ],
+                    },
+                    versions: {
+                        create: {
+                            version: 1,
+                            name: 'Initial version',
+                            snapshot: emptyResume,
                         },
-                        {
-                            type: 'SUMMARY',
-                            title: data.language === 'ar' ? 'الملخص المهني' : 'Professional Summary',
-                            order: 1,
-                            content: { content: '' },
-                        },
-                        {
-                            type: 'EXPERIENCE',
-                            title: data.language === 'ar' ? 'الخبرات' : 'Experience',
-                            order: 2,
-                            content: { items: [] },
-                        },
-                        {
-                            type: 'EDUCATION',
-                            title: data.language === 'ar' ? 'التعليم' : 'Education',
-                            order: 3,
-                            content: { items: [] },
-                        },
-                        {
-                            type: 'SKILLS',
-                            title: data.language === 'ar' ? 'المهارات' : 'Skills',
-                            order: 4,
-                            content: { categories: [], simpleList: [] },
-                        },
-                        {
-                            type: 'PROJECTS',
-                            title: data.language === 'ar' ? 'المشاريع' : 'Projects',
-                            order: 5,
-                            content: { items: [] },
-                        },
-                        {
-                            type: 'CERTIFICATIONS',
-                            title: data.language === 'ar' ? 'الشهادات' : 'Certifications',
-                            order: 6,
-                            content: { items: [] },
-                        },
-                        {
-                            type: 'LANGUAGES',
-                            title: data.language === 'ar' ? 'اللغات' : 'Languages',
-                            order: 7,
-                            content: { items: [] },
-                        },
-                    ],
-                },
-                versions: {
-                    create: {
-                        version: 1,
-                        name: 'Initial version',
-                        snapshot: emptyResume,
                     },
                 },
-            },
-        });
+            });
 
-        // Log creation
-        await prisma.auditLog.create({
-            data: {
-                userId: session.user.id,
-                action: 'CREATE_RESUME',
-                entity: 'Resume',
-                entityId: resume.id,
-            },
-        });
+            await tx.auditLog.create({
+                data: {
+                    userId: session.user.id,
+                    action: 'CREATE_RESUME',
+                    entity: 'Resume',
+                    entityId: created.id,
+                },
+            });
 
-        // Track usage
-        await prisma.usageRecord.create({
-            data: {
-                userId: session.user.id,
-                type: 'RESUME_CREATE',
-            },
+            await tx.usageRecord.create({
+                data: {
+                    userId: session.user.id,
+                    type: 'RESUME_CREATE',
+                },
+            });
+
+            return created;
         });
 
         return NextResponse.json({ id: resume.id }, { status: 201 });

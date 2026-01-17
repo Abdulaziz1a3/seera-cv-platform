@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { prisma } from '@/lib/db';
 import { sendWelcomeEmail } from '@/lib/email';
 import { logger } from '@/lib/logger';
+import { enforceRateLimit } from '@/lib/api-rate-limit';
 
 const verifySchema = z.object({
     token: z.string().min(1, 'Token is required'),
@@ -13,6 +14,17 @@ const verifySchema = z.object({
 
 export async function POST(request: Request) {
     try {
+        const ip = request.headers.get('x-forwarded-for')?.split(',')[0] ||
+            request.headers.get('x-real-ip') ||
+            'unknown';
+        const rateLimitResponse = await enforceRateLimit({
+            key: `auth:verify-email:${ip}`,
+            limit: 10,
+            windowMs: 60 * 60 * 1000,
+            message: 'Too many verification attempts. Please try again later.',
+        });
+        if (rateLimitResponse) return rateLimitResponse;
+
         const body = await request.json();
         const { token } = verifySchema.parse(body);
 
@@ -34,9 +46,9 @@ export async function POST(request: Request) {
             );
         }
 
-        // Find user by email
-        const user = await prisma.user.findUnique({
-            where: { email: verificationToken.identifier },
+        const identifier = verificationToken.identifier.trim().toLowerCase();
+        const user = await prisma.user.findFirst({
+            where: { email: { equals: identifier, mode: 'insensitive' } },
         });
 
         if (!user) {
@@ -136,8 +148,9 @@ export async function GET(request: Request) {
         }
 
         // Find user by email
-        const user = await prisma.user.findUnique({
-            where: { email: verificationToken.identifier },
+        const identifier = verificationToken.identifier.trim().toLowerCase();
+        const user = await prisma.user.findFirst({
+            where: { email: { equals: identifier, mode: 'insensitive' } },
         });
 
         if (!user) {

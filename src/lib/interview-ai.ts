@@ -3,13 +3,16 @@
 
 import { getOpenAI } from '@/lib/openai';
 
+export type InterviewLocale = 'ar' | 'en' | 'ar-sa';
+
 export interface InterviewContext {
     targetRole: string;
     industry?: string;
     experienceLevel: 'junior' | 'mid' | 'senior' | 'executive';
     resumeSummary?: string;
     skills?: string[];
-    locale?: 'ar' | 'en';
+    locale?: InterviewLocale;
+    dialect?: 'saudi_casual' | 'formal' | 'gulf' | string;
 }
 
 export interface InterviewQuestion {
@@ -34,26 +37,117 @@ export interface InterviewFeedback {
     revisedAnswer?: string;
 }
 
+const FALLBACK_QUESTIONS_EN = [
+    { question: 'Why are you interested in this role?', category: 'behavioral', difficulty: 'easy' },
+    { question: 'Tell me about a professional achievement you are proud of.', category: 'experience', difficulty: 'medium' },
+    { question: 'Describe a time you worked under pressure and how you handled it.', category: 'situational', difficulty: 'medium' },
+    { question: 'How do you prioritize when you have multiple urgent tasks?', category: 'situational', difficulty: 'medium' },
+    { question: 'Walk me through a problem you solved and your approach.', category: 'technical', difficulty: 'medium' },
+    { question: 'Tell me about a time you received feedback and what you did with it.', category: 'behavioral', difficulty: 'easy' },
+    { question: 'Describe a project where you collaborated with others.', category: 'experience', difficulty: 'easy' },
+    { question: 'What makes you a strong fit for this position?', category: 'culture', difficulty: 'easy' },
+    { question: 'How do you learn new tools or skills quickly?', category: 'behavioral', difficulty: 'medium' },
+    { question: 'What are your main strengths and areas for improvement?', category: 'behavioral', difficulty: 'medium' },
+    { question: 'Share an example of leadership or ownership you demonstrated.', category: 'experience', difficulty: 'hard' },
+    { question: 'What do you expect from your manager and team?', category: 'culture', difficulty: 'easy' },
+] as const;
+
+const FALLBACK_QUESTIONS_AR = [
+    { question: 'لماذا ترغب في هذه الوظيفة؟', category: 'behavioral', difficulty: 'easy' },
+    { question: 'حدثني عن إنجاز مهني تفخر به.', category: 'experience', difficulty: 'medium' },
+    { question: 'صف موقفاً تعاملت فيه مع ضغط العمل وكيف تعاملت معه.', category: 'situational', difficulty: 'medium' },
+    { question: 'كيف ترتب أولوياتك عندما تتراكم المهام؟', category: 'situational', difficulty: 'medium' },
+    { question: 'اشرح مشكلة واجهتها وكيف قمت بحلها.', category: 'technical', difficulty: 'medium' },
+    { question: 'كيف تتعامل مع الملاحظات أو النقد البنّاء؟', category: 'behavioral', difficulty: 'easy' },
+    { question: 'صف مشروعاً عملت عليه ضمن فريق وما كان دورك.', category: 'experience', difficulty: 'easy' },
+    { question: 'ما الذي يجعلك مناسباً لهذا الدور؟', category: 'culture', difficulty: 'easy' },
+    { question: 'كيف تتعلم مهارة أو أداة جديدة بسرعة؟', category: 'behavioral', difficulty: 'medium' },
+    { question: 'ما هي أبرز نقاط قوتك ومجالات التحسين لديك؟', category: 'behavioral', difficulty: 'medium' },
+    { question: 'أعط مثالاً على موقف أظهرت فيه قيادة أو مبادرة.', category: 'experience', difficulty: 'hard' },
+    { question: 'ما توقعاتك من المدير والفريق؟', category: 'culture', difficulty: 'easy' },
+] as const;
+
+function getLocaleProfile(locale?: InterviewLocale, dialect?: string) {
+    const normalized = (locale || 'en').toLowerCase();
+    const isArabic = normalized.startsWith('ar');
+    const isSaudiDialect = normalized === 'ar-sa' || dialect === 'saudi_casual';
+    return { isArabic, isSaudiDialect };
+}
+
+function normalizeCount(count: number): number {
+    if (!Number.isFinite(count) || count <= 0) return 10;
+    return Math.min(Math.max(Math.round(count), 1), 20);
+}
+
+function buildFallbackQuestions(context: InterviewContext, count: number): InterviewQuestion[] {
+    const { isArabic } = getLocaleProfile(context.locale, context.dialect);
+    const source = isArabic ? FALLBACK_QUESTIONS_AR : FALLBACK_QUESTIONS_EN;
+
+    return Array.from({ length: count }).map((_, index) => {
+        const seed = source[index % source.length];
+        return {
+            id: `fallback-${index + 1}`,
+            question: seed.question.replace('{role}', context.targetRole),
+            category: seed.category,
+            difficulty: seed.difficulty,
+        };
+    });
+}
+
+function coerceQuestions(
+    questions: any[],
+    context: InterviewContext,
+    count: number
+): InterviewQuestion[] {
+    const normalized = questions
+        .map((q: any, i: number) => ({
+            id: q?.id || `q-${i + 1}`,
+            question: q?.question || q?.text || q,
+            category: q?.category || 'behavioral',
+            difficulty: q?.difficulty || 'medium',
+            tips: q?.tips || '',
+        }))
+        .filter((q) => typeof q.question === 'string' && q.question.trim().length > 0);
+
+    if (normalized.length >= count) return normalized.slice(0, count);
+
+    const fallback = buildFallbackQuestions(context, count);
+    const existing = new Set(normalized.map((q) => q.question.trim().toLowerCase()));
+
+    for (const candidate of fallback) {
+        if (existing.has(candidate.question.trim().toLowerCase())) continue;
+        normalized.push(candidate);
+        if (normalized.length >= count) break;
+    }
+
+    return normalized.slice(0, count);
+}
+
 // Generate interview questions based on role and resume
 export async function generateInterviewQuestions(
     context: InterviewContext,
     count: number = 10
 ): Promise<InterviewQuestion[]> {
-    const { targetRole, industry, experienceLevel, resumeSummary, skills, locale = 'en' } = context;
+    const { targetRole, industry, experienceLevel, resumeSummary, skills, locale = 'en', dialect } = context;
+    const safeCount = normalizeCount(count);
+    const { isArabic, isSaudiDialect } = getLocaleProfile(locale, dialect);
 
-    const systemPrompt = locale === 'ar'
-        ? `أنت خبير توظيف في سوق العمل السعودي والخليجي. أنشئ أسئلة مقابلة واقعية ومحترفة.`
+    const systemPrompt = isArabic
+        ? isSaudiDialect
+            ? `أنت مسؤول توظيف سعودي تجري مقابلة ودية احترافية. استخدم لهجة سعودية ودية وطبيعية بدون لغة سوقية.`
+            : `أنت خبير توظيف في سوق العمل السعودي والخليجي. أنشئ أسئلة مقابلة واقعية ومحترفة باللغة العربية الفصحى.`
         : `You are a hiring expert for the Saudi/GCC job market. Generate realistic, professional interview questions.`;
 
-    const userPrompt = locale === 'ar'
-        ? `أنشئ ${count} سؤال مقابلة لمنصب "${targetRole}" في مجال ${industry || 'عام'}.
+    const userPrompt = isArabic
+        ? `أنشئ ${safeCount} سؤال مقابلة لمنصب "${targetRole}" في مجال ${industry || 'عام'}.
 مستوى الخبرة: ${experienceLevel === 'junior' ? 'مبتدئ' : experienceLevel === 'mid' ? 'متوسط' : experienceLevel === 'senior' ? 'متقدم' : 'تنفيذي'}
 ${resumeSummary ? `ملخص السيرة الذاتية: ${resumeSummary}` : ''}
 ${skills?.length ? `المهارات: ${skills.join(', ')}` : ''}
 
+اكتب الأسئلة ${isSaudiDialect ? 'باللهجة السعودية العامية الودية' : 'بالعربية الفصحى'}.
 أنشئ أسئلة متنوعة: سلوكية، تقنية، ظرفية، عن الخبرة، والثقافة.
 أجب بصيغة JSON مع: id, question, category, difficulty, tips.`
-        : `Generate ${count} interview questions for a "${targetRole}" position in ${industry || 'general'} industry.
+        : `Generate ${safeCount} interview questions for a "${targetRole}" position in ${industry || 'general'} industry.
 Experience level: ${experienceLevel}
 ${resumeSummary ? `Resume summary: ${resumeSummary}` : ''}
 ${skills?.length ? `Skills: ${skills.join(', ')}` : ''}
@@ -77,71 +171,59 @@ Reply in JSON format with: id, question, category, difficulty, tips.`;
         // Handle different response formats
         const questions = result.questions || result.interview_questions || Object.values(result).find(v => Array.isArray(v)) || [];
 
-        if (questions.length > 0) {
-            return questions.map((q: any, i: number) => ({
-                id: q.id || `q-${i + 1}`,
-                question: q.question || q.text || q,
-                category: q.category || 'behavioral',
-                difficulty: q.difficulty || 'medium',
-                tips: q.tips || '',
-            }));
+        if (Array.isArray(questions) && questions.length > 0) {
+            return coerceQuestions(questions, context, safeCount);
         }
 
         // Fallback questions if AI fails
-        return generateFallbackQuestions(context, count);
+        return buildFallbackQuestions(context, safeCount);
     } catch (error) {
         console.error('Failed to parse interview questions:', error);
-        return generateFallbackQuestions(context, count);
+        return buildFallbackQuestions(context, safeCount);
     }
-}
-
-// Fallback questions when AI fails
-function generateFallbackQuestions(context: InterviewContext, count: number): InterviewQuestion[] {
-    const { targetRole, locale = 'en' } = context;
-
-    const fallbackQuestions = locale === 'ar' ? [
-        { question: `لماذا ترغب في العمل كـ ${targetRole}؟`, category: 'behavioral', difficulty: 'easy' },
-        { question: 'حدثني عن أكبر إنجاز مهني حققته.', category: 'experience', difficulty: 'medium' },
-        { question: 'كيف تتعامل مع ضغط العمل والمواعيد النهائية الضيقة؟', category: 'situational', difficulty: 'medium' },
-        { question: 'أين ترى نفسك بعد خمس سنوات؟', category: 'behavioral', difficulty: 'easy' },
-        { question: 'ما هي نقاط قوتك وضعفك الرئيسية؟', category: 'behavioral', difficulty: 'medium' },
-    ] : [
-        { question: `Why do you want to work as a ${targetRole}?`, category: 'behavioral', difficulty: 'easy' },
-        { question: 'Tell me about your greatest professional achievement.', category: 'experience', difficulty: 'medium' },
-        { question: 'How do you handle work pressure and tight deadlines?', category: 'situational', difficulty: 'medium' },
-        { question: 'Where do you see yourself in five years?', category: 'behavioral', difficulty: 'easy' },
-        { question: 'What are your main strengths and weaknesses?', category: 'behavioral', difficulty: 'medium' },
-    ];
-
-    return fallbackQuestions.slice(0, count).map((q, i) => ({
-        id: `fallback-${i + 1}`,
-        question: q.question,
-        category: q.category as any,
-        difficulty: q.difficulty as any,
-    }));
 }
 
 // Conduct live interview conversation
 export async function conductInterview(
     messages: Array<{ role: 'interviewer' | 'candidate'; content: string }>,
     context: InterviewContext,
-    currentQuestion: string
+    currentQuestion: string,
+    nextQuestion?: string
 ): Promise<string> {
-    const { targetRole, locale = 'en' } = context;
+    const { targetRole, locale = 'en', dialect } = context;
+    const { isArabic, isSaudiDialect } = getLocaleProfile(locale, dialect);
 
-    const systemPrompt = locale === 'ar'
+    const transitionInstruction = nextQuestion
+        ? isArabic
+            ? `اختم بإلقاء السؤال التالي حرفياً: "${nextQuestion}"`
+            : `End by asking this exact next question: "${nextQuestion}"`
+        : isArabic
+            ? 'اختم بسؤال قصير إن كان لدى المرشح أي أسئلة.'
+            : 'End by asking if the candidate has any questions.';
+
+    const languageInstruction = isArabic
+        ? isSaudiDialect
+            ? 'استخدم لهجة سعودية ودية طبيعية بدون مبالغة.'
+            : 'استخدم العربية الفصحى.'
+        : 'Use clear, professional English.';
+
+    const systemPrompt = isArabic
         ? `أنت مدير توظيف محترف تجري مقابلة لمنصب "${targetRole}".
 - كن ودوداً لكن محترفاً
 - اطرح أسئلة متابعة ذكية بناءً على إجابات المرشح
 - لا تكرر الأسئلة
 - تصرف كمحاور حقيقي، ليس روبوت
-- ردودك قصيرة ومختصرة (جملة أو جملتين)`
+- ردودك قصيرة ومختصرة (جملة أو جملتين)
+- ${languageInstruction}
+- ${transitionInstruction}`
         : `You are a professional hiring manager conducting an interview for "${targetRole}" position.
 - Be friendly but professional
 - Ask smart follow-up questions based on candidate responses
 - Don't repeat questions
 - Act like a real interviewer, not a robot
-- Keep responses short (1-2 sentences)`;
+- Keep responses short (1-2 sentences)
+- ${languageInstruction}
+- ${transitionInstruction}`;
 
     const formattedMessages = messages.map((m) => ({
         role: m.role === 'interviewer' ? 'assistant' : 'user',
@@ -168,13 +250,16 @@ export async function evaluateAnswer(
     answer: string,
     context: InterviewContext
 ): Promise<InterviewFeedback> {
-    const { locale = 'en' } = context;
+    const { locale = 'en', dialect } = context;
+    const { isArabic, isSaudiDialect } = getLocaleProfile(locale, dialect);
 
-    const systemPrompt = locale === 'ar'
-        ? `أنت خبير مقابلات. قيّم إجابة المرشح باستخدام منهجية STAR. أعطِ تقييماً صادقاً وبنّاءً.`
+    const systemPrompt = isArabic
+        ? isSaudiDialect
+            ? `أنت خبير مقابلات. قيّم إجابة المرشح بمنهجية STAR وبأسلوب سعودي ودود.`
+            : `أنت خبير مقابلات. قيّم إجابة المرشح باستخدام منهجية STAR. أعطِ تقييماً صادقاً وبنّاءً.`
         : `You are an interview expert. Evaluate the candidate's answer using the STAR method. Give honest, constructive feedback.`;
 
-    const userPrompt = locale === 'ar'
+    const userPrompt = isArabic
         ? `السؤال: ${question}
 إجابة المرشح: ${answer}
 
@@ -220,7 +305,20 @@ Evaluate the answer and reply in JSON format:
     });
 
     try {
-        return JSON.parse(response.choices[0]?.message?.content || '{}');
+        const parsed = JSON.parse(response.choices[0]?.message?.content || '{}');
+        const score = Number.isFinite(parsed.score) ? parsed.score : 5;
+        return {
+            score,
+            strengths: Array.isArray(parsed.strengths) ? parsed.strengths : [],
+            improvements: Array.isArray(parsed.improvements) ? parsed.improvements : [],
+            starMethodScore: parsed.starMethodScore || {
+                situation: 5,
+                task: 5,
+                action: 5,
+                result: 5,
+            },
+            revisedAnswer: parsed.revisedAnswer,
+        };
     } catch {
         return {
             score: 5,
@@ -275,12 +373,16 @@ export async function generateInterviewSummary(
     topImprovement: string;
     readinessLevel: 'not_ready' | 'needs_practice' | 'ready' | 'excellent';
 }> {
-    const { locale = 'en' } = context;
+    const { locale = 'en', dialect } = context;
+    const { isArabic, isSaudiDialect } = getLocaleProfile(locale, dialect);
+    const avgScore = questions.length > 0
+        ? questions.reduce((sum, q) => sum + q.score, 0) / questions.length
+        : 0;
 
-    const avgScore = questions.reduce((sum, q) => sum + q.score, 0) / questions.length;
-
-    const systemPrompt = locale === 'ar'
-        ? `أنت مستشار مهني. لخّص أداء المرشح في المقابلة التدريبية.`
+    const systemPrompt = isArabic
+        ? isSaudiDialect
+            ? `أنت مستشار مهني. لخّص أداء المرشح في المقابلة التدريبية بأسلوب سعودي ودود.`
+            : `أنت مستشار مهني. لخّص أداء المرشح في المقابلة التدريبية.`
         : `You are a career coach. Summarize the candidate's mock interview performance.`;
 
     const response = await getOpenAI().chat.completions.create({
@@ -296,14 +398,25 @@ export async function generateInterviewSummary(
         response_format: { type: 'json_object' },
     });
 
-    const result = JSON.parse(response.choices[0]?.message?.content || '{}');
+    try {
+        const result = JSON.parse(response.choices[0]?.message?.content || '{}');
 
-    return {
-        overallScore: Math.round(avgScore * 10) / 10,
-        summary: result.summary || '',
-        topStrength: result.topStrength || '',
-        topImprovement: result.topImprovement || '',
-        readinessLevel:
-            avgScore >= 8 ? 'excellent' : avgScore >= 6 ? 'ready' : avgScore >= 4 ? 'needs_practice' : 'not_ready',
-    };
+        return {
+            overallScore: Math.round(avgScore * 10) / 10,
+            summary: result.summary || '',
+            topStrength: result.topStrength || '',
+            topImprovement: result.topImprovement || '',
+            readinessLevel:
+                avgScore >= 8 ? 'excellent' : avgScore >= 6 ? 'ready' : avgScore >= 4 ? 'needs_practice' : 'not_ready',
+        };
+    } catch {
+        return {
+            overallScore: Math.round(avgScore * 10) / 10,
+            summary: '',
+            topStrength: '',
+            topImprovement: '',
+            readinessLevel:
+                avgScore >= 8 ? 'excellent' : avgScore >= 6 ? 'ready' : avgScore >= 4 ? 'needs_practice' : 'not_ready',
+        };
+    }
 }

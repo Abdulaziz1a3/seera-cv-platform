@@ -115,6 +115,12 @@ export default function LiveInterviewPage() {
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
     const [messages, setMessages] = useState<Message[]>([]);
     const [results, setResults] = useState<QuestionResult[]>([]);
+    const [summaryData, setSummaryData] = useState<{
+        summary: string;
+        topStrength: string;
+        topImprovement: string;
+    } | null>(null);
+    const [summaryLoading, setSummaryLoading] = useState(false);
 
     // Voice state
     const [isListening, setIsListening] = useState(false);
@@ -137,9 +143,11 @@ export default function LiveInterviewPage() {
     const recognitionRef = useRef<any>(null);
     const audioRef = useRef<HTMLAudioElement | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const messagesRef = useRef<Message[]>([]);
     const pendingAnswerRef = useRef<string>('');
     const silenceTimerRef = useRef<NodeJS.Timeout | null>(null);
     const phaseRef = useRef(phase);
+    const autoListenRef = useRef(true);
 
     // Get phrases for current language
     const phrases = PHRASES[interviewLang];
@@ -150,9 +158,21 @@ export default function LiveInterviewPage() {
         phaseRef.current = phase;
     }, [phase]);
 
+    useEffect(() => {
+        const isInteractive = ['greeting', 'warmup', 'interview', 'closing'].includes(phase);
+        if (!isInteractive) {
+            autoListenRef.current = false;
+            stopListening();
+        }
+    }, [phase, stopListening]);
+
     // Auto-scroll
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, [messages]);
+
+    useEffect(() => {
+        messagesRef.current = messages;
     }, [messages]);
 
     // Initialize audio
@@ -190,7 +210,7 @@ export default function LiveInterviewPage() {
 
     // Start listening
     const startListening = useCallback(() => {
-        if (!recognitionRef.current || isSpeaking || isLoading) return;
+        if (!recognitionRef.current || isSpeaking || isLoading || useTextInput || !autoListenRef.current) return;
         try {
             pendingAnswerRef.current = '';
             setLiveTranscript('');
@@ -204,7 +224,7 @@ export default function LiveInterviewPage() {
                 toast.error(locale === 'ar' ? 'الميكروفون غير متاح - استخدم الكتابة' : 'Microphone not available - use text input');
             }
         }
-    }, [isSpeaking, isLoading, locale, micErrorShown]);
+    }, [isSpeaking, isLoading, locale, micErrorShown, useTextInput]);
 
     // Speak using OpenAI TTS
     const speak = useCallback(async (text: string): Promise<void> => {
@@ -263,12 +283,15 @@ export default function LiveInterviewPage() {
         stopListening();
         setLiveTranscript('');
 
-        setMessages(prev => [...prev, {
+        const candidateMessage: Message = {
             id: Date.now().toString() + '-candidate',
             role: 'candidate',
             content: answer,
             timestamp: new Date(),
-        }]);
+        };
+        const conversation = [...messagesRef.current, candidateMessage];
+
+        setMessages((prev) => [...prev, candidateMessage]);
 
         try {
             let responseText = '';
@@ -283,53 +306,120 @@ export default function LiveInterviewPage() {
                 responseText = phrases.toInterview(firstQ);
 
             } else if (currentPhase === 'interview') {
-                // Evaluate answer
-                try {
-                    const evalRes = await fetch('/api/interview', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            action: 'evaluate-answer',
-                            question: questions[currentQuestionIndex]?.question,
-                            answer,
-                            context: { targetRole, experienceLevel, locale: interviewLang },
-                        }),
-                    });
-                    const { result: feedback } = await evalRes.json();
+                const currentQuestion = questions[currentQuestionIndex]?.question || phrases.fallbackQ;
 
-                    setResults(prev => [...prev, {
-                        question: questions[currentQuestionIndex]?.question || '',
-                        answer,
-                        score: feedback?.score || 5,
-                        feedback: { strengths: feedback?.strengths || [], improvements: feedback?.improvements || [] },
-                    }]);
-                } catch (e) {
-                    console.error('Eval error:', e);
+                if (currentQuestion) {
+                    try {
+                        const evalRes = await fetch('/api/interview', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                action: 'evaluate-answer',
+                                question: currentQuestion,
+                                answer,
+                                context: {
+                                    targetRole,
+                                    experienceLevel,
+                                    locale: interviewLang,
+                                    dialect: interviewLang === 'ar-sa' ? 'saudi_casual' : undefined,
+                                },
+                            }),
+                        });
+                        const evalPayload = await evalRes.json().catch(() => ({}));
+
+                        if (evalRes.ok) {
+                            const feedback = evalPayload?.result || {};
+                            setResults((prev) => [
+                                ...prev,
+                                {
+                                    question: currentQuestion,
+                                    answer,
+                                    score: feedback?.score || 5,
+                                    feedback: {
+                                        strengths: feedback?.strengths || [],
+                                        improvements: feedback?.improvements || [],
+                                    },
+                                },
+                            ]);
+                        } else {
+                            console.warn('Evaluation failed:', evalPayload?.error || evalRes.status);
+                            setResults((prev) => [
+                                ...prev,
+                                {
+                                    question: currentQuestion,
+                                    answer,
+                                    score: 5,
+                                    feedback: { strengths: [], improvements: [] },
+                                },
+                            ]);
+                        }
+                    } catch (e) {
+                        console.error('Eval error:', e);
+                    }
                 }
 
                 if (currentQuestionIndex < questions.length - 1) {
                     const nextIdx = currentQuestionIndex + 1;
                     setCurrentQuestionIndex(nextIdx);
+                    const nextQuestion = questions[nextIdx]?.question || phrases.fallbackQ;
+                    let aiTransition = '';
+
+                    try {
+                        const conductRes = await fetch('/api/interview', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                action: 'conduct-interview',
+                                messages: conversation.map((msg) => ({
+                                    role: msg.role,
+                                    content: msg.content,
+                                })),
+                                context: {
+                                    targetRole,
+                                    experienceLevel,
+                                    locale: interviewLang,
+                                    dialect: interviewLang === 'ar-sa' ? 'saudi_casual' : undefined,
+                                },
+                                currentQuestion,
+                                nextQuestion,
+                            }),
+                        });
+                        const conductPayload = await conductRes.json().catch(() => ({}));
+                        if (conductRes.ok) {
+                            aiTransition = conductPayload?.result || '';
+                        }
+                    } catch (e) {
+                        console.error('Conduct interview error:', e);
+                    }
+
                     const trans = phrases.transitions[Math.floor(Math.random() * phrases.transitions.length)];
-                    responseText = `${trans}${questions[nextIdx].question}`;
+                    responseText = aiTransition?.trim() ? aiTransition : `${trans}${nextQuestion}`;
                 } else {
                     setPhase('closing');
                     responseText = phrases.closing;
                 }
 
             } else if (currentPhase === 'closing') {
+                autoListenRef.current = false;
                 setPhase('ended');
                 responseText = phrases.goodbye;
             }
 
             if (responseText) {
-                setMessages(prev => [...prev, {
-                    id: Date.now().toString() + '-interviewer',
-                    role: 'interviewer',
-                    content: responseText,
-                    timestamp: new Date(),
-                }]);
-                setIsLoading(false);
+                setMessages((prev) => [
+                    ...prev,
+                    {
+                        id: Date.now().toString() + '-interviewer',
+                        role: 'interviewer',
+                        content: responseText,
+                        timestamp: new Date(),
+                    },
+                ]);
+            }
+
+            setIsLoading(false);
+
+            if (responseText) {
                 await speak(responseText);
             }
 
@@ -338,7 +428,18 @@ export default function LiveInterviewPage() {
             toast.error(interviewLang.startsWith('ar') ? 'حدث خطأ' : 'An error occurred');
             setIsLoading(false);
         }
-    }, [isLoading, isSpeaking, targetRole, questions, currentQuestionIndex, experienceLevel, interviewLang, phrases, speak]);
+    }, [
+        isLoading,
+        isSpeaking,
+        targetRole,
+        questions,
+        currentQuestionIndex,
+        experienceLevel,
+        interviewLang,
+        phrases,
+        speak,
+        stopListening,
+    ]);
 
     
 
@@ -412,7 +513,7 @@ export default function LiveInterviewPage() {
         recognition.onend = () => {
             setIsListening(false);
             // Don't restart if permission was denied
-            if (micPermissionDenied) return;
+            if (micPermissionDenied || useTextInput || !autoListenRef.current) return;
 
             const currentPhase = phaseRef.current;
             if (['greeting', 'warmup', 'interview', 'closing'].includes(currentPhase) && !isSpeaking && !isLoading) {
@@ -431,12 +532,14 @@ export default function LiveInterviewPage() {
         recognitionRef.current = recognition;
 
         return () => { try { recognition.stop(); } catch (e) { } };
-    }, [interviewLang, isSpeaking, isLoading, processUserResponse]);
+    }, [interviewLang, isSpeaking, isLoading, processUserResponse, useTextInput]);
 
     // Start interview
     const startInterview = async () => {
         setPhase('connecting');
         setIsLoading(true);
+        setSummaryData(null);
+        setSummaryLoading(false);
 
         try {
             await unlockAudio();
@@ -455,14 +558,23 @@ export default function LiveInterviewPage() {
                     count: questionCount,
                 }),
             });
-            const { result } = await res.json();
-            if (result?.length > 0) setQuestions(result);
+            const payload = await res.json().catch(() => ({}));
+            if (!res.ok) {
+                throw new Error(payload?.error || 'Failed to generate questions');
+            }
+            const { result } = payload;
+            if (result?.length > 0) {
+                setQuestions(result);
+            } else {
+                setQuestions([]);
+            }
 
             setMessages([]);
             setResults([]);
             setCurrentQuestionIndex(0);
             setPhase('greeting');
             setIsLoading(false);
+            autoListenRef.current = !useTextInput;
 
             const name = candidateName || (interviewLang === 'en' ? 'friend' : 'يا غالي');
             const greeting = phrases.greeting(name);
@@ -489,21 +601,86 @@ export default function LiveInterviewPage() {
         stopListening();
         audioRef.current?.pause();
         setIsSpeaking(false);
+        autoListenRef.current = false;
         setPhase('ended');
+    };
+
+    const toggleTextInput = () => {
+        const next = !useTextInput;
+        setUseTextInput(next);
+        if (next) {
+            autoListenRef.current = false;
+            stopListening();
+        } else {
+            autoListenRef.current = true;
+            const currentPhase = phaseRef.current;
+            if (['greeting', 'warmup', 'interview', 'closing'].includes(currentPhase)) {
+                startListening();
+            }
+        }
     };
 
     const toggleMicrophone = () => {
         if (!speechSupported || micPermissionDenied) {
             setUseTextInput(true);
+            autoListenRef.current = false;
             if (!micErrorShown) {
                 setMicErrorShown(true);
                 toast.error(interviewLang.startsWith('ar') ? 'الميكروفون غير متاح - استخدم الكتابة' : 'Microphone not available - use text input');
             }
             return;
         }
-        if (isListening) stopListening();
-        else startListening();
+        if (isListening) {
+            autoListenRef.current = false;
+            stopListening();
+        } else {
+            setUseTextInput(false);
+            autoListenRef.current = true;
+            startListening();
+        }
     };
+
+    useEffect(() => {
+        if (phase !== 'ended' || results.length === 0 || summaryLoading || summaryData) return;
+
+        const runSummary = async () => {
+            setSummaryLoading(true);
+            try {
+                const res = await fetch('/api/interview', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'generate-summary',
+                        questions: results.map((r) => ({
+                            question: r.question,
+                            answer: r.answer,
+                            score: r.score,
+                        })),
+                        context: {
+                            targetRole,
+                            experienceLevel,
+                            locale: interviewLang,
+                            dialect: interviewLang === 'ar-sa' ? 'saudi_casual' : undefined,
+                        },
+                    }),
+                });
+                const payload = await res.json().catch(() => ({}));
+                if (res.ok && payload?.result) {
+                    setSummaryData({
+                        summary: payload.result.summary || '',
+                        topStrength: payload.result.topStrength || '',
+                        topImprovement: payload.result.topImprovement || '',
+                    });
+                }
+            } catch (error) {
+                console.error('Summary error:', error);
+            } finally {
+                setSummaryLoading(false);
+            }
+        };
+
+        runSummary();
+    }, [phase, results, summaryLoading, summaryData, targetRole, experienceLevel, interviewLang]);
 
     const overallScore = results.length > 0
         ? Math.round(results.reduce((sum, r) => sum + r.score, 0) / results.length * 10) / 10
@@ -755,7 +932,7 @@ export default function LiveInterviewPage() {
                                         {isListening && <div className="absolute inset-0 rounded-full bg-green-500 animate-ping opacity-25" />}
                                     </div>
 
-                                    <Button variant="outline" size="icon" onClick={() => setUseTextInput(!useTextInput)}>
+                                    <Button variant="outline" size="icon" onClick={toggleTextInput}>
                                         <Keyboard className="h-5 w-5" />
                                     </Button>
                                 </div>
@@ -819,6 +996,48 @@ export default function LiveInterviewPage() {
                                     </CardContent>
                                 </Card>
 
+                                {summaryLoading && (
+                                    <Card>
+                                        <CardContent className="pt-6 text-center">
+                                            <Loader2 className="h-5 w-5 animate-spin mx-auto mb-2" />
+                                            <p className="text-sm text-muted-foreground">
+                                                {interviewLang.startsWith('ar') ? 'جارٍ إعداد الملخص...' : 'Preparing summary...'}
+                                            </p>
+                                        </CardContent>
+                                    </Card>
+                                )}
+
+                                {summaryData && (summaryData.summary || summaryData.topStrength || summaryData.topImprovement) && (
+                                    <Card>
+                                        <CardHeader>
+                                            <CardTitle>{interviewLang.startsWith('ar') ? 'ملخص الأداء' : 'Performance Summary'}</CardTitle>
+                                        </CardHeader>
+                                        <CardContent className="space-y-4">
+                                            {summaryData.summary && (
+                                                <p className="text-sm text-muted-foreground">{summaryData.summary}</p>
+                                            )}
+                                            <div className="grid gap-4 sm:grid-cols-2">
+                                                {summaryData.topStrength && (
+                                                    <div className="rounded-lg bg-green-50 dark:bg-green-950/30 p-3">
+                                                        <p className="text-xs font-medium text-green-700 dark:text-green-400 mb-1">
+                                                            {interviewLang.startsWith('ar') ? 'أبرز نقطة قوة' : 'Top Strength'}
+                                                        </p>
+                                                        <p className="text-sm">{summaryData.topStrength}</p>
+                                                    </div>
+                                                )}
+                                                {summaryData.topImprovement && (
+                                                    <div className="rounded-lg bg-amber-50 dark:bg-amber-950/30 p-3">
+                                                        <p className="text-xs font-medium text-amber-700 dark:text-amber-400 mb-1">
+                                                            {interviewLang.startsWith('ar') ? 'أكبر فرصة للتحسين' : 'Top Improvement'}
+                                                        </p>
+                                                        <p className="text-sm">{summaryData.topImprovement}</p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                )}
+
                                 <div className="space-y-4">
                                     {results.map((r, i) => (
                                         <Card key={i}>
@@ -832,6 +1051,34 @@ export default function LiveInterviewPage() {
                                                         {r.score}/10
                                                     </Badge>
                                                 </div>
+                                                {r.feedback && (r.feedback.strengths.length > 0 || r.feedback.improvements.length > 0) && (
+                                                    <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                                                        {r.feedback.strengths.length > 0 && (
+                                                            <div className="rounded-lg bg-green-50 dark:bg-green-950/30 p-3">
+                                                                <h4 className="text-xs font-medium text-green-700 dark:text-green-400 mb-1">
+                                                                    {interviewLang.startsWith('ar') ? 'نقاط القوة' : 'Strengths'}
+                                                                </h4>
+                                                                <ul className="text-xs space-y-1">
+                                                                    {r.feedback.strengths.map((s, idx) => (
+                                                                        <li key={idx}>✓ {s}</li>
+                                                                    ))}
+                                                                </ul>
+                                                            </div>
+                                                        )}
+                                                        {r.feedback.improvements.length > 0 && (
+                                                            <div className="rounded-lg bg-amber-50 dark:bg-amber-950/30 p-3">
+                                                                <h4 className="text-xs font-medium text-amber-700 dark:text-amber-400 mb-1">
+                                                                    {interviewLang.startsWith('ar') ? 'للتحسين' : 'To Improve'}
+                                                                </h4>
+                                                                <ul className="text-xs space-y-1">
+                                                                    {r.feedback.improvements.map((s, idx) => (
+                                                                        <li key={idx}>→ {s}</li>
+                                                                    ))}
+                                                                </ul>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )}
                                             </CardContent>
                                         </Card>
                                     ))}

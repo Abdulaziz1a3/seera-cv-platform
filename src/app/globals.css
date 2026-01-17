@@ -99,6 +99,17 @@
   --tw-space-x-reverse: 1;
 }
 
+body.rtl {
+  font-family: var(--font-noto-arabic), system-ui, sans-serif;
+  letter-spacing: 0;
+}
+
+body.rtl input,
+body.rtl textarea,
+body.rtl select {
+  direction: rtl;
+}
+
 /* Custom Premium Scrollbar */
 ::-webkit-scrollbar {
   width: 10px;

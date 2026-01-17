@@ -2,6 +2,7 @@
 // Provides consistent response format across all API endpoints
 
 import { NextResponse } from 'next/server';
+import { headers } from 'next/headers';
 import { ZodError } from 'zod';
 import { logger } from './logger';
 
@@ -71,11 +72,13 @@ export function success<T>(
         meta?: Partial<APIResponse['meta']>;
     }
 ): NextResponse<APIResponse<T>> {
+    const requestId = options?.meta?.requestId || getRequestIdFromHeaders();
     const response: APIResponse<T> = {
         success: true,
         data,
         meta: {
             timestamp: new Date().toISOString(),
+            requestId,
             ...options?.meta,
         },
     };
@@ -122,6 +125,7 @@ export function error(
         requestId?: string;
     }
 ): NextResponse<APIResponse<never>> {
+    const requestId = options?.requestId || getRequestIdFromHeaders();
     // Determine status code from error code if not provided
     const status = options?.status || getStatusFromCode(code);
 
@@ -143,7 +147,7 @@ export function error(
         },
         meta: {
             timestamp: new Date().toISOString(),
-            requestId: options?.requestId,
+            requestId,
         },
     };
 
@@ -264,6 +268,15 @@ export function handleError(err: unknown, requestId?: string): NextResponse<APIR
             : 'An unexpected error occurred';
 
     return errors.serverError(message);
+}
+
+function getRequestIdFromHeaders(): string | undefined {
+    try {
+        const headerList = headers();
+        return headerList.get('x-request-id') || undefined;
+    } catch {
+        return undefined;
+    }
 }
 
 // Prisma error handling

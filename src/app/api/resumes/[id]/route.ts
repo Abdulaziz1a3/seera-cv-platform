@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { Prisma } from '@prisma/client';
-import { z } from 'zod';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { lintResume } from '@/lib/ats-linter';
@@ -114,20 +113,6 @@ export async function PATCH(
         // Calculate ATS score
         const lintResult = lintResume(body, (resume.language || 'en') as 'ar' | 'en');
 
-        // Update resume metadata
-        await prisma.resume.update({
-            where: { id: params.id },
-            data: {
-                title: title || resume.title,
-                targetRole: targetRole || resume.targetRole,
-                template: template || resume.template,
-                theme: theme || resume.theme,
-                atsScore: lintResult.score,
-                updatedAt: new Date(),
-            },
-        });
-
-        // Update sections
         const sectionUpdates = [
             { type: 'CONTACT', content: contact },
             { type: 'SUMMARY', content: summary },
@@ -139,28 +124,41 @@ export async function PATCH(
             { type: 'LANGUAGES', content: languages },
         ];
 
-        for (const update of sectionUpdates) {
-            if (update.content !== undefined) {
-                await prisma.resumeSection.updateMany({
-                    where: {
-                        resumeId: params.id,
-                        type: update.type as any,
-                    },
-                    data: {
-                        content: update.content,
-                    },
-                });
-            }
-        }
+        await prisma.$transaction(async (tx) => {
+            await tx.resume.update({
+                where: { id: params.id },
+                data: {
+                    title: title || resume.title,
+                    targetRole: targetRole || resume.targetRole,
+                    template: template || resume.template,
+                    theme: theme || resume.theme,
+                    atsScore: lintResult.score,
+                    updatedAt: new Date(),
+                },
+            });
 
-        // Log update
-        await prisma.auditLog.create({
-            data: {
-                userId: session.user.id,
-                action: 'UPDATE_RESUME',
-                entity: 'Resume',
-                entityId: params.id,
-            },
+            for (const update of sectionUpdates) {
+                if (update.content !== undefined) {
+                    await tx.resumeSection.updateMany({
+                        where: {
+                            resumeId: params.id,
+                            type: update.type as any,
+                        },
+                        data: {
+                            content: update.content,
+                        },
+                    });
+                }
+            }
+
+            await tx.auditLog.create({
+                data: {
+                    userId: session.user.id,
+                    action: 'UPDATE_RESUME',
+                    entity: 'Resume',
+                    entityId: params.id,
+                },
+            });
         });
 
         return NextResponse.json({

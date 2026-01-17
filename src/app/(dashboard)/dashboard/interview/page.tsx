@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
     Select,
@@ -41,6 +42,8 @@ import {
     Briefcase,
     HelpCircle,
     Phone,
+    Keyboard,
+    Send,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -80,6 +83,12 @@ export default function InterviewPrepPage() {
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
     const [messages, setMessages] = useState<Message[]>([]);
     const [results, setResults] = useState<QuestionResult[]>([]);
+    const [summaryData, setSummaryData] = useState<{
+        summary: string;
+        topStrength: string;
+        topImprovement: string;
+    } | null>(null);
+    const [summaryLoading, setSummaryLoading] = useState(false);
 
     // Voice state
     const [isRecording, setIsRecording] = useState(false);
@@ -87,34 +96,58 @@ export default function InterviewPrepPage() {
     const [isMuted, setIsMuted] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [transcript, setTranscript] = useState('');
+    const [speechSupported, setSpeechSupported] = useState(true);
+    const [micPermissionDenied, setMicPermissionDenied] = useState(false);
+    const [useTextInput, setUseTextInput] = useState(false);
+    const [textInput, setTextInput] = useState('');
 
     // Refs
     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
     const audioChunksRef = useRef<Blob[]>([]);
     const audioRef = useRef<HTMLAudioElement | null>(null);
     const recognitionRef = useRef<any>(null);
+    const mediaStreamRef = useRef<MediaStream | null>(null);
 
     // Initialize speech recognition
     useEffect(() => {
-        if (typeof window !== 'undefined' && 'webkitSpeechRecognition' in window) {
-            const SpeechRecognition = (window as any).webkitSpeechRecognition;
-            recognitionRef.current = new SpeechRecognition();
-            recognitionRef.current.continuous = true;
-            recognitionRef.current.interimResults = true;
-            recognitionRef.current.lang = locale === 'ar' ? 'ar-SA' : 'en-US';
+        if (typeof window === 'undefined') return;
 
-            recognitionRef.current.onresult = (event: any) => {
-                let finalTranscript = '';
-                for (let i = event.resultIndex; i < event.results.length; i++) {
-                    if (event.results[i].isFinal) {
-                        finalTranscript += event.results[i][0].transcript;
-                    }
-                }
-                if (finalTranscript) {
-                    setTranscript(prev => prev + ' ' + finalTranscript);
-                }
-            };
+        const SpeechRecognition = (window as any).webkitSpeechRecognition || (window as any).SpeechRecognition;
+        if (!SpeechRecognition) {
+            setSpeechSupported(false);
+            setUseTextInput(true);
+            return;
         }
+
+        const recognition = new SpeechRecognition();
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.lang = locale === 'ar' ? 'ar-SA' : 'en-US';
+
+        recognition.onresult = (event: any) => {
+            let finalTranscript = '';
+            for (let i = event.resultIndex; i < event.results.length; i++) {
+                if (event.results[i].isFinal) {
+                    finalTranscript += event.results[i][0].transcript;
+                }
+            }
+            if (finalTranscript) {
+                setTranscript(prev => prev + ' ' + finalTranscript);
+            }
+        };
+
+        recognition.onerror = (event: any) => {
+            if (event.error === 'not-allowed' || event.error === 'audio-capture') {
+                setMicPermissionDenied(true);
+                setUseTextInput(true);
+            }
+        };
+
+        recognitionRef.current = recognition;
+
+        return () => {
+            try { recognition.stop(); } catch (e) { }
+        };
     }, [locale]);
 
     // Play AI voice
@@ -136,7 +169,9 @@ export default function InterviewPrepPage() {
 
             if (audioRef.current) {
                 audioRef.current.src = audioUrl;
-                audioRef.current.play();
+                audioRef.current.play().catch(() => {
+                    setIsPlaying(false);
+                });
             }
         } catch (error) {
             console.error('TTS error:', error);
@@ -147,8 +182,15 @@ export default function InterviewPrepPage() {
 
     // Start recording
     const startRecording = async () => {
+        if (!speechSupported || micPermissionDenied) {
+            setUseTextInput(true);
+            toast.error(locale === 'ar' ? 'الميكروفون غير متاح - استخدم الكتابة' : 'Microphone not available - use text input');
+            return;
+        }
+
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            mediaStreamRef.current = stream;
             mediaRecorderRef.current = new MediaRecorder(stream);
             audioChunksRef.current = [];
 
@@ -162,9 +204,15 @@ export default function InterviewPrepPage() {
             // Start speech recognition
             if (recognitionRef.current) {
                 setTranscript('');
-                recognitionRef.current.start();
+                try {
+                    recognitionRef.current.start();
+                } catch (error) {
+                    setUseTextInput(true);
+                }
             }
         } catch (error) {
+            setMicPermissionDenied(true);
+            setUseTextInput(true);
             toast.error(locale === 'ar' ? 'فشل تفعيل الميكروفون' : 'Failed to access microphone');
         }
     };
@@ -180,15 +228,29 @@ export default function InterviewPrepPage() {
             recognitionRef.current.stop();
         }
 
+        if (mediaStreamRef.current) {
+            mediaStreamRef.current.getTracks().forEach((track) => track.stop());
+            mediaStreamRef.current = null;
+        }
+
         // Process the answer
         if (transcript.trim()) {
             await processAnswer(transcript.trim());
         }
     };
 
+    const handleTextSubmit = async () => {
+        const trimmed = textInput.trim();
+        if (!trimmed || isLoading) return;
+        setTextInput('');
+        await processAnswer(trimmed);
+    };
+
     // Generate interview questions
     const generateQuestions = async () => {
         setIsLoading(true);
+        setSummaryData(null);
+        setSummaryLoading(false);
         try {
             let resumeSummary: string | undefined;
             let resumeSkills: string[] | undefined;
@@ -219,7 +281,11 @@ export default function InterviewPrepPage() {
                 }),
             });
 
-            const { result } = await response.json();
+            const payload = await response.json().catch(() => ({}));
+            if (!response.ok) {
+                throw new Error(payload?.error || 'Failed to generate questions');
+            }
+            const { result } = payload;
             if (result && result.length > 0) {
                 setQuestions(result);
                 setStatus('ready');
@@ -259,6 +325,7 @@ export default function InterviewPrepPage() {
 
     // Process user's answer
     const processAnswer = async (answer: string) => {
+        if (!answer.trim()) return;
         setIsLoading(true);
 
         // Add candidate message
@@ -283,7 +350,12 @@ export default function InterviewPrepPage() {
                 }),
             });
 
-            const { result: feedback } = await evalResponse.json();
+            const payload = await evalResponse.json().catch(() => ({}));
+            let feedback = payload?.result;
+            if (!evalResponse.ok) {
+                console.warn('Evaluation failed:', payload?.error || evalResponse.status);
+                feedback = { score: 5, strengths: [], improvements: [] };
+            }
 
             // Store result
             setResults(prev => [...prev, {
@@ -337,6 +409,43 @@ export default function InterviewPrepPage() {
             setTranscript('');
         }
     };
+
+    useEffect(() => {
+        if (status !== 'summary' || results.length === 0 || summaryLoading || summaryData) return;
+
+        const runSummary = async () => {
+            setSummaryLoading(true);
+            try {
+                const res = await fetch('/api/interview', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'generate-summary',
+                        questions: results.map((r) => ({
+                            question: r.question,
+                            answer: r.answer,
+                            score: r.score,
+                        })),
+                        context: { targetRole, experienceLevel, locale },
+                    }),
+                });
+                const payload = await res.json().catch(() => ({}));
+                if (res.ok && payload?.result) {
+                    setSummaryData({
+                        summary: payload.result.summary || '',
+                        topStrength: payload.result.topStrength || '',
+                        topImprovement: payload.result.topImprovement || '',
+                    });
+                }
+            } catch (error) {
+                console.error('Summary error:', error);
+            } finally {
+                setSummaryLoading(false);
+            }
+        };
+
+        runSummary();
+    }, [status, results, summaryLoading, summaryData, targetRole, experienceLevel, locale]);
 
     // Calculate overall score
     const overallScore = results.length > 0
@@ -614,7 +723,7 @@ export default function InterviewPrepPage() {
                                         size="lg"
                                         className={`h-16 w-16 rounded-full ${isRecording ? 'bg-red-500 hover:bg-red-600 animate-pulse' : ''}`}
                                         onClick={isRecording ? stopRecording : startRecording}
-                                        disabled={isLoading || isPlaying}
+                                        disabled={isLoading || isPlaying || useTextInput || !speechSupported || micPermissionDenied}
                                     >
                                         {isRecording ? (
                                             <MicOff className="h-6 w-6" />
@@ -633,7 +742,37 @@ export default function InterviewPrepPage() {
                                             }
                                         </p>
                                     </div>
+
+                                    <Button
+                                        variant="outline"
+                                        size="icon"
+                                        onClick={() => setUseTextInput(!useTextInput)}
+                                    >
+                                        <Keyboard className="h-5 w-5" />
+                                    </Button>
                                 </div>
+
+                                {!speechSupported && (
+                                    <p className="text-center text-xs text-amber-600 mt-3">
+                                        {locale === 'ar' ? 'المتصفح لا يدعم التعرف على الصوت - استخدم الكتابة' : 'Browser does not support voice input - use text instead'}
+                                    </p>
+                                )}
+
+                                {useTextInput && (
+                                    <div className="mt-4 flex gap-2">
+                                        <Textarea
+                                            placeholder={locale === 'ar' ? 'اكتب إجابتك...' : 'Type your answer...'}
+                                            value={textInput}
+                                            onChange={(e) => setTextInput(e.target.value)}
+                                            onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && (e.preventDefault(), handleTextSubmit())}
+                                            rows={2}
+                                            className="flex-1"
+                                        />
+                                        <Button onClick={handleTextSubmit} disabled={!textInput.trim() || isLoading}>
+                                            <Send className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                )}
                             </div>
                         </Card>
                     </div>
@@ -670,6 +809,48 @@ export default function InterviewPrepPage() {
                                 </div>
                             </CardContent>
                         </Card>
+
+                        {summaryLoading && (
+                            <Card>
+                                <CardContent className="pt-6 text-center">
+                                    <Loader2 className="h-5 w-5 animate-spin mx-auto mb-2" />
+                                    <p className="text-sm text-muted-foreground">
+                                        {locale === 'ar' ? 'جارٍ إعداد الملخص...' : 'Preparing summary...'}
+                                    </p>
+                                </CardContent>
+                            </Card>
+                        )}
+
+                        {summaryData && (summaryData.summary || summaryData.topStrength || summaryData.topImprovement) && (
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>{locale === 'ar' ? 'ملخص الأداء' : 'Performance Summary'}</CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-4">
+                                    {summaryData.summary && (
+                                        <p className="text-sm text-muted-foreground">{summaryData.summary}</p>
+                                    )}
+                                    <div className="grid gap-4 sm:grid-cols-2">
+                                        {summaryData.topStrength && (
+                                            <div className="p-3 bg-green-50 dark:bg-green-950/30 rounded-lg">
+                                                <h4 className="text-sm font-medium text-green-700 dark:text-green-400 mb-1">
+                                                    {locale === 'ar' ? 'أبرز نقطة قوة' : 'Top Strength'}
+                                                </h4>
+                                                <p className="text-sm">{summaryData.topStrength}</p>
+                                            </div>
+                                        )}
+                                        {summaryData.topImprovement && (
+                                            <div className="p-3 bg-amber-50 dark:bg-amber-950/30 rounded-lg">
+                                                <h4 className="text-sm font-medium text-amber-700 dark:text-amber-400 mb-1">
+                                                    {locale === 'ar' ? 'أكبر فرصة للتحسين' : 'Top Improvement'}
+                                                </h4>
+                                                <p className="text-sm">{summaryData.topImprovement}</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        )}
 
                         {/* Question Results */}
                         <div className="space-y-4">

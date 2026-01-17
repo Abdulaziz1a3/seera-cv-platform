@@ -4,6 +4,7 @@ import { prisma } from '@/lib/db';
 import { hashPassword, generateVerificationToken } from '@/lib/auth';
 import { sendVerificationEmail, isEmailConfigured } from '@/lib/email';
 import { logger } from '@/lib/logger';
+import { enforceRateLimit } from '@/lib/api-rate-limit';
 
 const registerSchema = z.object({
     name: z.string().min(2, 'Name must be at least 2 characters'),
@@ -18,12 +19,24 @@ const registerSchema = z.object({
 
 export async function POST(request: Request) {
     try {
+        const ip = request.headers.get('x-forwarded-for')?.split(',')[0] ||
+            request.headers.get('x-real-ip') ||
+            'unknown';
+        const rateLimitResponse = await enforceRateLimit({
+            key: `auth:register:${ip}`,
+            limit: 5,
+            windowMs: 15 * 60 * 1000,
+            message: 'Too many registration attempts. Please try again later.',
+        });
+        if (rateLimitResponse) return rateLimitResponse;
+
         const body = await request.json();
         const { name, email, password } = registerSchema.parse(body);
+        const normalizedEmail = email.trim().toLowerCase();
 
         // Check if user exists
-        const existingUser = await prisma.user.findUnique({
-            where: { email },
+        const existingUser = await prisma.user.findFirst({
+            where: { email: { equals: normalizedEmail, mode: 'insensitive' } },
         });
 
         if (existingUser) {
@@ -43,7 +56,7 @@ export async function POST(request: Request) {
         const user = await prisma.user.create({
             data: {
                 name,
-                email,
+                email: normalizedEmail,
                 passwordHash,
                 emailVerified: shouldAutoVerify ? new Date() : null,
                 profile: {
@@ -73,8 +86,8 @@ export async function POST(request: Request) {
 
         // Send verification email if email service is configured
         if (!shouldAutoVerify) {
-            const token = await generateVerificationToken(email, 'EMAIL_VERIFICATION');
-            const emailResult = await sendVerificationEmail(email, token, name);
+            const token = await generateVerificationToken(normalizedEmail, 'EMAIL_VERIFICATION');
+            const emailResult = await sendVerificationEmail(normalizedEmail, token, name);
 
             if (!emailResult.success) {
                 logger.warn('Failed to send verification email', {
@@ -84,7 +97,7 @@ export async function POST(request: Request) {
                 });
             }
 
-            logger.info('User registered - verification email sent', { userId: user.id, email });
+            logger.info('User registered - verification email sent', { userId: user.id, email: normalizedEmail });
 
             return NextResponse.json(
                 {
@@ -96,7 +109,7 @@ export async function POST(request: Request) {
         }
 
         // Auto-verified path (no email service)
-        logger.info('User registered - auto-verified', { userId: user.id, email });
+        logger.info('User registered - auto-verified', { userId: user.id, email: normalizedEmail });
 
         return NextResponse.json(
             {

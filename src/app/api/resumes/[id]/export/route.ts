@@ -3,6 +3,8 @@ import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { errors } from '@/lib/api-response';
 import { hasActiveSubscription } from '@/lib/subscription';
+import { exportResume } from '@/lib/export/index';
+import { createEmptyResume } from '@/lib/resume-schema';
 
 // GET /api/resumes/[id]/export - Export resume data for subscribers
 export async function GET(
@@ -51,5 +53,40 @@ export async function GET(
         resumeData[key] = section.content;
     });
 
-    return NextResponse.json(resumeData);
+    const { searchParams } = new URL(request.url);
+    const format = (searchParams.get('format') || 'json').toLowerCase();
+
+    if (format === 'json') {
+        return NextResponse.json(resumeData);
+    }
+
+    if (format === 'docx' || format === 'txt') {
+        const baseResume = createEmptyResume(resume.title);
+        const exportPayload = {
+            ...baseResume,
+            ...resumeData,
+            language: resumeData.language || baseResume.language,
+            template: resumeData.template || baseResume.template,
+            contact: resumeData.contact || baseResume.contact,
+        };
+
+        const exportResult = await exportResume(exportPayload, format as 'docx' | 'txt');
+        const fileData =
+            typeof exportResult.data === 'string'
+                ? Buffer.from(exportResult.data, 'utf-8')
+                : exportResult.data;
+
+        return new NextResponse(fileData, {
+            headers: {
+                'Content-Type': exportResult.contentType,
+                'Content-Disposition': `attachment; filename="${exportResult.fileName}"`,
+                'Content-Length': fileData.length.toString(),
+            },
+        });
+    }
+
+    return NextResponse.json(
+        { error: 'Unsupported export format' },
+        { status: 400 }
+    );
 }

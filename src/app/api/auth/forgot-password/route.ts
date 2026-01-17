@@ -4,6 +4,7 @@ import { prisma } from '@/lib/db';
 import { generateVerificationToken } from '@/lib/auth';
 import { sendPasswordResetEmail, isEmailConfigured } from '@/lib/email';
 import { logger } from '@/lib/logger';
+import { enforceRateLimit } from '@/lib/api-rate-limit';
 
 const forgotPasswordSchema = z.object({
     email: z.string().email(),
@@ -11,17 +12,29 @@ const forgotPasswordSchema = z.object({
 
 export async function POST(request: Request) {
     try {
+        const ip = request.headers.get('x-forwarded-for')?.split(',')[0] ||
+            request.headers.get('x-real-ip') ||
+            'unknown';
+        const rateLimitResponse = await enforceRateLimit({
+            key: `auth:forgot-password:${ip}`,
+            limit: 5,
+            windowMs: 15 * 60 * 1000,
+            message: 'Too many password reset requests. Please try again later.',
+        });
+        if (rateLimitResponse) return rateLimitResponse;
+
         const body = await request.json();
         const { email } = forgotPasswordSchema.parse(body);
+        const normalizedEmail = email.trim().toLowerCase();
 
         // Find user
-        const user = await prisma.user.findUnique({
-            where: { email },
+        const user = await prisma.user.findFirst({
+            where: { email: { equals: normalizedEmail, mode: 'insensitive' } },
         });
 
         // Always return success to prevent email enumeration
         if (!user) {
-            logger.info('Password reset requested for non-existent email', { email });
+            logger.info('Password reset requested for non-existent email', { email: normalizedEmail });
             return NextResponse.json(
                 { message: 'If an account exists, a reset link will be sent.' },
                 { status: 200 }
@@ -29,25 +42,25 @@ export async function POST(request: Request) {
         }
 
         // Generate password reset token (1 hour expiry)
-        const token = await generateVerificationToken(email, 'PASSWORD_RESET');
+        const token = await generateVerificationToken(normalizedEmail, 'PASSWORD_RESET');
 
         // Send password reset email
         if (isEmailConfigured()) {
-            const emailResult = await sendPasswordResetEmail(email, token, user.name || undefined);
+            const emailResult = await sendPasswordResetEmail(normalizedEmail, token, user.name || undefined);
 
             if (!emailResult.success) {
                 logger.error('Failed to send password reset email', {
                     userId: user.id,
-                    email,
+                    email: normalizedEmail,
                     error: emailResult.error,
                 });
             } else {
-                logger.info('Password reset email sent', { userId: user.id, email });
+                logger.info('Password reset email sent', { userId: user.id, email: normalizedEmail });
             }
         } else {
             // Log token for development when email not configured
             logger.warn('Email not configured - password reset token generated', {
-                email,
+                email: normalizedEmail,
                 token: process.env.NODE_ENV === 'development' ? token : '[HIDDEN]',
             });
         }
