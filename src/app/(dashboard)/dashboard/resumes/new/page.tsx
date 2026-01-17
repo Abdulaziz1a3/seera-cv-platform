@@ -80,8 +80,8 @@ export default function NewResumePage() {
         if (!file) return;
 
         // Validate file type
-        const validTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/msword'];
-        if (!validTypes.includes(file.type) && !file.name.endsWith('.pdf') && !file.name.endsWith('.docx') && !file.name.endsWith('.doc')) {
+        const validTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+        if (!validTypes.includes(file.type) && !file.name.endsWith('.pdf') && !file.name.endsWith('.docx')) {
             toast.error(locale === 'ar' ? 'يرجى رفع ملف PDF أو DOCX' : 'Please upload a PDF or DOCX file');
             return;
         }
@@ -107,7 +107,9 @@ export default function NewResumePage() {
             });
 
             if (!response.ok) {
-                throw new Error('Failed to parse resume');
+                const errorPayload = await response.json().catch(() => null);
+                const message = errorPayload?.error || 'Failed to parse resume';
+                throw new Error(message);
             }
 
             const data = await response.json();
@@ -124,7 +126,12 @@ export default function NewResumePage() {
             toast.success(locale === 'ar' ? 'تم تحليل السيرة الذاتية بنجاح!' : 'Resume parsed successfully!');
         } catch (error) {
             console.error('Parse error:', error);
-            toast.error(locale === 'ar' ? 'فشل تحليل الملف - سيتم إنشاء سيرة فارغة' : 'Failed to parse file - will create empty resume');
+            const message = error instanceof Error ? error.message : '';
+            toast.error(
+                locale === 'ar'
+                    ? `فشل تحليل الملف - سيتم إنشاء سيرة فارغة${message ? `: ${message}` : ''}`
+                    : `Failed to parse file - will create empty resume${message ? `: ${message}` : ''}`
+            );
             setParsedData(null);
         } finally {
             setIsParsing(false);
@@ -377,7 +384,7 @@ export default function NewResumePage() {
                                         <input
                                             ref={fileInputRef}
                                             type="file"
-                                            accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                                            accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                                             onChange={handleFileUpload}
                                             className="hidden"
                                         />
@@ -387,7 +394,7 @@ export default function NewResumePage() {
                                                 {locale === 'ar' ? 'اضغط لرفع ملف أو اسحبه هنا' : 'Click to upload or drag and drop'}
                                             </p>
                                             <p className="text-sm text-muted-foreground mt-2">
-                                                PDF, DOC, DOCX (max 10MB)
+                                                PDF, DOCX (max 10MB)
                                             </p>
                                         </div>
                                     </label>

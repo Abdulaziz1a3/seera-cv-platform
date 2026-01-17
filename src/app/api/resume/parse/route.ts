@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
+import pdfParse from 'pdf-parse';
+import mammoth from 'mammoth';
 import { getOpenAI } from '@/lib/openai';
+
+export const runtime = 'nodejs';
 
 export async function POST(request: NextRequest) {
     try {
@@ -22,25 +26,51 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'File too large (max 10MB)' }, { status: 400 });
         }
 
-        const allowedTypes = new Set([
-            'application/pdf',
-            'application/msword',
-            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        ]);
+        const fileName = file.name?.toLowerCase() || '';
+        const isPdf = file.type === 'application/pdf' || fileName.endsWith('.pdf');
+        const isDocx =
+            file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+            fileName.endsWith('.docx');
 
-        if (file.type && !allowedTypes.has(file.type)) {
-            return NextResponse.json({ error: 'Unsupported file type' }, { status: 400 });
+        if (!isPdf && !isDocx) {
+            return NextResponse.json(
+                { error: 'Unsupported file type. Please upload a PDF or DOCX file.' },
+                { status: 400 }
+            );
         }
 
-        // Read file content
         const arrayBuffer = await file.arrayBuffer();
         const buffer = Buffer.from(arrayBuffer);
+        let extractedText = '';
 
-        // Convert file to base64 for OpenAI
-        const base64File = buffer.toString('base64');
-        const mimeType = file.type || (file.name.endsWith('.pdf') ? 'application/pdf' : 'application/octet-stream');
+        if (isPdf) {
+            const pdfData = await pdfParse(buffer);
+            extractedText = pdfData.text || '';
+        } else if (isDocx) {
+            const docxResult = await mammoth.extractRawText({ arrayBuffer });
+            extractedText = docxResult.value || '';
+        }
 
-        // Use OpenAI GPT-4o with vision to parse the resume
+        const cleanedText = extractedText
+            .replace(/\u0000/g, ' ')
+            .replace(/[ \t]+/g, ' ')
+            .replace(/\n{3,}/g, '\n\n')
+            .trim();
+
+        if (!cleanedText) {
+            return NextResponse.json(
+                { error: 'No readable text found in file.' },
+                { status: 400 }
+            );
+        }
+
+        const maxChars = 20000;
+        const textForModel =
+            cleanedText.length > maxChars
+                ? `${cleanedText.slice(0, 12000)}\n\n[...truncated...]\n\n${cleanedText.slice(-8000)}`
+                : cleanedText;
+
+        // Use OpenAI GPT-4o to parse the resume text
         const response = await getOpenAI().chat.completions.create({
             model: 'gpt-4o',
             messages: [
@@ -104,19 +134,7 @@ RULES:
                 },
                 {
                     role: 'user',
-                    content: [
-                        {
-                            type: 'text',
-                            text: `Parse this resume (${file.name}) and extract all information into JSON.`
-                        },
-                        {
-                            type: 'image_url',
-                            image_url: {
-                                url: `data:${mimeType};base64,${base64File}`,
-                                detail: 'high'
-                            }
-                        }
-                    ]
+                    content: `Parse this resume (${file.name}) and extract all information into JSON.\n\nResume text:\n${textForModel}`,
                 }
             ],
             max_tokens: 4000,
