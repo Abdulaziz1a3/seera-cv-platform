@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { toast } from 'sonner';
 import {
@@ -41,12 +41,49 @@ export default function SettingsPage() {
         productUpdates: false,
         marketing: false,
     });
+    const [creditsSummary, setCreditsSummary] = useState<{
+        baseCredits: number;
+        topupCredits: number;
+        usedCredits: number;
+        remainingCredits: number;
+    } | null>(null);
+
+    useEffect(() => {
+        let mounted = true;
+        fetch('/api/credits')
+            .then((res) => (res.ok ? res.json() : null))
+            .then((data) => {
+                if (!mounted || !data) return;
+                setCreditsSummary({
+                    baseCredits: data.baseCredits ?? 50,
+                    topupCredits: data.topupCredits ?? 0,
+                    usedCredits: data.usedCredits ?? 0,
+                    remainingCredits: data.remainingCredits ?? 0,
+                });
+            })
+            .catch(() => null);
+        return () => {
+            mounted = false;
+        };
+    }, []);
 
     const handleSaveProfile = async () => {
         setIsLoading(true);
         await new Promise((r) => setTimeout(r, 1000));
         toast.success(locale === 'ar' ? 'تم حفظ التغييرات' : 'Changes saved successfully');
         setIsLoading(false);
+    };
+
+    const baseCredits = creditsSummary?.baseCredits ?? 50;
+    const topupCredits = creditsSummary?.topupCredits ?? 0;
+    const usedCredits = creditsSummary?.usedCredits ?? 0;
+    const remainingCredits = creditsSummary?.remainingCredits ?? Math.max(0, baseCredits - usedCredits);
+    const totalCredits = baseCredits + topupCredits;
+    const creditUsagePercent = totalCredits > 0 ? Math.min(100, (usedCredits / totalCredits) * 100) : 0;
+
+    const openCreditsModal = () => {
+        if (typeof window === 'undefined') return;
+        window.dispatchEvent(new CustomEvent('ai-credits-exceeded', { detail: creditsSummary }));
     };
 
     return (
@@ -326,10 +363,27 @@ export default function SettingsPage() {
                                     </div>
                                     <div className="p-4 rounded-lg border">
                                         <div className="flex justify-between text-sm mb-2">
-                                            <span>{t.settings.billing.aiGenerations}</span>
-                                            <span className="font-medium">2 / 3</span>
+                                            <span>{locale === 'ar' ? 'رصيد الذكاء الاصطناعي' : 'AI Credits'}</span>
+                                            <span className="font-medium">
+                                                {remainingCredits} / {baseCredits}
+                                            </span>
                                         </div>
-                                        <Progress value={66} className="h-2" />
+                                        <Progress value={creditUsagePercent} className="h-2" />
+                                        {topupCredits > 0 && (
+                                            <p className="mt-2 text-xs text-muted-foreground">
+                                                {locale === 'ar'
+                                                    ? `رصيد إضافي: ${topupCredits}`
+                                                    : `Top-ups: ${topupCredits}`}
+                                            </p>
+                                        )}
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="mt-3"
+                                            onClick={openCreditsModal}
+                                        >
+                                            {locale === 'ar' ? 'اشحن الرصيد' : 'Recharge credits'}
+                                        </Button>
                                     </div>
                                 </div>
                             </div>

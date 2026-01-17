@@ -33,6 +33,7 @@ import { LivePreview } from '@/components/resume-editor/live-preview';
 import { getTemplatePreviewData } from '@/components/resume-editor/template-preview-data';
 import type { TemplateId } from '@/lib/resume-types';
 import { TemplateThumbnail } from '@/components/resume-editor/template-thumbnail';
+import { handleAICreditsResponse } from '@/lib/ai-credits-client';
 
 type CreateMethod = 'scratch' | 'import' | 'linkedin' | null;
 
@@ -106,6 +107,9 @@ export default function NewResumePage() {
                 body: formData,
             });
 
+            if (await handleAICreditsResponse(response)) {
+                return;
+            }
             if (!response.ok) {
                 const errorPayload = await response.json().catch(() => null);
                 const message = errorPayload?.error || 'Failed to parse resume';

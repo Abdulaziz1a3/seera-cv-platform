@@ -2,7 +2,7 @@
 // Provides AI-powered content generation for resumes
 
 import OpenAI from 'openai';
-import { recordUsage } from './stripe';
+import { calculateChatCostUsd, calculateCreditsFromUsd, recordAICreditUsage } from './ai-credits';
 
 // Singleton OpenAI client
 let openaiClient: OpenAI | null = null;
@@ -55,13 +55,25 @@ async function recordOpenAIUsage(
         return;
     }
 
-    await recordUsage(tracking.userId, 'AI_GENERATION', {
+    const model = response.model || 'gpt-4o-mini';
+    const costUsd = calculateChatCostUsd({
+        model,
+        promptTokens: response.usage.prompt_tokens ?? 0,
+        completionTokens: response.usage.completion_tokens ?? 0,
+    });
+    const { costSar, credits } = calculateCreditsFromUsd(costUsd);
+
+    await recordAICreditUsage({
+        userId: tracking.userId,
         provider: 'openai',
-        model: response.model || 'gpt-4o-mini',
+        model,
         operation: tracking.operation || fallbackOperation,
         promptTokens: response.usage.prompt_tokens ?? 0,
         completionTokens: response.usage.completion_tokens ?? 0,
         totalTokens: response.usage.total_tokens ?? 0,
+        costUsd,
+        costSar,
+        credits,
     });
 }
 

@@ -43,6 +43,7 @@ import { LanguageSwitcher } from '@/components/language-switcher';
 import { useLocale } from '@/components/providers/locale-provider';
 import { WelcomeModal } from '@/components/onboarding/welcome-modal';
 import { SkipLink } from '@/components/accessibility';
+import { CreditsModal } from '@/components/credits-modal';
 
 export default function DashboardLayout({
     children,
@@ -58,6 +59,8 @@ export default function DashboardLayout({
         isActive: boolean;
         status: string;
     } | null>(null);
+    const [creditsModalOpen, setCreditsModalOpen] = useState(false);
+    const [creditsModalDetail, setCreditsModalDetail] = useState<any>(null);
 
     useEffect(() => {
         let mounted = true;
@@ -76,6 +79,18 @@ export default function DashboardLayout({
             });
         return () => {
             mounted = false;
+        };
+    }, []);
+
+    useEffect(() => {
+        const handler = (event: Event) => {
+            const detail = (event as CustomEvent).detail || null;
+            setCreditsModalDetail(detail);
+            setCreditsModalOpen(true);
+        };
+        window.addEventListener('ai-credits-exceeded', handler);
+        return () => {
+            window.removeEventListener('ai-credits-exceeded', handler);
         };
     }, []);
 
@@ -360,6 +375,11 @@ export default function DashboardLayout({
             </div>
 
             {/* Onboarding Modal */}
+            <CreditsModal
+                isOpen={creditsModalOpen}
+                onClose={() => setCreditsModalOpen(false)}
+                initialCredits={creditsModalDetail}
+            />
             <WelcomeModal />
         </div>
     );

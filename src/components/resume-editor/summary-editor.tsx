@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { handleAICreditsResponse } from '@/lib/ai-credits-client';
 
 interface SummaryEditorProps {
     data: { content?: string } | undefined;
@@ -35,6 +36,9 @@ export function SummaryEditor({ data, onChange }: SummaryEditorProps) {
                 body: JSON.stringify({ currentContent: content }),
             });
 
+            if (await handleAICreditsResponse(response)) {
+                return;
+            }
             if (!response.ok) {
                 throw new Error('Failed to generate');
             }

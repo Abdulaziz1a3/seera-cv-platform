@@ -1,17 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server';
 import pdfParse from 'pdf-parse';
 import mammoth from 'mammoth';
+import { auth } from '@/lib/auth';
+import { buildCreditErrorPayload, calculateChatCostUsd, calculateCreditsFromUsd, getCreditSummary, recordAICreditUsage } from '@/lib/ai-credits';
 import { getOpenAI } from '@/lib/openai';
 
 export const runtime = 'nodejs';
 
 export async function POST(request: NextRequest) {
     try {
+        const session = await auth();
+        if (!session?.user?.id) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
         if (!process.env.OPENAI_API_KEY) {
             return NextResponse.json(
                 { error: 'OpenAI API not configured' },
                 { status: 503 }
             );
+        }
+
+        const creditSummary = await getCreditSummary(session.user.id);
+        if (creditSummary.availableCredits <= 0) {
+            return NextResponse.json(buildCreditErrorPayload(creditSummary), { status: 402 });
         }
 
         const formData = await request.formData();
@@ -141,6 +153,27 @@ RULES:
             temperature: 0.1,
             response_format: { type: 'json_object' },
         });
+
+        if (response.usage?.total_tokens) {
+            const costUsd = calculateChatCostUsd({
+                model: 'gpt-4o',
+                promptTokens: response.usage.prompt_tokens ?? 0,
+                completionTokens: response.usage.completion_tokens ?? 0,
+            });
+            const { costSar, credits } = calculateCreditsFromUsd(costUsd);
+            await recordAICreditUsage({
+                userId: session.user.id,
+                provider: 'openai',
+                model: 'gpt-4o',
+                operation: 'resume_parse',
+                promptTokens: response.usage.prompt_tokens ?? 0,
+                completionTokens: response.usage.completion_tokens ?? 0,
+                totalTokens: response.usage.total_tokens ?? 0,
+                costUsd,
+                costSar,
+                credits,
+            });
+        }
 
         const content = response.choices[0]?.message?.content || '{}';
 

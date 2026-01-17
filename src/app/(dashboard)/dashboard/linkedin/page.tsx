@@ -34,6 +34,7 @@ import {
     Zap,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { handleAICreditsResponse } from '@/lib/ai-credits-client';
 
 interface OptimizedProfile {
     headline: string;
@@ -91,6 +92,9 @@ export default function LinkedInOptimizerPage() {
                 }),
             });
 
+            if (await handleAICreditsResponse(response.clone())) {
+                return;
+            }
             const { result, error } = await response.json();
             if (error) throw new Error(error);
 
@@ -125,6 +129,9 @@ export default function LinkedInOptimizerPage() {
                 }),
             });
 
+            if (await handleAICreditsResponse(response.clone())) {
+                return;
+            }
             const { result, error } = await response.json();
             if (error) throw new Error(error);
 

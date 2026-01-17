@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { errors } from '@/lib/api-response';
+import { buildCreditErrorPayload, getCreditSummary } from '@/lib/ai-credits';
 import { hasActiveSubscription } from '@/lib/subscription';
 import {
     analyzeCareer,
@@ -23,6 +24,11 @@ export async function POST(request: NextRequest) {
         const body = await request.json();
         const { action, resume, options = {} } = body;
 
+        const creditSummary = await getCreditSummary(session.user.id);
+        if (creditSummary.availableCredits <= 0) {
+            return NextResponse.json(buildCreditErrorPayload(creditSummary), { status: 402 });
+        }
+
         if (!process.env.OPENAI_API_KEY) {
             return NextResponse.json(
                 { error: 'OpenAI API not configured' },
@@ -31,6 +37,7 @@ export async function POST(request: NextRequest) {
         }
 
         const normalizedResume = resume ? normalizeResumeForCareer(resume) : null;
+        const trackingOptions = { ...options, userId: session.user.id };
 
         let result;
 
@@ -39,21 +46,21 @@ export async function POST(request: NextRequest) {
                 if (!normalizedResume) {
                     return NextResponse.json({ error: 'Resume required' }, { status: 400 });
                 }
-                result = await analyzeCareer(normalizedResume, options);
+                result = await analyzeCareer(normalizedResume, trackingOptions);
                 break;
 
             case 'action-plan':
                 if (!normalizedResume || !body.targetPath) {
                     return NextResponse.json({ error: 'Resume and target path required' }, { status: 400 });
                 }
-                result = await generateActionPlan(normalizedResume, body.targetPath, options);
+                result = await generateActionPlan(normalizedResume, body.targetPath, trackingOptions);
                 break;
 
             case 'industry-insights':
                 if (!body.industry) {
                     return NextResponse.json({ error: 'Industry required' }, { status: 400 });
                 }
-                result = await getIndustryInsights(body.industry, options);
+                result = await getIndustryInsights(body.industry, trackingOptions);
                 break;
 
             default:

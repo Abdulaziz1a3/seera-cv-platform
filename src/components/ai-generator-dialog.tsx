@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/dialog';
 import { Loader2, Sparkles, Copy, Check, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
+import { handleAICreditsResponse } from '@/lib/ai-credits-client';
 
 interface AIGeneratorDialogProps {
     isOpen: boolean;
@@ -60,6 +61,10 @@ export function AIGeneratorDialog({
                     ...context,
                 }),
             });
+
+            if (await handleAICreditsResponse(response)) {
+                return;
+            }
 
             const data = await response.json();
             if (data.error) {

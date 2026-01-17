@@ -4,6 +4,7 @@
 import Stripe from 'stripe';
 import { prisma } from './db';
 import { logger } from './logger';
+import { MIN_RECHARGE_SAR, sarToCredits, recordAICreditTopup } from './ai-credits';
 
 // Initialize Stripe with proper error handling
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
@@ -179,6 +180,93 @@ export async function createCheckoutSession(
     return session.url!;
 }
 
+// Create one-time checkout session for AI credit top-up
+export async function createCreditTopupSession(
+    userId: string,
+    amountSar: number,
+    returnUrl: string
+): Promise<string> {
+    if (!stripe) {
+        throw new Error('Stripe is not configured');
+    }
+
+    if (amountSar < MIN_RECHARGE_SAR) {
+        throw new Error(`Minimum recharge is ${MIN_RECHARGE_SAR} SAR`);
+    }
+
+    const user = await prisma.user.findUnique({
+        where: { id: userId },
+        include: { subscription: true },
+    });
+
+    if (!user) {
+        throw new Error('User not found');
+    }
+
+    let customerId = user.subscription?.stripeCustomerId;
+    if (!customerId) {
+        const customer = await stripe.customers.create({
+            email: user.email,
+            name: user.name || undefined,
+            metadata: { userId },
+        });
+        customerId = customer.id;
+
+        if (user.subscription) {
+            await prisma.subscription.update({
+                where: { userId },
+                data: { stripeCustomerId: customerId },
+            });
+        } else {
+            await prisma.subscription.create({
+                data: {
+                    userId,
+                    stripeCustomerId: customerId,
+                    plan: 'FREE',
+                    status: 'UNPAID',
+                },
+            });
+        }
+    }
+
+    const credits = sarToCredits(amountSar);
+    const amountInHalalah = Math.round(amountSar * 100);
+
+    const session = await stripe.checkout.sessions.create({
+        mode: 'payment',
+        customer: customerId,
+        payment_method_types: ['card'],
+        line_items: [
+            {
+                price_data: {
+                    currency: 'sar',
+                    product_data: {
+                        name: 'AI Credits',
+                        description: `${credits} credits`,
+                    },
+                    unit_amount: amountInHalalah,
+                },
+                quantity: 1,
+            },
+        ],
+        success_url: `${returnUrl}?creditsSuccess=true&session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${returnUrl}?creditsCanceled=true`,
+        metadata: {
+            type: 'ai_credits',
+            userId,
+            credits: credits.toString(),
+            amountSar: amountSar.toFixed(2),
+        },
+    });
+
+    logger.paymentEvent('credit_topup_session_created', userId, amountSar, {
+        sessionId: session.id,
+        credits,
+    });
+
+    return session.url!;
+}
+
 // Create customer portal session
 export async function createPortalSession(
     customerId: string,
@@ -256,6 +344,7 @@ export function getPlanLimits(planId: PlanId) {
 
 export type UsageType =
     | 'AI_GENERATION'
+    | 'AI_CREDIT_TOPUP'
     | 'EXPORT_PDF'
     | 'EXPORT_DOCX'
     | 'RESUME_CREATE'
@@ -464,6 +553,25 @@ export async function handleWebhook(
 async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     const userId = session.metadata?.userId;
     const planId = session.metadata?.planId as PlanId;
+
+    if (session.mode === 'payment' && session.metadata?.type === 'ai_credits') {
+        if (!userId) {
+            logger.warn('Credit top-up missing userId', { sessionId: session.id });
+            return;
+        }
+        const amountSar = session.amount_total ? session.amount_total / 100 : 0;
+        await recordAICreditTopup({
+            userId,
+            amountSar,
+            source: 'stripe',
+            reference: session.id,
+        });
+        logger.paymentEvent('credit_topup_completed', userId, amountSar, {
+            sessionId: session.id,
+            credits: session.metadata?.credits,
+        });
+        return;
+    }
 
     if (!userId || !planId) {
         logger.warn('Checkout session missing metadata', { sessionId: session.id });

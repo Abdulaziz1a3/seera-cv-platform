@@ -1,7 +1,7 @@
 // AI Provider Abstraction Layer
 // Supports multiple LLM providers: OpenAI, Anthropic, Google
 
-import { recordUsage } from '@/lib/stripe';
+import { calculateChatCostUsd, calculateCreditsFromUsd, recordAICreditUsage } from '@/lib/ai-credits';
 
 export type AIProvider = 'openai' | 'anthropic' | 'google';
 
@@ -39,13 +39,25 @@ interface AITracking {
 async function recordAIUsage(tracking: AITracking | undefined, usage?: AIResponse['usage'], provider?: AIProvider) {
     if (!tracking?.userId || !usage?.totalTokens) return;
 
-    await recordUsage(tracking.userId, 'AI_GENERATION', {
+    const model = MODEL_BY_PROVIDER[provider || 'openai'];
+    const costUsd = calculateChatCostUsd({
+        model,
+        promptTokens: usage.promptTokens || 0,
+        completionTokens: usage.completionTokens || 0,
+    });
+    const { costSar, credits } = calculateCreditsFromUsd(costUsd);
+
+    await recordAICreditUsage({
+        userId: tracking.userId,
         provider: provider || 'openai',
-        model: MODEL_BY_PROVIDER[provider || 'openai'],
+        model,
         operation: tracking.operation || 'ai_generation',
         promptTokens: usage.promptTokens || 0,
         completionTokens: usage.completionTokens || 0,
         totalTokens: usage.totalTokens || 0,
+        costUsd,
+        costSar,
+        credits,
     });
 }
 

@@ -22,6 +22,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { useLocale } from '@/components/providers/locale-provider';
+import { handleAICreditsResponse } from '@/lib/ai-credits-client';
 import {
     Select,
     SelectContent,
@@ -101,6 +102,9 @@ export default function NewJobTargetPage() {
                 }),
             });
 
+            if (await handleAICreditsResponse(response)) {
+                return;
+            }
             if (!response.ok) {
                 throw new Error('Analysis failed');
             }

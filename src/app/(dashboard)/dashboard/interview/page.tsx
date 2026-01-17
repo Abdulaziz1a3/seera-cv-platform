@@ -46,6 +46,7 @@ import {
     Send,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { handleAICreditsResponse } from '@/lib/ai-credits-client';
 
 type InterviewStatus = 'setup' | 'ready' | 'interviewing' | 'feedback' | 'summary';
 
@@ -191,6 +192,10 @@ export default function InterviewPrepPage() {
                 body: JSON.stringify({ text, voice: 'onyx' }),
             });
 
+            if (await handleAICreditsResponse(response)) {
+                setIsPlaying(false);
+                return;
+            }
             if (!response.ok) throw new Error('TTS failed');
 
             const audioBlob = await response.blob();
@@ -313,6 +318,9 @@ export default function InterviewPrepPage() {
                 }),
             });
 
+            if (await handleAICreditsResponse(response.clone())) {
+                return;
+            }
             const payload = await response.json().catch(() => ({}));
             if (!response.ok) {
                 throw new Error(payload?.error || 'Failed to generate questions');
@@ -382,6 +390,9 @@ export default function InterviewPrepPage() {
                 }),
             });
 
+            if (await handleAICreditsResponse(evalResponse.clone())) {
+                return;
+            }
             const payload = await evalResponse.json().catch(() => ({}));
             let feedback = payload?.result;
             if (!evalResponse.ok) {
@@ -461,6 +472,9 @@ export default function InterviewPrepPage() {
                         context: { targetRole, experienceLevel, locale },
                     }),
                 });
+                if (await handleAICreditsResponse(res.clone())) {
+                    return;
+                }
                 const payload = await res.json().catch(() => ({}));
                 if (res.ok && payload?.result) {
                     setSummaryData({

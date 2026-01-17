@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { auth } from '@/lib/auth';
+import { buildCreditErrorPayload, getCreditSummary } from '@/lib/ai-credits';
 import { generateBulletPoints } from '@/lib/ai';
 
 const requestSchema = z.object({
@@ -15,6 +16,11 @@ export async function POST(request: Request) {
         const session = await auth();
         if (!session?.user) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
+        const creditSummary = await getCreditSummary(session.user.id);
+        if (creditSummary.availableCredits <= 0) {
+            return NextResponse.json(buildCreditErrorPayload(creditSummary), { status: 402 });
         }
 
         const body = await request.json();

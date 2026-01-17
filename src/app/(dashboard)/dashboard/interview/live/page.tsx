@@ -36,6 +36,7 @@ import {
     Globe,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { handleAICreditsResponse } from '@/lib/ai-credits-client';
 
 type InterviewPhase = 'setup' | 'connecting' | 'greeting' | 'warmup' | 'interview' | 'closing' | 'ended';
 type InterviewLanguage = 'en' | 'ar' | 'ar-sa'; // English, Formal Arabic, Saudi Dialect
@@ -407,6 +408,10 @@ export default function LiveInterviewPage() {
                 body: JSON.stringify({ text, voice: selectedVoice }),
             });
 
+            if (await handleAICreditsResponse(response.clone())) {
+                setIsSpeaking(false);
+                return;
+            }
             if (!response.ok) {
                 const errorPayload = await response.json().catch(() => null);
                 const message =
@@ -511,6 +516,10 @@ export default function LiveInterviewPage() {
                                 },
                             }),
                         });
+                        if (await handleAICreditsResponse(evalRes.clone())) {
+                            setIsLoading(false);
+                            return;
+                        }
                         const evalPayload = await evalRes.json().catch(() => ({}));
 
                         if (evalRes.ok) {
@@ -570,6 +579,10 @@ export default function LiveInterviewPage() {
                                 nextQuestion,
                             }),
                         });
+                        if (await handleAICreditsResponse(conductRes.clone())) {
+                            setIsLoading(false);
+                            return;
+                        }
                         const conductPayload = await conductRes.json().catch(() => ({}));
                         if (conductRes.ok) {
                             aiTransition = conductPayload?.result || '';
@@ -750,6 +763,11 @@ export default function LiveInterviewPage() {
                     }),
                 });
 
+                if (await handleAICreditsResponse(res.clone())) {
+                    setPhase('setup');
+                    setIsLoading(false);
+                    return;
+                }
                 const payload = await res.json().catch(() => ({}));
 
                 if (res.ok && Array.isArray(payload?.result) && payload.result.length > 0) {
@@ -878,6 +896,9 @@ export default function LiveInterviewPage() {
                         },
                     }),
                 });
+                if (await handleAICreditsResponse(res.clone())) {
+                    return;
+                }
                 const payload = await res.json().catch(() => ({}));
                 if (res.ok && payload?.result) {
                     setSummaryData({

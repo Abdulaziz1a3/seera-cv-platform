@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Sparkles, Wand2, Loader2, Check } from 'lucide-react';
 import { toast } from 'sonner';
+import { handleAICreditsResponse } from '@/lib/ai-credits-client';
 
 interface AIPolishButtonProps {
     value: string;
@@ -49,6 +50,10 @@ export function AIPolishButton({
                     type: type
                 }),
             });
+
+            if (await handleAICreditsResponse(response)) {
+                return;
+            }
 
             const data = await response.json();
 

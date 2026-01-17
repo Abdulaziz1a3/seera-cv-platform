@@ -2,6 +2,7 @@
 // Comprehensive career path analysis, skill gaps, and action planning
 
 import { getOpenAI } from '@/lib/openai';
+import { calculateChatCostUsd, calculateCreditsFromUsd, recordAICreditUsage } from '@/lib/ai-credits';
 import type { ResumeCareerProfile } from '@/lib/resume-normalizer';
 
 // Types
@@ -63,6 +64,38 @@ export interface CareerAnalysis {
         saudizationOpportunities: string[];
         salaryTrends: string;
     };
+}
+
+async function recordCareerUsage(params: {
+    userId?: string;
+    model: string;
+    usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number };
+    operation: string;
+}): Promise<void> {
+    if (!params.userId || !params.usage?.total_tokens) return;
+
+    const promptTokens = params.usage.prompt_tokens || 0;
+    const completionTokens = params.usage.completion_tokens || 0;
+    const totalTokens = params.usage.total_tokens || 0;
+    const costUsd = calculateChatCostUsd({
+        model: params.model,
+        promptTokens,
+        completionTokens,
+    });
+    const { costSar, credits } = calculateCreditsFromUsd(costUsd);
+
+    await recordAICreditUsage({
+        userId: params.userId,
+        provider: 'openai',
+        model: params.model,
+        operation: params.operation,
+        promptTokens,
+        completionTokens,
+        totalTokens,
+        costUsd,
+        costSar,
+        credits,
+    });
 }
 
 // GCC Salary Data (SAR monthly)
@@ -151,7 +184,7 @@ function determineLevel(yearsExp: number): 'entry' | 'junior' | 'mid' | 'senior'
 // Main career analysis function
 export async function analyzeCareer(
     resume: ResumeCareerProfile,
-    options: { locale?: 'ar' | 'en'; targetIndustry?: string } = {}
+    options: { locale?: 'ar' | 'en'; targetIndustry?: string; userId?: string } = {}
 ): Promise<CareerAnalysis> {
     const { locale = 'en', targetIndustry } = options;
 
@@ -235,6 +268,13 @@ Generate 3-4 realistic career paths with 4-5 milestones each. Include 5-8 skill 
         max_tokens: 3000,
         temperature: 0.7,
         response_format: { type: 'json_object' },
+    });
+
+    await recordCareerUsage({
+        userId: options.userId,
+        model: 'gpt-4o-mini',
+        usage: response.usage,
+        operation: 'career_analyze',
     });
 
     let analysis;
@@ -335,7 +375,7 @@ function calculateCareerScore(resume: ResumeCareerProfile, skillGaps: SkillGap[]
 export async function generateActionPlan(
     resume: ResumeCareerProfile,
     targetPath: CareerPath,
-    options: { locale?: 'ar' | 'en'; weeks?: number } = {}
+    options: { locale?: 'ar' | 'en'; weeks?: number; userId?: string } = {}
 ): Promise<WeeklyAction[]> {
     const { locale = 'en', weeks = 4 } = options;
 
@@ -375,6 +415,13 @@ Generate ${weeks * 3} specific actions in JSON format:
         response_format: { type: 'json_object' },
     });
 
+    await recordCareerUsage({
+        userId: options.userId,
+        model: 'gpt-4o-mini',
+        usage: response.usage,
+        operation: 'career_action_plan',
+    });
+
     try {
         const result = JSON.parse(response.choices[0]?.message?.content || '{}');
         return (result.actions || []).map((action: any) => ({
@@ -389,7 +436,7 @@ Generate ${weeks * 3} specific actions in JSON format:
 // Get real-time industry insights for GCC
 export async function getIndustryInsights(
     industry: string,
-    options: { locale?: 'ar' | 'en' } = {}
+    options: { locale?: 'ar' | 'en'; userId?: string } = {}
 ): Promise<{
     trendingRoles: string[];
     salaryTrends: string;
@@ -422,6 +469,13 @@ export async function getIndustryInsights(
         max_tokens: 600,
         temperature: 0.6,
         response_format: { type: 'json_object' },
+    });
+
+    await recordCareerUsage({
+        userId: options.userId,
+        model: 'gpt-4o-mini',
+        usage: response.usage,
+        operation: 'career_insights',
     });
 
     try {

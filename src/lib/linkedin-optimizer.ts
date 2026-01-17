@@ -2,6 +2,7 @@
 // Transforms resume data into optimized LinkedIn profile content
 
 import { getOpenAI } from '@/lib/openai';
+import { calculateChatCostUsd, calculateCreditsFromUsd, recordAICreditUsage } from '@/lib/ai-credits';
 import type { ResumeAIProfile } from '@/lib/resume-normalizer';
 
 export interface LinkedInProfile {
@@ -24,6 +25,39 @@ export interface OptimizationOptions {
     tone?: 'professional' | 'creative' | 'executive';
     industry?: string;
     targetAudience?: 'recruiters' | 'clients' | 'networking';
+    userId?: string;
+}
+
+async function recordLinkedInUsage(params: {
+    userId?: string;
+    model: string;
+    usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number };
+    operation: string;
+}): Promise<void> {
+    if (!params.userId || !params.usage?.total_tokens) return;
+
+    const promptTokens = params.usage.prompt_tokens || 0;
+    const completionTokens = params.usage.completion_tokens || 0;
+    const totalTokens = params.usage.total_tokens || 0;
+    const costUsd = calculateChatCostUsd({
+        model: params.model,
+        promptTokens,
+        completionTokens,
+    });
+    const { costSar, credits } = calculateCreditsFromUsd(costUsd);
+
+    await recordAICreditUsage({
+        userId: params.userId,
+        provider: 'openai',
+        model: params.model,
+        operation: params.operation,
+        promptTokens,
+        completionTokens,
+        totalTokens,
+        costUsd,
+        costSar,
+        credits,
+    });
 }
 
 // Generate optimized LinkedIn headline options
@@ -52,6 +86,13 @@ export async function generateHeadlines(
         ],
         max_tokens: 400,
         temperature: 0.8,
+    });
+
+    await recordLinkedInUsage({
+        userId: options.userId,
+        model: 'gpt-4o-mini',
+        usage: response.usage,
+        operation: 'linkedin_headlines',
     });
 
     const content = response.choices[0]?.message?.content || '';
@@ -110,6 +151,13 @@ Target audience: ${targetAudience}`;
         temperature: 0.7,
     });
 
+    await recordLinkedInUsage({
+        userId: options.userId,
+        model: 'gpt-4o-mini',
+        usage: response.usage,
+        operation: 'linkedin_about',
+    });
+
     return response.choices[0]?.message?.content || '';
 }
 
@@ -144,6 +192,13 @@ Bullets: ${exp.bullets.join('; ')}`;
                 ],
                 max_tokens: 300,
                 temperature: 0.6,
+            });
+
+            await recordLinkedInUsage({
+                userId: options.userId,
+                model: 'gpt-4o-mini',
+                usage: response.usage,
+                operation: 'linkedin_experience',
             });
 
             return {
@@ -185,6 +240,13 @@ Reply in JSON: { "ranked": [...], "featured": ["top1", "top2", "top3"] }`;
         max_tokens: 300,
         temperature: 0.5,
         response_format: { type: 'json_object' },
+    });
+
+    await recordLinkedInUsage({
+        userId: options.userId,
+        model: 'gpt-4o-mini',
+        usage: response.usage,
+        operation: 'linkedin_skills',
     });
 
     try {

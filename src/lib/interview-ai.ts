@@ -2,10 +2,12 @@
 // Handles interview question generation, conversation, and feedback
 
 import { getOpenAI } from '@/lib/openai';
+import { calculateChatCostUsd, calculateCreditsFromUsd, calculateTtsCostUsd, recordAICreditUsage } from '@/lib/ai-credits';
 
 export type InterviewLocale = 'ar' | 'en' | 'ar-sa';
 
 export interface InterviewContext {
+    userId?: string;
     targetRole: string;
     industry?: string;
     experienceLevel: 'junior' | 'mid' | 'senior' | 'executive';
@@ -66,6 +68,38 @@ const FALLBACK_QUESTIONS_AR = [
     { question: 'أعط مثالاً على موقف أظهرت فيه قيادة أو مبادرة.', category: 'experience', difficulty: 'hard' },
     { question: 'ما توقعاتك من المدير والفريق؟', category: 'culture', difficulty: 'easy' },
 ] as const;
+
+async function recordInterviewUsage(params: {
+    userId?: string;
+    model: string;
+    usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number };
+    operation: string;
+}): Promise<void> {
+    if (!params.userId || !params.usage?.total_tokens) return;
+
+    const promptTokens = params.usage.prompt_tokens || 0;
+    const completionTokens = params.usage.completion_tokens || 0;
+    const totalTokens = params.usage.total_tokens || 0;
+    const costUsd = calculateChatCostUsd({
+        model: params.model,
+        promptTokens,
+        completionTokens,
+    });
+    const { costSar, credits } = calculateCreditsFromUsd(costUsd);
+
+    await recordAICreditUsage({
+        userId: params.userId,
+        provider: 'openai',
+        model: params.model,
+        operation: params.operation,
+        promptTokens,
+        completionTokens,
+        totalTokens,
+        costUsd,
+        costSar,
+        credits,
+    });
+}
 
 function getLocaleProfile(locale?: InterviewLocale, dialect?: string) {
     const normalized = (locale || 'en').toLowerCase();
@@ -166,6 +200,13 @@ Reply in JSON format with: id, question, category, difficulty, tips.`;
         response_format: { type: 'json_object' },
     });
 
+    await recordInterviewUsage({
+        userId: context.userId,
+        model: 'gpt-4o-mini',
+        usage: response.usage,
+        operation: 'interview_questions',
+    });
+
     try {
         const result = JSON.parse(response.choices[0]?.message?.content || '{}');
         // Handle different response formats
@@ -241,6 +282,13 @@ export async function conductInterview(
         temperature: 0.7,
     });
 
+    await recordInterviewUsage({
+        userId: context.userId,
+        model: 'gpt-4o-mini',
+        usage: response.usage,
+        operation: 'interview_conduct',
+    });
+
     return response.choices[0]?.message?.content || '';
 }
 
@@ -304,6 +352,13 @@ Evaluate the answer and reply in JSON format:
         response_format: { type: 'json_object' },
     });
 
+    await recordInterviewUsage({
+        userId: context.userId,
+        model: 'gpt-4o-mini',
+        usage: response.usage,
+        operation: 'interview_evaluate',
+    });
+
     try {
         const parsed = JSON.parse(response.choices[0]?.message?.content || '{}');
         const score = Number.isFinite(parsed.score) ? parsed.score : 5;
@@ -332,7 +387,8 @@ Evaluate the answer and reply in JSON format:
 // Generate text-to-speech audio for interviewer
 export async function generateInterviewerVoice(
     text: string,
-    voice: 'alloy' | 'echo' | 'fable' | 'onyx' | 'nova' | 'shimmer' = 'onyx'
+    voice: 'alloy' | 'echo' | 'fable' | 'onyx' | 'nova' | 'shimmer' = 'onyx',
+    userId?: string
 ): Promise<ArrayBuffer> {
     const response = await getOpenAI().audio.speech.create({
         model: 'tts-1',
@@ -340,6 +396,24 @@ export async function generateInterviewerVoice(
         input: text,
         speed: 1.0,
     });
+
+    if (userId) {
+        const costUsd = calculateTtsCostUsd({ model: 'tts-1', text });
+        const { costSar, credits } = calculateCreditsFromUsd(costUsd);
+        await recordAICreditUsage({
+            userId,
+            provider: 'openai',
+            model: 'tts-1',
+            operation: 'interview_tts',
+            promptTokens: 0,
+            completionTokens: 0,
+            totalTokens: 0,
+            costUsd,
+            costSar,
+            credits,
+            inputChars: text.length,
+        });
+    }
 
     return response.arrayBuffer();
 }
@@ -396,6 +470,13 @@ export async function generateInterviewSummary(
         ],
         max_tokens: 400,
         response_format: { type: 'json_object' },
+    });
+
+    await recordInterviewUsage({
+        userId: context.userId,
+        model: 'gpt-4o-mini',
+        usage: response.usage,
+        operation: 'interview_summary',
     });
 
     try {

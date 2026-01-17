@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getOpenAI } from '@/lib/openai';
 import { auth } from '@/lib/auth';
 import { errors } from '@/lib/api-response';
+import { buildCreditErrorPayload, calculateCreditsFromUsd, calculateTtsCostUsd, getCreditSummary, recordAICreditUsage } from '@/lib/ai-credits';
 import { hasActiveSubscription } from '@/lib/subscription';
 
 export async function POST(request: NextRequest) {
@@ -21,6 +22,11 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Text is required' }, { status: 400 });
         }
 
+        const creditSummary = await getCreditSummary(session.user.id);
+        if (creditSummary.availableCredits <= 0) {
+            return NextResponse.json(buildCreditErrorPayload(creditSummary), { status: 402 });
+        }
+
         const response = await getOpenAI().audio.speech.create({
             model: 'tts-1-hd', // HD quality for more natural voice
             voice: voice,
@@ -29,6 +35,21 @@ export async function POST(request: NextRequest) {
         });
 
         const audioBuffer = await response.arrayBuffer();
+        const costUsd = calculateTtsCostUsd({ model: 'tts-1-hd', text });
+        const { costSar, credits } = calculateCreditsFromUsd(costUsd);
+        await recordAICreditUsage({
+            userId: session.user.id,
+            provider: 'openai',
+            model: 'tts-1-hd',
+            operation: 'interview_tts',
+            promptTokens: 0,
+            completionTokens: 0,
+            totalTokens: 0,
+            costUsd,
+            costSar,
+            credits,
+            inputChars: text.length,
+        });
 
         return new NextResponse(audioBuffer, {
             headers: {

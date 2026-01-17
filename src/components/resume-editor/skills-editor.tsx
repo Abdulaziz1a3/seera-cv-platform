@@ -10,6 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import type { SkillsSection, SkillCategory } from '@/lib/resume-schema';
+import { handleAICreditsResponse } from '@/lib/ai-credits-client';
 
 interface SkillsEditorProps {
     data: SkillsSection | undefined;
@@ -106,6 +107,9 @@ export function SkillsEditor({ data, onChange }: SkillsEditorProps) {
                 body: JSON.stringify({ jobDescription }),
             });
 
+            if (await handleAICreditsResponse(response)) {
+                return;
+            }
             if (!response.ok) {
                 throw new Error('Failed to extract skills');
             }

@@ -16,6 +16,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { handleAICreditsResponse } from '@/lib/ai-credits-client';
 import {
     Compass,
     Map,
@@ -143,6 +144,10 @@ export default function CareerGPSPage() {
                     options: { locale },
                 }),
             });
+
+            if (await handleAICreditsResponse(response)) {
+                return;
+            }
 
             const payload = await parseJsonResponse(response);
             if (!response.ok) {

@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { handleAICreditsResponse } from '@/lib/ai-credits-client';
 import {
     type ExperienceSection as Experience,
     type ExperienceItem,
@@ -93,6 +94,9 @@ export function ExperienceEditor({ data, onChange }: ExperienceEditorProps) {
                 }),
             });
 
+            if (await handleAICreditsResponse(response)) {
+                return;
+            }
             if (!response.ok) {
                 throw new Error('Failed to generate');
             }

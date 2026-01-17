@@ -550,6 +550,8 @@ model UsageRecord {
 
   type      UsageType
   count     Int       @default(1)
+  credits   Float     @default(0)
+  amountSar Float?
   metadata  Json?
 
   createdAt DateTime  @default(now())
@@ -562,6 +564,7 @@ model UsageRecord {
 
 enum UsageType {
   AI_GENERATION
+  AI_CREDIT_TOPUP
   EXPORT_PDF
   EXPORT_DOCX
   RESUME_CREATE
