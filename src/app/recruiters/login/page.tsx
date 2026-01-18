@@ -160,7 +160,7 @@ export default function RecruiterLoginPage() {
                         Find Your Next Great Hire
                     </h2>
                     <p className="text-xl text-white/90 mb-8">
-                        Access 50,000+ verified professionals in the GCC region.
+                        Access 50,000+ verified professionals in Saudi Arabia.
                         Smart search, AI matching, and pay-per-CV pricing.
                     </p>
 

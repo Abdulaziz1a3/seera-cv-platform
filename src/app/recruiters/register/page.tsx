@@ -141,7 +141,7 @@ export default function RecruiterRegisterPage() {
 
                         <h1 className="text-3xl font-bold mb-2">Create Your Account</h1>
                         <p className="text-muted-foreground">
-                            Join 500+ companies hiring top GCC talent.
+                            Join 500+ companies hiring top Saudi talent.
                         </p>
                     </div>
 
@@ -362,7 +362,7 @@ export default function RecruiterRegisterPage() {
                     </h2>
                     <p className="text-xl text-white/90 mb-8">
                         Join 500+ companies using Seera AI to find
-                        top talent in Saudi Arabia and the GCC.
+                        top talent in Saudi Arabia.
                     </p>
 
                     <div className="space-y-4 mb-12">

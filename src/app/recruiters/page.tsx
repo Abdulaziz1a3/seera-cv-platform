@@ -210,7 +210,7 @@ export default function RecruiterPortalPage() {
                         </div>
                         <div>
                             <h1 className="font-bold text-lg">Seera AI for Recruiters</h1>
-                            <p className="text-xs text-muted-foreground">Find top GCC talent</p>
+                            <p className="text-xs text-muted-foreground">Find top Saudi talent</p>
                         </div>
                     </div>
 

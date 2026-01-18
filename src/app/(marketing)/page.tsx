@@ -67,8 +67,8 @@ export default function Home() {
             icon: TrendingUp,
             title: locale === 'ar' ? 'مجموعة المواهب' : 'Talent Pool',
             description: locale === 'ar'
-                ? 'اجعل سيرتك مرئية لمئات الشركات في الخليج واستقبل عروض العمل مباشرة'
-                : 'Make your resume visible to hundreds of GCC companies and receive job offers directly',
+                ? 'اجعل سيرتك مرئية لمئات الشركات في السعودية واستقبل عروض العمل مباشرة'
+                : 'Make your resume visible to top Saudi companies and receive job offers directly',
             color: 'from-green-500 to-emerald-500',
             badge: 'INCLUDED',
         },
@@ -185,8 +185,8 @@ export default function Home() {
 
                         <p className="text-xl md:text-2xl text-muted-foreground mb-8 max-w-3xl mx-auto">
                             {locale === 'ar'
-                                ? 'أكثر من مجرد سيرة ذاتية — منصة شاملة للتخطيط المهني، تحضير المقابلات، والتواصل مع أفضل الشركات في الخليج.'
-                                : 'More than just a resume — a complete platform for career planning, interview prep, and connecting with top GCC companies.'}
+                                ? 'أكثر من مجرد سيرة ذاتية — منصة شاملة للتخطيط المهني، تحضير المقابلات، والتواصل مع أفضل الشركات في السعودية.'
+                                : 'More than just a resume — a complete platform for career planning, interview prep, and connecting with top Saudi companies.'}
                         </p>
 
                         {/* Dual CTA - Job Seekers vs Recruiters */}
@@ -305,8 +305,8 @@ export default function Home() {
                                 </h2>
                                 <p className="text-xl text-white/90 mb-8">
                                     {locale === 'ar'
-                                        ? 'ابحث في آلاف السير الذاتية لمحترفين في الخليج. ادفع فقط مقابل المرشحين الذين تريد التواصل معهم.'
-                                        : 'Search thousands of GCC CVs. Pay only for candidates you want to contact.'}
+                                        ? 'ابحث في آلاف السير الذاتية لمحترفين في السعودية. ادفع فقط مقابل المرشحين الذين تريد التواصل معهم.'
+                                        : 'Search thousands of Saudi CVs. Pay only for candidates you want to contact.'}
                                 </p>
 
                                 <ul className="space-y-3 mb-8">

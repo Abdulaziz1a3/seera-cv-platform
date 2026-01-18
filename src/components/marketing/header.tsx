@@ -168,7 +168,7 @@ export function MarketingHeader() {
                                                         {locale === 'ar' ? 'أنا أوظف مواهب' : "I'm Hiring Talent"}
                                                     </p>
                                                     <p className="text-xs text-muted-foreground">
-                                                        {locale === 'ar' ? 'ابحث عن مواهب الخليج' : 'Find GCC talent'}
+                                                        {locale === 'ar' ? 'ابحث عن مواهب السعودية' : 'Find Saudi talent'}
                                                     </p>
                                                 </div>
                                             </Link>

@@ -21,6 +21,7 @@ import {
     CheckCircle2,
     AlertCircle,
     Rocket,
+    Eye,
 } from 'lucide-react';
 
 export default function DashboardPage() {
@@ -62,11 +63,11 @@ export default function DashboardPage() {
             color: 'bg-purple-500',
         },
         {
-            title: t.dashboard.quickActions.track.title,
-            description: t.dashboard.quickActions.track.description,
-            icon: Briefcase,
-            href: '/dashboard/applications',
-            color: 'bg-green-500',
+            title: t.dashboard.quickActions.atsSimulator.title,
+            description: t.dashboard.quickActions.atsSimulator.description,
+            icon: Eye,
+            href: '/dashboard/ats-simulator',
+            color: 'bg-amber-500',
         },
     ];
 
