@@ -705,7 +705,7 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
             });
         }
 
-        logger.paymentEvent('gift_checkout_completed', buyerId, gift.amountSar, {
+        logger.paymentEvent('gift_checkout_completed', buyerId, gift.amountSar ?? undefined, {
             planId: giftPlanId,
             interval,
             giftId: gift.id,
