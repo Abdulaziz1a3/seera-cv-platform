@@ -167,6 +167,7 @@ export default function LiveInterviewPage() {
     const [micPermissionDenied, setMicPermissionDenied] = useState(false);
     const [audioUnlocked, setAudioUnlocked] = useState(false);
     const [audioErrorShown, setAudioErrorShown] = useState(false);
+    const [audioBlocked, setAudioBlocked] = useState(false);
     const [micErrorShown, setMicErrorShown] = useState(false);
     const [ttsFallbackActive, setTtsFallbackActive] = useState(false);
     const [ttsErrorShown, setTtsErrorShown] = useState(false);
@@ -191,6 +192,7 @@ export default function LiveInterviewPage() {
     const suppressListenRef = useRef(false);
     const processingRef = useRef(false);
     const lastAnswerRef = useRef<{ text: string; at: number } | null>(null);
+    const pendingAudioUrlRef = useRef<string | null>(null);
 
     // Get phrases for current language
     const phrases = PHRASES[interviewLang];
@@ -407,9 +409,42 @@ export default function LiveInterviewPage() {
         });
     }, [interviewLang, pickSpeechVoice, startListening]);
 
+    const playPendingAudio = useCallback(async () => {
+        if (!audioRef.current || !pendingAudioUrlRef.current) {
+            setAudioBlocked(false);
+            return;
+        }
+        try {
+            setIsSpeaking(true);
+            isSpeakingRef.current = true;
+            stopListening(true);
+            await unlockAudio();
+            audioRef.current.src = pendingAudioUrlRef.current;
+            await audioRef.current.play();
+            await new Promise<void>((resolve) => {
+                audioRef.current!.onended = () => resolve();
+                audioRef.current!.onerror = () => resolve();
+            });
+            URL.revokeObjectURL(pendingAudioUrlRef.current);
+            pendingAudioUrlRef.current = null;
+            setAudioBlocked(false);
+        } catch {
+            if (!audioErrorShown) {
+                setAudioErrorShown(true);
+                toast.error(locale === 'ar' ? 'تعذر تشغيل الصوت' : 'Audio playback blocked');
+            }
+        } finally {
+            isSpeakingRef.current = false;
+            setIsSpeaking(false);
+            suppressListenRef.current = false;
+            setTimeout(() => startListening(), 500);
+        }
+    }, [audioErrorShown, locale, startListening, stopListening, unlockAudio]);
+
     // Speak using OpenAI TTS
     const speak = useCallback(async (text: string): Promise<void> => {
         const shouldResume = autoListenRef.current && !useTextInput;
+        let playbackFailed = false;
 
         if (isMuted) {
             if (shouldResume) {
@@ -476,10 +511,9 @@ export default function LiveInterviewPage() {
 
             const played = await tryPlay();
             if (!played) {
-                if (!audioErrorShown) {
-                    setAudioErrorShown(true);
-                    toast.error(locale === 'ar' ? 'تعذر تشغيل الصوت' : 'Audio playback blocked');
-                }
+                playbackFailed = true;
+                setAudioBlocked(true);
+                pendingAudioUrlRef.current = audioUrl;
                 return;
             }
 
@@ -500,13 +534,13 @@ export default function LiveInterviewPage() {
             }
             await speakWithBrowser(text);
         } finally {
-            if (audioUrl) {
+            if (audioUrl && pendingAudioUrlRef.current !== audioUrl) {
                 URL.revokeObjectURL(audioUrl);
             }
             isSpeakingRef.current = false;
             setIsSpeaking(false);
             suppressListenRef.current = false;
-            if (shouldResume) {
+            if (shouldResume && !playbackFailed) {
                 setTimeout(() => startListening(), 500);
             }
         }
@@ -1328,6 +1362,13 @@ export default function LiveInterviewPage() {
                                     <p className="text-center text-xs text-amber-600">
                                         {interviewLang.startsWith('ar') ? 'الصوت من الجهاز (تعذر تفعيل صوت الذكاء الاصطناعي)' : 'Using device voice (AI voice unavailable)'}
                                     </p>
+                                )}
+                                {audioBlocked && (
+                                    <div className="flex items-center justify-center">
+                                        <Button variant="outline" size="sm" onClick={playPendingAudio}>
+                                            {interviewLang.startsWith('ar') ? 'تفعيل صوت الذكاء الاصطناعي' : 'Enable AI Voice'}
+                                        </Button>
+                                    </div>
                                 )}
 
                                 {useTextInput && (
