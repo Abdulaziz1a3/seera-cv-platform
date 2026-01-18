@@ -97,6 +97,8 @@ export default function DashboardLayout({
 
     const isSubscriptionActive = subscriptionState?.isActive ?? true;
 
+    const billingHref = '/dashboard/settings?tab=billing';
+
     const navigation = [
         { name: t.nav.dashboard, href: '/dashboard', icon: LayoutDashboard, isPro: false },
         { name: t.nav.myResumes, href: '/dashboard/resumes', icon: FileText, isPro: false },
@@ -106,7 +108,7 @@ export default function DashboardLayout({
         { name: t.nav.seeraLink, href: '/dashboard/seera-link', icon: PenTool, isPro: true },
         { name: locale === 'ar' ? 'وضع التخفي' : 'Stealth Mode', href: '/dashboard/stealth', icon: Shield, isPro: true },
         { name: 'LinkedIn', href: '/dashboard/linkedin', icon: User, isPro: true },
-        { name: t.nav.billing, href: '/dashboard/settings?tab=billing', icon: CreditCard, isPro: false },
+        { name: t.nav.billing, href: billingHref, icon: CreditCard, isPro: false },
     ];
 
     const secondaryNav = [
@@ -151,8 +153,9 @@ export default function DashboardLayout({
                 {/* Navigation */}
                 <nav className="flex-1 p-2 space-y-1 overflow-y-auto">
                     {navigation.map((item) => {
-                        const isLocked = item.isPro && !isSubscriptionActive;
-                        const href = isLocked ? '/dashboard/settings?tab=billing' : item.href;
+                        const isBillingLink = item.href === billingHref;
+                        const isLocked = item.isPro && !isSubscriptionActive && !isBillingLink;
+                        const href = isLocked ? billingHref : item.href;
 
                         return (
                             <Link
