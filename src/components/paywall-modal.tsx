@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useLocale } from '@/components/providers/locale-provider';
 import { Button } from '@/components/ui/button';
 import {
@@ -11,7 +12,8 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { Check, Crown, Sparkles, Zap, Shield, FileText, Download, Loader2 } from 'lucide-react';
+import { Check, Crown, Sparkles, Zap, FileText, Download, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface PaywallModalProps {
     isOpen: boolean;
@@ -20,7 +22,8 @@ interface PaywallModalProps {
 }
 
 export function PaywallModal({ isOpen, onClose, feature }: PaywallModalProps) {
-    const { locale } = useLocale();
+    const { locale, t } = useLocale();
+    const router = useRouter();
     const [loading, setLoading] = useState(false);
     const [billing, setBilling] = useState<'monthly' | 'yearly'>('monthly');
 
@@ -58,6 +61,16 @@ export function PaywallModal({ isOpen, onClose, feature }: PaywallModalProps) {
     const handleUpgrade = async () => {
         setLoading(true);
         try {
+            const profileRes = await fetch('/api/profile');
+            const profile = profileRes.ok ? await profileRes.json() : null;
+            if (!profile?.phone) {
+                toast.error(locale === 'ar'
+                    ? 'يرجى إضافة رقم الهاتف لإتمام الدفع.'
+                    : 'Please add your phone number to complete payments.');
+                router.push('/dashboard/settings');
+                return;
+            }
+
             const response = await fetch('/api/billing/checkout', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -67,24 +80,32 @@ export function PaywallModal({ isOpen, onClose, feature }: PaywallModalProps) {
                 }),
             });
 
-            const { url, error } = await response.json();
-            if (error) throw new Error(error);
-
-            window.location.href = url;
+            const payload = await response.json().catch(() => ({}));
+            if (!response.ok) {
+                throw new Error(payload?.error || 'Failed to start checkout');
+            }
+            if (!payload?.url) {
+                throw new Error(locale === 'ar' ? 'رابط الدفع غير متوفر' : 'Checkout URL missing');
+            }
+            window.location.href = payload.url;
         } catch (error) {
             console.error('Upgrade error:', error);
+            const message = error instanceof Error ? error.message : 'Upgrade failed';
+            toast.error(locale === 'ar' ? `تعذر بدء الدفع: ${message}` : `Failed to start payment: ${message}`);
         } finally {
             setLoading(false);
         }
     };
 
-    const proFeatures = [
-        locale === 'ar' ? 'تحميل غير محدود للسير الذاتية' : 'Unlimited resume downloads',
-        locale === 'ar' ? '50+ قالب احترافي' : '50+ premium templates',
-        locale === 'ar' ? 'مساعد AI غير محدود' : 'Unlimited AI assistant',
-        locale === 'ar' ? 'تصدير PDF و Word' : 'PDF & Word export',
-        locale === 'ar' ? 'رسائل تغطية بالـ AI' : 'AI cover letters',
-        locale === 'ar' ? 'تحليل ATS مفصل' : 'Detailed ATS analysis',
+    const proFeatures = t?.landing?.pricing?.pro?.features ?? [
+        locale === 'ar' ? 'سير ذاتية غير محدودة وتصدير PDF/DOCX/TXT متوافق مع ATS' : 'Unlimited resumes + ATS-safe PDF/DOCX/TXT exports',
+        locale === 'ar' ? 'محاكي ATS مع عرض مسؤول التوظيف ونتيجة القراءة' : 'ATS Simulator with recruiter-view scoring',
+        locale === 'ar' ? 'تلخيص ونقاط خبرة بالذكاء الاصطناعي وفق الوظيفة المستهدفة' : 'AI summary & bullet generator for your target role',
+        locale === 'ar' ? 'مطابقة الوصف الوظيفي وفجوات الكلمات المفتاحية' : 'Job description match + keyword gap insights',
+        locale === 'ar' ? 'GPS مهني لمسارات وظيفية وفجوات مهارات ورواتب السعودية' : 'Career GPS with paths, skill gaps, and Saudi salary ranges',
+        locale === 'ar' ? 'تحضير مقابلات مباشر مع مُحاور ذكي' : 'Live Interview Prep with AI interviewer',
+        locale === 'ar' ? 'سيرة لينك لصفحة مشاركة احترافية للرابط' : 'Seera Link shareable profile for recruiters',
+        locale === 'ar' ? 'تحسين LinkedIn وبناء خطابات التقديم' : 'LinkedIn optimizer + cover letter builder',
     ];
 
     return (
@@ -164,10 +185,6 @@ export function PaywallModal({ isOpen, onClose, feature }: PaywallModalProps) {
                     </Button>
 
                     {/* Trust */}
-                    <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
-                        <Shield className="h-3 w-3" />
-                        {locale === 'ar' ? 'ضمان استرداد 7 أيام' : '7-day money-back guarantee'}
-                    </div>
                 </div>
             </DialogContent>
         </Dialog>
