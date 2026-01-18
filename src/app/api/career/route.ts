@@ -10,6 +10,9 @@ import {
 } from '@/lib/career-gps';
 import { normalizeResumeForCareer } from '@/lib/resume-normalizer';
 
+export const runtime = 'nodejs';
+export const maxDuration = 60;
+
 export async function POST(request: NextRequest) {
     const session = await auth();
     if (!session?.user?.id) {
