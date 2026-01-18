@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { Twitter, Linkedin } from 'lucide-react';
+import { Twitter, Linkedin, Instagram } from 'lucide-react';
 import { useLocale } from '@/components/providers/locale-provider';
 
 export function MarketingFooter() {
@@ -30,7 +30,8 @@ export function MarketingFooter() {
 
     const socialLinks = [
         { href: 'https://x.com/seera_ai', icon: Twitter, label: t.footer.social.twitter },
-        { href: 'https://linkedin.com/company/seera-ai', icon: Linkedin, label: t.footer.social.linkedin },
+        { href: 'https://www.linkedin.com/company/seera-ai1', icon: Linkedin, label: t.footer.social.linkedin },
+        { href: 'https://www.instagram.com/seera_ai1', icon: Instagram, label: t.footer.social.instagram },
     ];
 
     return (
