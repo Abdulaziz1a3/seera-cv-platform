@@ -73,6 +73,15 @@ function getButtonStyle(): string {
     return 'display: inline-block; padding: 14px 28px; background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); color: #ffffff; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 14px;';
 }
 
+function escapeHtml(value: string): string {
+    return value
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
 // Email sending functions
 interface EmailResult {
     success: boolean;
@@ -279,6 +288,72 @@ export async function sendSubscriptionConfirmation(
         }
 
         logger.info('Subscription confirmation email sent', { email, plan, messageId: data?.id });
+        return { success: true, messageId: data?.id };
+    } catch (error) {
+        logger.error('Email sending failed', { email, error: error as Error });
+        return { success: false, error: 'Failed to send email' };
+    }
+}
+
+export async function sendGiftSubscriptionEmail(
+    email: string,
+    params: {
+        senderName?: string;
+        planId: 'pro' | 'enterprise';
+        interval: 'monthly' | 'yearly';
+        message?: string;
+        token: string;
+        expiresAt?: Date;
+    }
+): Promise<EmailResult> {
+    if (!resend) {
+        logger.warn('Email service not configured - skipping gift email', { email });
+        return { success: false, error: 'Email service not configured' };
+    }
+
+    const sender = params.senderName ? params.senderName.split(' ')[0] : 'Someone';
+    const planLabel = params.planId === 'enterprise' ? 'Enterprise' : 'Pro';
+    const intervalLabel = params.interval === 'yearly' ? '1 year' : '1 month';
+    const claimUrl = `${APP_URL}/gift/${params.token}`;
+    const expiresLabel = params.expiresAt
+        ? params.expiresAt.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+        : null;
+    const messageBlock = params.message
+        ? `<div style="background-color: #f4f4f5; border-radius: 8px; padding: 16px; margin: 16px 0;">
+            <p style="margin: 0; font-size: 14px; color: #3f3f46;">${escapeHtml(params.message)}</p>
+        </div>`
+        : '';
+
+    const content = `
+        <h1 style="margin: 0 0 16px 0; font-size: 24px; font-weight: 700; color: #18181b;">You've received a gift!</h1>
+        <p style="margin: 0 0 24px 0; font-size: 16px; color: #3f3f46; line-height: 1.6;">
+            ${sender} gifted you a <strong>${planLabel}</strong> subscription for <strong>${intervalLabel}</strong>.
+        </p>
+        ${messageBlock}
+        <div style="text-align: center; margin: 32px 0;">
+            <a href="${claimUrl}" style="${getButtonStyle()}">Claim Your Gift</a>
+        </div>
+        <p style="margin: 24px 0 0 0; font-size: 14px; color: #71717a; line-height: 1.6;">
+            Or copy and paste this link into your browser:<br>
+            <a href="${claimUrl}" style="color: #3b82f6; word-break: break-all;">${claimUrl}</a>
+        </p>
+        ${expiresLabel ? `<p style="margin: 16px 0 0 0; font-size: 14px; color: #71717a;">Claim before ${expiresLabel}.</p>` : ''}
+    `;
+
+    try {
+        const { data, error } = await resend.emails.send({
+            from: FROM_EMAIL,
+            to: email,
+            subject: `${sender} gifted you Seera AI ${planLabel}`,
+            html: getBaseTemplate(content),
+        });
+
+        if (error) {
+            logger.error('Failed to send gift email', { email, error });
+            return { success: false, error: error.message };
+        }
+
+        logger.info('Gift subscription email sent', { email, messageId: data?.id });
         return { success: true, messageId: data?.id };
     } catch (error) {
         logger.error('Email sending failed', { email, error: error as Error });
@@ -512,6 +587,7 @@ export default {
     sendPasswordResetEmail,
     sendWelcomeEmail,
     sendSubscriptionConfirmation,
+    sendGiftSubscriptionEmail,
     sendResumeReminderEmail,
     sendWeeklyTipsEmail,
     sendFeedbackRequestEmail,

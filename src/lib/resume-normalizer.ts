@@ -32,6 +32,7 @@ export interface ResumeAIProfile {
 }
 
 export interface ResumeCareerProfile {
+    targetRole?: string;
     contact: ResumeAIProfile['contact'];
     summary: string;
     experience: Array<{
@@ -164,6 +165,7 @@ export function normalizeResumeForCareer(resume: ResumeRecord): ResumeCareerProf
         : [];
 
     return {
+        targetRole: resume.targetRole || '',
         contact: {
             fullName: resume.contact?.fullName || '',
             email: resume.contact?.email || '',

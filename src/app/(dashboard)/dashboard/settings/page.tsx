@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
+import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 import {
     User,
@@ -17,6 +19,8 @@ import {
     EyeOff,
     Check,
     X,
+    Gift,
+    Copy,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -27,11 +31,29 @@ import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Progress } from '@/components/ui/progress';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useLocale } from '@/components/providers/locale-provider';
+
+type GiftListItem = {
+    id: string;
+    token: string;
+    plan: 'PRO' | 'ENTERPRISE';
+    interval: 'MONTHLY' | 'YEARLY';
+    status: 'PENDING' | 'REDEEMED' | 'EXPIRED' | 'CANCELED';
+    recipientEmail?: string | null;
+    message?: string | null;
+    amountSar?: number | null;
+    expiresAt?: string | null;
+    createdAt?: string | null;
+    redeemedAt?: string | null;
+    redeemedBy?: { email?: string | null; name?: string | null } | null;
+};
 
 export default function SettingsPage() {
     const { data: session, update } = useSession();
     const { t, locale } = useLocale();
+    const searchParams = useSearchParams();
     const [isLoading, setIsLoading] = useState(false);
     const [name, setName] = useState(session?.user?.name || '');
     const [showPassword, setShowPassword] = useState(false);
@@ -47,6 +69,15 @@ export default function SettingsPage() {
         usedCredits: number;
         remainingCredits: number;
     } | null>(null);
+    const [giftForm, setGiftForm] = useState({
+        plan: 'pro',
+        interval: 'monthly',
+        recipientEmail: '',
+        message: '',
+    });
+    const [giftCheckoutLoading, setGiftCheckoutLoading] = useState(false);
+    const [giftsLoading, setGiftsLoading] = useState(false);
+    const [gifts, setGifts] = useState<GiftListItem[]>([]);
 
     useEffect(() => {
         let mounted = true;
@@ -67,6 +98,36 @@ export default function SettingsPage() {
         };
     }, []);
 
+    const fetchGifts = async () => {
+        setGiftsLoading(true);
+        try {
+            const res = await fetch('/api/gifts/list');
+            if (!res.ok) {
+                throw new Error('Failed to load gifts');
+            }
+            const data = await res.json();
+            setGifts(Array.isArray(data.gifts) ? data.gifts : []);
+        } catch {
+            setGifts([]);
+        } finally {
+            setGiftsLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchGifts();
+    }, []);
+
+    useEffect(() => {
+        if (searchParams.get('giftSuccess')) {
+            toast.success(locale === 'ar' ? 'تم شراء الهدية بنجاح!' : 'Gift purchase complete!');
+            fetchGifts();
+        }
+        if (searchParams.get('giftCanceled')) {
+            toast.info(locale === 'ar' ? 'تم إلغاء عملية الشراء.' : 'Gift purchase canceled.');
+        }
+    }, [searchParams, locale]);
+
     const handleSaveProfile = async () => {
         setIsLoading(true);
         await new Promise((r) => setTimeout(r, 1000));
@@ -84,6 +145,67 @@ export default function SettingsPage() {
     const openCreditsModal = () => {
         if (typeof window === 'undefined') return;
         window.dispatchEvent(new CustomEvent('ai-credits-exceeded', { detail: creditsSummary }));
+    };
+
+    const handleGiftCheckout = async () => {
+        setGiftCheckoutLoading(true);
+        try {
+            const response = await fetch('/api/gifts/checkout', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    plan: giftForm.plan,
+                    interval: giftForm.interval,
+                    recipientEmail: giftForm.recipientEmail || undefined,
+                    message: giftForm.message || undefined,
+                }),
+            });
+
+            const payload = await response.json().catch(() => ({}));
+            if (!response.ok) {
+                const message = payload?.error || (locale === 'ar' ? 'فشل إنشاء الهدية' : 'Failed to create gift');
+                throw new Error(message);
+            }
+
+            if (payload?.url) {
+                window.location.href = payload.url;
+                return;
+            }
+
+            throw new Error(locale === 'ar' ? 'رابط الدفع غير متوفر' : 'Checkout URL missing');
+        } catch (error: any) {
+            toast.error(error?.message || (locale === 'ar' ? 'فشل إنشاء الهدية' : 'Failed to create gift'));
+        } finally {
+            setGiftCheckoutLoading(false);
+        }
+    };
+
+    const handleCopyGift = async (token: string) => {
+        if (typeof window === 'undefined') return;
+        try {
+            const url = `${window.location.origin}/gift/${token}`;
+            await navigator.clipboard.writeText(url);
+            toast.success(locale === 'ar' ? 'تم نسخ رابط الهدية' : 'Gift link copied');
+        } catch {
+            toast.error(locale === 'ar' ? 'تعذر نسخ الرابط' : 'Failed to copy link');
+        }
+    };
+
+    const formatGiftPlan = (plan: GiftListItem['plan']) => (plan === 'ENTERPRISE' ? 'Enterprise' : 'Pro');
+    const formatGiftInterval = (interval: GiftListItem['interval']) => (interval === 'YEARLY' ? (locale === 'ar' ? 'سنة' : 'Yearly') : (locale === 'ar' ? 'شهر' : 'Monthly'));
+    const formatGiftStatus = (status: GiftListItem['status']) => {
+        if (status === 'PENDING') return locale === 'ar' ? 'جاهزة' : 'Ready';
+        if (status === 'REDEEMED') return locale === 'ar' ? 'مستخدمة' : 'Claimed';
+        if (status === 'EXPIRED') return locale === 'ar' ? 'منتهية' : 'Expired';
+        return locale === 'ar' ? 'غير نشطة' : 'Inactive';
+    };
+    const formatGiftDate = (value?: string | null) => {
+        if (!value) return '';
+        return new Date(value).toLocaleDateString(locale === 'ar' ? 'ar-SA' : 'en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+        });
     };
 
     return (
@@ -387,6 +509,143 @@ export default function SettingsPage() {
                                     </div>
                                 </div>
                             </div>
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2">
+                                <Gift className="h-5 w-5 text-primary" />
+                                {t.settings.billing.gifts.title}
+                            </CardTitle>
+                            <CardDescription>{t.settings.billing.gifts.description}</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-6">
+                            <div className="grid gap-4 sm:grid-cols-2">
+                                <div className="space-y-2">
+                                    <Label>{t.settings.billing.gifts.planLabel}</Label>
+                                    <Select
+                                        value={giftForm.plan}
+                                        onValueChange={(value) => setGiftForm((prev) => ({ ...prev, plan: value }))}
+                                    >
+                                        <SelectTrigger>
+                                            <SelectValue placeholder={t.settings.billing.gifts.planLabel} />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="pro">Pro</SelectItem>
+                                            <SelectItem value="enterprise">Enterprise</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>{t.settings.billing.gifts.intervalLabel}</Label>
+                                    <Select
+                                        value={giftForm.interval}
+                                        onValueChange={(value) => setGiftForm((prev) => ({ ...prev, interval: value }))}
+                                    >
+                                        <SelectTrigger>
+                                            <SelectValue placeholder={t.settings.billing.gifts.intervalLabel} />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="monthly">{locale === 'ar' ? 'شهري' : 'Monthly'}</SelectItem>
+                                            <SelectItem value="yearly">{locale === 'ar' ? 'سنوي' : 'Yearly'}</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            </div>
+
+                            <div className="grid gap-4 sm:grid-cols-2">
+                                <div className="space-y-2">
+                                    <Label htmlFor="gift-recipient">{t.settings.billing.gifts.recipientLabel}</Label>
+                                    <Input
+                                        id="gift-recipient"
+                                        type="email"
+                                        placeholder={locale === 'ar' ? 'example@email.com' : 'example@email.com'}
+                                        value={giftForm.recipientEmail}
+                                        onChange={(e) => setGiftForm((prev) => ({ ...prev, recipientEmail: e.target.value }))}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="gift-message">{t.settings.billing.gifts.messageLabel}</Label>
+                                    <Textarea
+                                        id="gift-message"
+                                        rows={3}
+                                        placeholder={t.settings.billing.gifts.messageHint}
+                                        value={giftForm.message}
+                                        onChange={(e) => setGiftForm((prev) => ({ ...prev, message: e.target.value }))}
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                <p className="text-xs text-muted-foreground">
+                                    {t.settings.billing.gifts.disclaimer}
+                                </p>
+                                <Button onClick={handleGiftCheckout} disabled={giftCheckoutLoading}>
+                                    {giftCheckoutLoading ? (
+                                        <Loader2 className="h-4 w-4 me-2 animate-spin" />
+                                    ) : (
+                                        <Gift className="h-4 w-4 me-2" />
+                                    )}
+                                    {t.settings.billing.gifts.submit}
+                                </Button>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>{t.settings.billing.gifts.listTitle}</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                            {giftsLoading ? (
+                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                    {locale === 'ar' ? 'جارٍ التحميل...' : 'Loading gifts...'}
+                                </div>
+                            ) : gifts.length === 0 ? (
+                                <p className="text-sm text-muted-foreground">{t.settings.billing.gifts.listEmpty}</p>
+                            ) : (
+                                gifts.map((gift) => (
+                                    <div
+                                        key={gift.id}
+                                        className="flex flex-col gap-3 rounded-lg border p-4 sm:flex-row sm:items-center sm:justify-between"
+                                    >
+                                        <div className="space-y-1">
+                                            <div className="flex flex-wrap items-center gap-2">
+                                                <span className="font-medium">
+                                                    {formatGiftPlan(gift.plan)} · {formatGiftInterval(gift.interval)}
+                                                </span>
+                                                <Badge variant="outline">{formatGiftStatus(gift.status)}</Badge>
+                                            </div>
+                                            <p className="text-xs text-muted-foreground">
+                                                {t.settings.billing.gifts.recipientLabel}: {gift.recipientEmail || (locale === 'ar' ? 'غير محدد' : 'Not specified')}
+                                            </p>
+                                            {gift.expiresAt && gift.status === 'PENDING' && (
+                                                <p className="text-xs text-muted-foreground">
+                                                    {locale === 'ar' ? 'تنتهي في' : 'Expires'}: {formatGiftDate(gift.expiresAt)}
+                                                </p>
+                                            )}
+                                            {gift.redeemedAt && gift.status === 'REDEEMED' && (
+                                                <p className="text-xs text-muted-foreground">
+                                                    {locale === 'ar' ? 'تم الاسترداد في' : 'Claimed on'}: {formatGiftDate(gift.redeemedAt)}
+                                                </p>
+                                            )}
+                                        </div>
+                                        <div className="flex flex-wrap gap-2">
+                                            <Button variant="outline" size="sm" onClick={() => handleCopyGift(gift.token)}>
+                                                <Copy className="h-4 w-4 me-2" />
+                                                {t.settings.billing.gifts.copyLink}
+                                            </Button>
+                                            <Button variant="ghost" size="sm" asChild>
+                                                <Link href={`/gift/${gift.token}`} target="_blank">
+                                                    {t.settings.billing.gifts.openLink}
+                                                </Link>
+                                            </Button>
+                                        </div>
+                                    </div>
+                                ))
+                            )}
                         </CardContent>
                     </Card>
 

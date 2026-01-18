@@ -43,6 +43,8 @@ model User {
     talentProfile TalentProfile?
     recruiterShortlists RecruiterShortlist[]
     recruiterSavedSearches RecruiterSavedSearch[]
+  giftSubscriptionsSent GiftSubscription[] @relation("GiftSubscriptionsSent")
+  giftSubscriptionsRedeemed GiftSubscription[] @relation("GiftSubscriptionsRedeemed")
 
   // Two-factor authentication
   twoFactorEnabled Boolean @default(false)
@@ -529,10 +531,47 @@ model Subscription {
   @@index([currentPeriodEnd])
 }
 
+model GiftSubscription {
+  id                String     @id @default(cuid())
+  token             String     @unique
+  createdByUserId   String
+  createdBy         User       @relation("GiftSubscriptionsSent", fields: [createdByUserId], references: [id], onDelete: Cascade)
+  recipientEmail    String?
+  message           String?
+  plan              PlanType   @default(PRO)
+  interval          GiftInterval
+  status            GiftStatus @default(PENDING)
+  stripeSessionId   String?    @unique
+  amountSar         Float?
+  expiresAt         DateTime?
+  redeemedAt        DateTime?
+  redeemedByUserId  String?
+  redeemedBy        User?      @relation("GiftSubscriptionsRedeemed", fields: [redeemedByUserId], references: [id], onDelete: SetNull)
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+
+  @@index([createdByUserId])
+  @@index([recipientEmail])
+  @@index([status])
+  @@index([expiresAt])
+}
+
 enum PlanType {
   FREE
   PRO
   ENTERPRISE
+}
+
+enum GiftInterval {
+  MONTHLY
+  YEARLY
+}
+
+enum GiftStatus {
+  PENDING
+  REDEEMED
+  EXPIRED
+  CANCELED
 }
 
 enum SubscriptionStatus {

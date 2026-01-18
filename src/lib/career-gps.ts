@@ -342,6 +342,44 @@ function getSalaryRange(role: string, level: string): { min: number; max: number
     return roleData[level] || roleData['mid'];
 }
 
+function getCurrentRole(resume: ResumeCareerProfile): string {
+    const current = resume.experience.find((exp) => exp.current && exp.position);
+    if (current?.position) return current.position;
+
+    const dated = resume.experience
+        .filter((exp) => exp.position && exp.startDate)
+        .map((exp) => ({ exp, date: new Date(exp.startDate as string).getTime() }))
+        .filter((item) => !Number.isNaN(item.date))
+        .sort((a, b) => b.date - a.date);
+
+    if (dated[0]?.exp?.position) return dated[0].exp.position;
+
+    return resume.experience.find((exp) => exp.position)?.position || resume.targetRole || 'Professional';
+}
+
+function buildExperienceHighlights(experience: ResumeCareerProfile['experience']): string {
+    if (!experience || experience.length === 0) return 'Not provided';
+
+    const sorted = [...experience].sort((a, b) => {
+        if (a.current && !b.current) return -1;
+        if (!a.current && b.current) return 1;
+        const dateA = a.startDate ? new Date(a.startDate).getTime() : 0;
+        const dateB = b.startDate ? new Date(b.startDate).getTime() : 0;
+        if (Number.isNaN(dateA) && Number.isNaN(dateB)) return 0;
+        if (Number.isNaN(dateA)) return 1;
+        if (Number.isNaN(dateB)) return -1;
+        return dateB - dateA;
+    });
+
+    return sorted.slice(0, 3).map((exp) => {
+        const role = exp.position || 'Role';
+        const company = exp.company ? ` at ${exp.company}` : '';
+        const current = exp.current ? ' (current)' : '';
+        const bullets = exp.bullets.slice(0, 3).join('; ');
+        return `- ${role}${company}${current}: ${bullets || 'No highlights listed'}`;
+    }).join('\n');
+}
+
 // Calculate years of experience from resume
 function calculateYearsExperience(resume: ResumeCareerProfile): number {
     if (!resume.experience || resume.experience.length === 0) return 0;
@@ -379,22 +417,40 @@ export async function analyzeCareer(
 
     const yearsExp = calculateYearsExperience(resume);
     const currentLevel = determineLevel(yearsExp);
-    const currentRole = resume.experience[0]?.position || 'Professional';
+    const targetRole = resume.targetRole?.trim() || '';
+    const currentRole = getCurrentRole(resume);
+    const focusRole = targetRole || currentRole || 'Professional';
     const trimmedSkills = resume.skills.slice(0, 12);
     const trimmedEducation = resume.education.slice(0, 2).map((e) => `${e.degree} in ${e.field}`.trim()).join('; ');
     const trimmedSummary = (resume.summary || 'Not provided').slice(0, 400);
+    const experienceHighlights = buildExperienceHighlights(resume.experience);
+    const certificationNames = resume.certifications
+        .map((cert) => cert.name || '')
+        .filter((name) => name.trim().length > 0)
+        .slice(0, 4)
+        .join(', ');
+    const projectNames = resume.projects
+        .map((project) => project.name || '')
+        .filter((name) => name.trim().length > 0)
+        .slice(0, 4)
+        .join(', ');
 
     const systemPrompt = locale === 'ar'
-        ? `أنت مستشار مهني خبير في سوق العمل السعودي والخليجي. حلل السيرة الذاتية واقترح مسارات مهنية واقعية.`
-        : `You are an expert career advisor for the Saudi/GCC job market. Analyze the resume and suggest realistic career paths.`;
+        ? `أنت مستشار مهني خبير في سوق العمل السعودي والخليجي. حلل السيرة الذاتية بدقة وقدم مسارات واقعية مبنية على البيانات فقط. لا تخترع خبرات أو مهارات غير موجودة.`
+        : `You are an expert career advisor for the Saudi/GCC job market. Analyze the resume precisely and suggest realistic paths grounded in the provided details only. Do not invent skills or experience.`;
 
     const userPrompt = `Analyze this professional's career and provide detailed guidance:
 
 Current Role: ${currentRole}
+Target Role: ${targetRole || 'Not provided'}
 Experience: ${yearsExp} years
 Skills: ${trimmedSkills.join(', ')}
 Education: ${trimmedEducation || 'Not provided'}
 Summary: ${trimmedSummary}
+Experience Highlights:
+${experienceHighlights}
+Certifications: ${certificationNames || 'Not provided'}
+Projects: ${projectNames || 'Not provided'}
 
 ${targetIndustry ? `Target Industry: ${targetIndustry}` : ''}
 
@@ -477,8 +533,8 @@ Generate 1-2 realistic career paths with 2-3 milestones each. Include 2-3 skill 
     }
 
     const localeKey: 'en' | 'ar' = locale === 'ar' ? 'ar' : 'en';
-    const inferredTrack = inferTrack(currentRole);
-    const fallbackPaths = buildFallbackPaths(currentRole, localeKey, inferredTrack);
+    const inferredTrack = inferTrack(focusRole);
+    const fallbackPaths = buildFallbackPaths(focusRole, localeKey, inferredTrack);
 
     // Enrich career paths with salary data + fallback data
     const basePaths = Array.isArray(analysis.careerPaths) && analysis.careerPaths.length > 0
@@ -505,14 +561,14 @@ Generate 1-2 realistic career paths with 2-3 milestones each. Include 2-3 skill 
                     ? milestone.keySkills
                     : fallbackPath.timeline[mIndex]?.keySkills || fallbackPath.timeline[0]?.keySkills || [],
                 description: milestone.description || fallbackPath.timeline[mIndex]?.description || '',
-                salaryRange: getSalaryRange(
-                    milestone.title || currentRole,
+                salaryRange: { ...getSalaryRange(
+                    milestone.title || focusRole,
                     ['mid', 'senior', 'lead', 'director', 'executive'][Math.min(mIndex, 4)]
-                ),
+                ), currency: 'SAR' },
             })),
             salaryProgression: timeline.map((_: any, mIndex: number) => {
                 const level = ['mid', 'senior', 'lead', 'director', 'executive'][Math.min(mIndex, 4)];
-                const range = getSalaryRange(currentRole, level);
+                const range = getSalaryRange(focusRole, level);
                 return (range.min + range.max) / 2;
             }),
             probability: Number.isFinite(path.probability) ? path.probability : (fallbackPath.probability || 60),

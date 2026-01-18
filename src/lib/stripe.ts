@@ -2,9 +2,11 @@
 // Handles subscriptions, payments, usage tracking, and webhook processing
 
 import Stripe from 'stripe';
+import crypto from 'crypto';
 import { prisma } from './db';
 import { logger } from './logger';
 import { MIN_RECHARGE_SAR, sarToCredits, recordAICreditTopup } from './ai-credits';
+import { sendGiftSubscriptionEmail } from './email';
 
 // Initialize Stripe with proper error handling
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
@@ -85,6 +87,8 @@ export const PLANS = {
 
 export type PlanId = keyof typeof PLANS;
 export type PlanFeature = keyof typeof PLANS.pro.features;
+
+const GIFT_CLAIM_WINDOW_DAYS = 90;
 
 // Create a checkout session
 export async function createCheckoutSession(
@@ -175,6 +179,73 @@ export async function createCheckoutSession(
         planId,
         billing,
         sessionId: session.id,
+    });
+
+    return session.url!;
+}
+
+export async function createGiftCheckoutSession(params: {
+    buyerId: string;
+    planId: 'pro' | 'enterprise';
+    interval: 'monthly' | 'yearly';
+    recipientEmail?: string;
+    message?: string;
+    returnUrl: string;
+}): Promise<string> {
+    if (!stripe) {
+        throw new Error('Stripe is not configured');
+    }
+
+    const plan = PLANS[params.planId];
+    const amountSar = params.interval === 'yearly' ? plan.priceYearly : plan.priceMonthly;
+    const amountInHalalah = Math.round(amountSar * 100);
+
+    const buyer = await prisma.user.findUnique({
+        where: { id: params.buyerId },
+        select: { email: true, name: true },
+    });
+
+    if (!buyer) {
+        throw new Error('User not found');
+    }
+
+    const trimmedMessage = params.message?.trim().slice(0, 300) || '';
+
+    const session = await stripe.checkout.sessions.create({
+        mode: 'payment',
+        payment_method_types: ['card'],
+        customer_email: buyer.email,
+        line_items: [
+            {
+                price_data: {
+                    currency: 'sar',
+                    product_data: {
+                        name: `Gift ${plan.name.en} (${params.interval})`,
+                    },
+                    unit_amount: amountInHalalah,
+                },
+                quantity: 1,
+            },
+        ],
+        success_url: `${params.returnUrl}?giftSuccess=true&session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${params.returnUrl}?giftCanceled=true`,
+        metadata: {
+            type: 'gift_subscription',
+            buyerId: params.buyerId,
+            planId: params.planId,
+            interval: params.interval,
+            recipientEmail: params.recipientEmail || '',
+            message: trimmedMessage,
+        },
+        currency: 'sar',
+        billing_address_collection: 'required',
+    });
+
+    logger.paymentEvent('gift_checkout_created', params.buyerId, amountSar, {
+        planId: params.planId,
+        interval: params.interval,
+        sessionId: session.id,
+        recipientEmail: params.recipientEmail,
     });
 
     return session.url!;
@@ -570,6 +641,71 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
         logger.paymentEvent('credit_topup_completed', userId, amountSar, {
             sessionId: session.id,
             credits: session.metadata?.credits,
+        });
+        return;
+    }
+
+    if (session.mode === 'payment' && session.metadata?.type === 'gift_subscription') {
+        const buyerId = session.metadata?.buyerId;
+        const giftPlanId = session.metadata?.planId as PlanId | undefined;
+        const interval = session.metadata?.interval as 'monthly' | 'yearly' | undefined;
+        const recipientEmailRaw = session.metadata?.recipientEmail || '';
+        const message = session.metadata?.message || '';
+
+        if (!buyerId || !giftPlanId || !interval) {
+            logger.warn('Gift checkout missing metadata', { sessionId: session.id });
+            return;
+        }
+
+        const existingGift = await prisma.giftSubscription.findUnique({
+            where: { stripeSessionId: session.id },
+        });
+
+        if (existingGift) {
+            return;
+        }
+
+        const token = crypto.randomBytes(24).toString('hex');
+        const now = new Date();
+        const expiresAt = new Date(now.getTime() + GIFT_CLAIM_WINDOW_DAYS * 24 * 60 * 60 * 1000);
+        const recipientEmail = recipientEmailRaw.trim() || null;
+
+        const gift = await prisma.giftSubscription.create({
+            data: {
+                token,
+                createdByUserId: buyerId,
+                recipientEmail,
+                message: message || null,
+                plan: giftPlanId.toUpperCase() as 'PRO' | 'ENTERPRISE',
+                interval: interval === 'yearly' ? 'YEARLY' : 'MONTHLY',
+                status: 'PENDING',
+                stripeSessionId: session.id,
+                amountSar: session.amount_total ? session.amount_total / 100 : undefined,
+                expiresAt,
+            },
+        });
+
+        if (recipientEmail) {
+            const buyer = await prisma.user.findUnique({
+                where: { id: buyerId },
+                select: { name: true },
+            });
+            sendGiftSubscriptionEmail(recipientEmail, {
+                senderName: buyer?.name || undefined,
+                planId: giftPlanId,
+                interval,
+                message: gift.message || undefined,
+                token: gift.token,
+                expiresAt,
+            }).catch((err) => {
+                logger.error('Failed to send gift email', { error: err as Error, giftId: gift.id });
+            });
+        }
+
+        logger.paymentEvent('gift_checkout_completed', buyerId, gift.amountSar, {
+            planId: giftPlanId,
+            interval,
+            giftId: gift.id,
         });
         return;
     }

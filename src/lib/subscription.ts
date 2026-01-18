@@ -11,6 +11,7 @@ export async function hasActiveSubscription(userId: string): Promise<boolean> {
                 select: {
                     plan: true,
                     status: true,
+                    currentPeriodEnd: true,
                 },
             },
         },
@@ -29,5 +30,13 @@ export async function hasActiveSubscription(userId: string): Promise<boolean> {
         return false;
     }
 
-    return ACTIVE_STATUSES.has(subscription.status);
+    if (!ACTIVE_STATUSES.has(subscription.status)) {
+        return false;
+    }
+
+    if (subscription.currentPeriodEnd && subscription.currentPeriodEnd < new Date()) {
+        return false;
+    }
+
+    return true;
 }

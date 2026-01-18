@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { useLocale } from '@/components/providers/locale-provider';
 import { useResumes } from '@/components/providers/resume-provider';
-import { normalizeResumeForCareer } from '@/lib/resume-normalizer';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -133,14 +132,13 @@ export default function CareerGPSPage() {
             }
 
             const resumeData = await resumeResponse.json();
-            const normalizedResume = normalizeResumeForCareer(resumeData);
 
             const response = await fetch('/api/career', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     action: 'analyze',
-                    resume: normalizedResume,
+                    resume: resumeData,
                     options: { locale },
                 }),
             });

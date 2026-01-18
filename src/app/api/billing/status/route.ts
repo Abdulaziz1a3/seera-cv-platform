@@ -19,7 +19,8 @@ export async function GET() {
     });
 
     const status = subscription?.status || 'UNPAID';
-    const isActive = status === 'ACTIVE' || status === 'TRIALING';
+    const isActive = (status === 'ACTIVE' || status === 'TRIALING')
+        && (!subscription?.currentPeriodEnd || subscription.currentPeriodEnd >= new Date());
 
     return NextResponse.json({
         plan: subscription?.plan || 'PRO',
