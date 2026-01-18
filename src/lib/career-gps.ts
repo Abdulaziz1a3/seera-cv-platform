@@ -257,7 +257,7 @@ Provide a comprehensive career analysis in JSON format:
   }
 }
 
-Generate 3-4 realistic career paths with 4-5 milestones each. Include 5-8 skill gaps, 5 strengths, and 5-7 weekly actions.`;
+Generate 2 realistic career paths with 3 milestones each. Include 3-4 skill gaps, 5 strengths, and 3 weekly actions. Keep responses concise.`;
 
     const response = await getOpenAI().chat.completions.create({
         model: 'gpt-4o-mini',
@@ -265,8 +265,8 @@ Generate 3-4 realistic career paths with 4-5 milestones each. Include 5-8 skill 
             { role: 'system', content: systemPrompt },
             { role: 'user', content: userPrompt },
         ],
-        max_tokens: 3000,
-        temperature: 0.7,
+        max_tokens: 1200,
+        temperature: 0.5,
         response_format: { type: 'json_object' },
     });
 

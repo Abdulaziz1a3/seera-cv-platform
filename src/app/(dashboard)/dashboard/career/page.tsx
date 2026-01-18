@@ -296,7 +296,7 @@ export default function CareerGPSPage() {
                         {/* Feature Preview */}
                         <div className="grid sm:grid-cols-2 gap-4">
                             {[
-                                { icon: TrendingUp, title: locale === 'ar' ? 'مسارات مهنية' : 'Career Paths', desc: locale === 'ar' ? '4 مسارات واقعية' : '4 realistic paths', color: 'text-blue-500' },
+                                { icon: TrendingUp, title: locale === 'ar' ? 'مسارات مهنية' : 'Career Paths', desc: locale === 'ar' ? 'مسارات واقعية' : 'Realistic paths', color: 'text-blue-500' },
                                 { icon: Target, title: locale === 'ar' ? 'فجوات المهارات' : 'Skill Gaps', desc: locale === 'ar' ? 'ما تحتاج تتعلمه' : 'What to learn', color: 'text-amber-500' },
                                 { icon: DollarSign, title: locale === 'ar' ? 'توقعات الراتب' : 'Salary Forecast', desc: locale === 'ar' ? 'بناءً على السوق' : 'Market-based', color: 'text-green-500' },
                                 { icon: Calendar, title: locale === 'ar' ? 'خطة أسبوعية' : 'Weekly Plan', desc: locale === 'ar' ? 'خطوات عملية' : 'Actionable steps', color: 'text-purple-500' },
