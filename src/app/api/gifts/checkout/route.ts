@@ -28,7 +28,7 @@ export async function POST(request: Request) {
             interval,
             recipientEmail: recipientEmail?.trim() || undefined,
             message: message?.trim() || undefined,
-            returnUrl: `${baseUrl}/dashboard/settings?tab=billing`,
+            returnUrl: `${baseUrl}/dashboard/billing`,
         });
 
         logger.info('Gift checkout session created', {

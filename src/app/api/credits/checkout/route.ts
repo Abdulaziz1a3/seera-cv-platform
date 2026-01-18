@@ -20,11 +20,11 @@ export async function POST(request: Request) {
         const { amountSar, returnUrl } = requestSchema.parse(body);
 
         const origin = request.headers.get('origin') || '';
-        const fallbackReturnUrl = origin ? `${origin}/dashboard/settings?tab=billing` : returnUrl;
+        const fallbackReturnUrl = origin ? `${origin}/dashboard/billing` : returnUrl;
         const checkoutUrl = await createCreditTopupSession(
             session.user.id,
             amountSar,
-            returnUrl || fallbackReturnUrl || 'https://seera-ai.com/dashboard/settings?tab=billing'
+            returnUrl || fallbackReturnUrl || 'https://seera-ai.com/dashboard/billing'
         );
 
         return NextResponse.json({ url: checkoutUrl });

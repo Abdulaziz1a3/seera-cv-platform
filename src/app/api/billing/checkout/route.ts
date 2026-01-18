@@ -38,7 +38,7 @@ export async function POST(request: Request) {
             session.user.id,
             plan,
             interval,
-            `${baseUrl}/dashboard/settings?tab=billing`
+            `${baseUrl}/dashboard/billing`
         );
 
         logger.info('Checkout session created', {

@@ -97,7 +97,7 @@ export default function DashboardLayout({
 
     const isSubscriptionActive = subscriptionState?.isActive ?? true;
 
-    const billingHref = '/dashboard/settings?tab=billing';
+    const billingHref = '/dashboard/billing';
 
     const navigation = [
         { name: t.nav.dashboard, href: '/dashboard', icon: LayoutDashboard, isPro: false },
@@ -294,9 +294,9 @@ export default function DashboardLayout({
                                     </Link>
                                 </DropdownMenuItem>
                                 <DropdownMenuItem asChild>
-                                    <Link href="/dashboard/settings?tab=billing">
+                                    <Link href="/dashboard/billing">
                                         <Settings className="h-4 w-4 me-2" />
-                                        {t.settings.tabs.billing}
+                                        {t.nav.billing}
                                     </Link>
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />

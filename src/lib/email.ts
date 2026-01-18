@@ -255,7 +255,7 @@ export async function sendSubscriptionConfirmation(
         return { success: false, error: 'Email service not configured' };
     }
 
-    const billingUrl = `${APP_URL}/dashboard/settings?tab=billing`;
+    const billingUrl = `${APP_URL}/dashboard/billing`;
     const greeting = name ? `Hi ${name.split(' ')[0]},` : 'Hi there,';
 
     const content = `
