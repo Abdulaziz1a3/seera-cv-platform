@@ -191,6 +191,9 @@ export async function analyzeCareer(
     const yearsExp = calculateYearsExperience(resume);
     const currentLevel = determineLevel(yearsExp);
     const currentRole = resume.experience[0]?.position || 'Professional';
+    const trimmedSkills = resume.skills.slice(0, 12);
+    const trimmedEducation = resume.education.slice(0, 2).map((e) => `${e.degree} in ${e.field}`.trim()).join('; ');
+    const trimmedSummary = (resume.summary || 'Not provided').slice(0, 400);
 
     const systemPrompt = locale === 'ar'
         ? `أنت مستشار مهني خبير في سوق العمل السعودي والخليجي. حلل السيرة الذاتية واقترح مسارات مهنية واقعية.`
@@ -200,9 +203,9 @@ export async function analyzeCareer(
 
 Current Role: ${currentRole}
 Experience: ${yearsExp} years
-Skills: ${resume.skills.join(', ')}
-Education: ${resume.education.map(e => `${e.degree} in ${e.field}`).join(', ')}
-Summary: ${resume.summary || 'Not provided'}
+Skills: ${trimmedSkills.join(', ')}
+Education: ${trimmedEducation || 'Not provided'}
+Summary: ${trimmedSummary}
 
 ${targetIndustry ? `Target Industry: ${targetIndustry}` : ''}
 
@@ -257,7 +260,7 @@ Provide a comprehensive career analysis in JSON format:
   }
 }
 
-Generate 2 realistic career paths with 3 milestones each. Include 3-4 skill gaps, 5 strengths, and 3 weekly actions. Keep responses concise.`;
+Generate 1-2 realistic career paths with 2-3 milestones each. Include 2-3 skill gaps, 3 strengths, and 3 weekly actions. Keep responses concise and compact.`;
 
     const response = await getOpenAI().chat.completions.create({
         model: 'gpt-4o-mini',
@@ -265,8 +268,8 @@ Generate 2 realistic career paths with 3 milestones each. Include 3-4 skill gaps
             { role: 'system', content: systemPrompt },
             { role: 'user', content: userPrompt },
         ],
-        max_tokens: 1200,
-        temperature: 0.5,
+        max_tokens: 700,
+        temperature: 0.3,
         response_format: { type: 'json_object' },
     });
 
