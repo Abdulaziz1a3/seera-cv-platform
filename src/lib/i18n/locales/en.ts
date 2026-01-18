@@ -47,6 +47,7 @@ export const en = {
         jobTargets: 'Job Targets',
         applications: 'Applications',
         settings: 'Settings',
+        billing: 'Billing & Gifts',
         help: 'Help & Support',
         logout: 'Log Out',
     },

@@ -47,6 +47,7 @@ export const ar = {
         jobTargets: 'الوظائف المستهدفة',
         applications: 'طلبات التوظيف',
         settings: 'الإعدادات',
+        billing: 'الفوترة والهدايا',
         help: 'المساعدة والدعم',
         logout: 'تسجيل الخروج',
     },

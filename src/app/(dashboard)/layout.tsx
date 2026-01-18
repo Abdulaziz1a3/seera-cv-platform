@@ -26,6 +26,7 @@ import {
     PenTool,
     Shield,
     Crown,
+    CreditCard,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -105,6 +106,7 @@ export default function DashboardLayout({
         { name: t.nav.seeraLink, href: '/dashboard/seera-link', icon: PenTool, isPro: true },
         { name: locale === 'ar' ? 'وضع التخفي' : 'Stealth Mode', href: '/dashboard/stealth', icon: Shield, isPro: true },
         { name: 'LinkedIn', href: '/dashboard/linkedin', icon: User, isPro: true },
+        { name: t.nav.billing, href: '/dashboard/settings?tab=billing', icon: CreditCard, isPro: false },
     ];
 
     const secondaryNav = [
