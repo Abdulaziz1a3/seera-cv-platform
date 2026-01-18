@@ -17,12 +17,9 @@ import {
     Download,
     CreditCard,
     Shield,
-    MessageCircle,
     ChevronRight,
     Mail,
     HelpCircle,
-    Video,
-    Sparkles,
 } from 'lucide-react';
 
 const helpCategories = [
@@ -315,7 +312,7 @@ export default function HelpCenterPage() {
                         </p>
                     </div>
 
-                    <div className="grid gap-6 sm:grid-cols-3 max-w-4xl mx-auto">
+                    <div className="grid gap-6 sm:grid-cols-1 max-w-md mx-auto">
                         <Card className="text-center">
                             <CardContent className="pt-6">
                                 <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
@@ -328,41 +325,7 @@ export default function HelpCenterPage() {
                                     {locale === 'ar' ? 'نرد خلال 24 ساعة' : 'We respond within 24 hours'}
                                 </p>
                                 <Button variant="outline" size="sm">
-                                    info@seera-sa.com
-                                </Button>
-                            </CardContent>
-                        </Card>
-
-                        <Card className="text-center">
-                            <CardContent className="pt-6">
-                                <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
-                                    <MessageCircle className="h-6 w-6 text-primary" />
-                                </div>
-                                <h3 className="font-semibold mb-2">
-                                    {locale === 'ar' ? 'محادثة مباشرة' : 'Live Chat'}
-                                </h3>
-                                <p className="text-sm text-muted-foreground mb-4">
-                                    {locale === 'ar' ? 'متاح 24/7' : 'Available 24/7'}
-                                </p>
-                                <Button size="sm">
-                                    {locale === 'ar' ? 'ابدأ محادثة' : 'Start Chat'}
-                                </Button>
-                            </CardContent>
-                        </Card>
-
-                        <Card className="text-center">
-                            <CardContent className="pt-6">
-                                <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
-                                    <Video className="h-6 w-6 text-primary" />
-                                </div>
-                                <h3 className="font-semibold mb-2">
-                                    {locale === 'ar' ? 'دروس فيديو' : 'Video Tutorials'}
-                                </h3>
-                                <p className="text-sm text-muted-foreground mb-4">
-                                    {locale === 'ar' ? 'تعلم بالمشاهدة' : 'Learn by watching'}
-                                </p>
-                                <Button variant="outline" size="sm">
-                                    {locale === 'ar' ? 'شاهد الآن' : 'Watch Now'}
+                                    info@seera-ai.com
                                 </Button>
                             </CardContent>
                         </Card>
