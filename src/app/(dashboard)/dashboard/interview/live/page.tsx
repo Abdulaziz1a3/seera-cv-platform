@@ -186,6 +186,11 @@ export default function LiveInterviewPage() {
     const silenceTimerRef = useRef<NodeJS.Timeout | null>(null);
     const phaseRef = useRef(phase);
     const autoListenRef = useRef(true);
+    const isSpeakingRef = useRef(false);
+    const isLoadingRef = useRef(false);
+    const suppressListenRef = useRef(false);
+    const processingRef = useRef(false);
+    const lastAnswerRef = useRef<{ text: string; at: number } | null>(null);
 
     // Get phrases for current language
     const phrases = PHRASES[interviewLang];
@@ -195,6 +200,14 @@ export default function LiveInterviewPage() {
     useEffect(() => {
         phaseRef.current = phase;
     }, [phase]);
+
+    useEffect(() => {
+        isSpeakingRef.current = isSpeaking;
+    }, [isSpeaking]);
+
+    useEffect(() => {
+        isLoadingRef.current = isLoading;
+    }, [isLoading]);
 
     // Auto-scroll
     useEffect(() => {
@@ -208,7 +221,15 @@ export default function LiveInterviewPage() {
     // Initialize audio
     useEffect(() => {
         audioRef.current = new Audio();
+        audioRef.current.preload = 'auto';
     }, []);
+
+    const normalizeSpeechText = useCallback((text: string) => (
+        text
+            .toLowerCase()
+            .replace(/[^a-z0-9\u0600-\u06FF]+/g, '')
+            .trim()
+    ), []);
 
     const buildFallbackQuestions = useCallback(() => {
         const list = FALLBACK_QUESTIONS[interviewLang] || FALLBACK_QUESTIONS.en;
@@ -300,11 +321,16 @@ export default function LiveInterviewPage() {
     }, [interviewLang, selectedVoice]);
 
     // Stop listening
-    const stopListening = useCallback(() => {
+    const stopListening = useCallback((suppress: boolean = false) => {
         if (silenceTimerRef.current) {
             clearTimeout(silenceTimerRef.current);
             silenceTimerRef.current = null;
         }
+        pendingAnswerRef.current = '';
+        if (suppress) {
+            suppressListenRef.current = true;
+        }
+        try { recognitionRef.current?.abort(); } catch (e) { }
         try { recognitionRef.current?.stop(); } catch (e) { }
         setIsListening(false);
     }, []);
@@ -320,8 +346,9 @@ export default function LiveInterviewPage() {
     // Start listening
     const startListening = useCallback(() => {
         if (micRequesting) return;
-        if (!recognitionRef.current || isSpeaking || isLoading || useTextInput || !autoListenRef.current) return;
+        if (!recognitionRef.current || isSpeakingRef.current || isLoadingRef.current || useTextInput || !autoListenRef.current) return;
         try {
+            suppressListenRef.current = false;
             pendingAnswerRef.current = '';
             setLiveTranscript('');
             recognitionRef.current.start();
@@ -354,20 +381,12 @@ export default function LiveInterviewPage() {
                     if (preferredVoice) {
                         utterance.voice = preferredVoice;
                     }
-                    utterance.onend = () => {
-                        setIsSpeaking(false);
-                        setTimeout(() => startListening(), 500);
-                        resolve();
-                    };
-                    utterance.onerror = () => {
-                        setIsSpeaking(false);
-                        resolve();
-                    };
+                    utterance.onend = () => resolve();
+                    utterance.onerror = () => resolve();
 
                     synth.cancel();
                     synth.speak(utterance);
                 } catch {
-                    setIsSpeaking(false);
                     resolve();
                 }
             };
@@ -390,16 +409,30 @@ export default function LiveInterviewPage() {
 
     // Speak using OpenAI TTS
     const speak = useCallback(async (text: string): Promise<void> => {
-        if (isMuted) return;
-        if (!audioRef.current) {
-            setIsSpeaking(true);
-            await speakWithBrowser(text);
+        const shouldResume = autoListenRef.current && !useTextInput;
+
+        if (isMuted) {
+            if (shouldResume) {
+                setTimeout(() => startListening(), 300);
+            }
             return;
         }
 
+        setIsSpeaking(true);
+        isSpeakingRef.current = true;
+        stopListening(true);
+        pendingAnswerRef.current = '';
+        setLiveTranscript('');
+        setTtsFallbackActive(false);
+
+        let audioUrl: string | null = null;
+
         try {
-            setIsSpeaking(true);
-            stopListening();
+            if (!audioRef.current) {
+                await speakWithBrowser(text);
+                return;
+            }
+
             await unlockAudio();
 
             const response = await fetch('/api/interview/tts', {
@@ -409,7 +442,6 @@ export default function LiveInterviewPage() {
             });
 
             if (await handleAICreditsResponse(response.clone())) {
-                setIsSpeaking(false);
                 return;
             }
             if (!response.ok) {
@@ -423,35 +455,40 @@ export default function LiveInterviewPage() {
             }
 
             const audioBlob = await response.blob();
-            const audioUrl = URL.createObjectURL(audioBlob);
+            audioUrl = URL.createObjectURL(audioBlob);
             setTtsFallbackActive(false);
             audioRef.current.src = audioUrl;
 
-            return new Promise((resolve) => {
-                audioRef.current!.onended = () => {
-                    setIsSpeaking(false);
-                    URL.revokeObjectURL(audioUrl);
-                    setTimeout(() => startListening(), 500);
-                    resolve();
-                };
-                audioRef.current!.onerror = async () => {
-                    setIsSpeaking(false);
-                    await speakWithBrowser(text);
-                    resolve();
-                };
-                audioRef.current!.play().catch(() => {
-                    setIsSpeaking(false);
-                    if (!audioErrorShown) {
-                        setAudioErrorShown(true);
-                        toast.error(locale === 'ar' ? 'تعذر تشغيل الصوت' : 'Audio playback blocked');
+            const tryPlay = async () => {
+                try {
+                    await audioRef.current!.play();
+                    return true;
+                } catch {
+                    try {
+                        await unlockAudio();
+                        await audioRef.current!.play();
+                        return true;
+                    } catch {
+                        return false;
                     }
-                    speakWithBrowser(text);
-                    resolve();
-                });
+                }
+            };
+
+            const played = await tryPlay();
+            if (!played) {
+                if (!audioErrorShown) {
+                    setAudioErrorShown(true);
+                    toast.error(locale === 'ar' ? 'تعذر تشغيل الصوت' : 'Audio playback blocked');
+                }
+                return;
+            }
+
+            await new Promise<void>((resolve, reject) => {
+                audioRef.current!.onended = () => resolve();
+                audioRef.current!.onerror = () => reject(new Error('Audio playback failed'));
             });
         } catch (error) {
             console.error('TTS error:', error);
-            setIsSpeaking(false);
             if (!ttsErrorShown) {
                 setTtsErrorShown(true);
                 const message = error instanceof Error ? error.message : 'TTS failed';
@@ -462,22 +499,55 @@ export default function LiveInterviewPage() {
                 );
             }
             await speakWithBrowser(text);
+        } finally {
+            if (audioUrl) {
+                URL.revokeObjectURL(audioUrl);
+            }
+            isSpeakingRef.current = false;
+            setIsSpeaking(false);
+            suppressListenRef.current = false;
+            if (shouldResume) {
+                setTimeout(() => startListening(), 500);
+            }
         }
-    }, [isMuted, selectedVoice, audioErrorShown, interviewLang, locale, startListening, stopListening, unlockAudio, speakWithBrowser, ttsErrorShown]);
+    }, [audioErrorShown, interviewLang, isMuted, locale, selectedVoice, speakWithBrowser, startListening, stopListening, ttsErrorShown, unlockAudio, useTextInput]);
 
     // Process user response
     const processUserResponse = useCallback(async (answer: string) => {
-        if (!answer.trim() || isLoading || isSpeaking) return;
+        const trimmedAnswer = answer.trim();
+        if (!trimmedAnswer || processingRef.current || isLoadingRef.current || isSpeakingRef.current) return;
+
+        const normalizedAnswer = normalizeSpeechText(trimmedAnswer);
+        const lastAnswer = lastAnswerRef.current;
+        const now = Date.now();
+        if (normalizedAnswer && lastAnswer && lastAnswer.text === normalizedAnswer && now - lastAnswer.at < 3000) {
+            return;
+        }
+
+        const lastInterviewer = [...messagesRef.current].reverse().find((msg) => msg.role === 'interviewer');
+        if (lastInterviewer) {
+            const normalizedInterviewer = normalizeSpeechText(lastInterviewer.content);
+            if (
+                normalizedAnswer.length >= 8 &&
+                (normalizedInterviewer.includes(normalizedAnswer) || normalizedAnswer.includes(normalizedInterviewer))
+            ) {
+                return;
+            }
+        }
+
+        processingRef.current = true;
+        lastAnswerRef.current = normalizedAnswer ? { text: normalizedAnswer, at: now } : null;
 
         const currentPhase = phaseRef.current;
         setIsLoading(true);
-        stopListening();
+        isLoadingRef.current = true;
+        stopListening(true);
         setLiveTranscript('');
 
         const candidateMessage: Message = {
             id: Date.now().toString() + '-candidate',
             role: 'candidate',
-            content: answer,
+            content: trimmedAnswer,
             timestamp: new Date(),
         };
         const conversation = [...messagesRef.current, candidateMessage];
@@ -489,10 +559,12 @@ export default function LiveInterviewPage() {
 
             if (currentPhase === 'greeting') {
                 setPhase('warmup');
+                phaseRef.current = 'warmup';
                 responseText = phrases.warmup(targetRole);
 
             } else if (currentPhase === 'warmup') {
                 setPhase('interview');
+                phaseRef.current = 'interview';
                 const firstQ = questions[0]?.question || phrases.fallbackQ;
                 responseText = phrases.toInterview(firstQ);
 
@@ -517,7 +589,6 @@ export default function LiveInterviewPage() {
                             }),
                         });
                         if (await handleAICreditsResponse(evalRes.clone())) {
-                            setIsLoading(false);
                             return;
                         }
                         const evalPayload = await evalRes.json().catch(() => ({}));
@@ -580,7 +651,6 @@ export default function LiveInterviewPage() {
                             }),
                         });
                         if (await handleAICreditsResponse(conductRes.clone())) {
-                            setIsLoading(false);
                             return;
                         }
                         const conductPayload = await conductRes.json().catch(() => ({}));
@@ -595,12 +665,14 @@ export default function LiveInterviewPage() {
                     responseText = aiTransition?.trim() ? aiTransition : `${trans}${nextQuestion}`;
                 } else {
                     setPhase('closing');
+                    phaseRef.current = 'closing';
                     responseText = phrases.closing;
                 }
 
             } else if (currentPhase === 'closing') {
                 autoListenRef.current = false;
                 setPhase('ended');
+                phaseRef.current = 'ended';
                 responseText = phrases.goodbye;
             }
 
@@ -616,8 +688,6 @@ export default function LiveInterviewPage() {
                 ]);
             }
 
-            setIsLoading(false);
-
             if (responseText) {
                 await speak(responseText);
             }
@@ -625,11 +695,14 @@ export default function LiveInterviewPage() {
         } catch (error) {
             console.error('Error:', error);
             toast.error(interviewLang.startsWith('ar') ? 'حدث خطأ' : 'An error occurred');
+        } finally {
+            processingRef.current = false;
+            isLoadingRef.current = false;
+            suppressListenRef.current = false;
             setIsLoading(false);
         }
     }, [
-        isLoading,
-        isSpeaking,
+        normalizeSpeechText,
         targetRole,
         questions,
         currentQuestionIndex,
@@ -661,6 +734,9 @@ export default function LiveInterviewPage() {
         let errorShown = false; // Prevent multiple error toasts
 
         recognition.onresult = (event: any) => {
+            if (isSpeakingRef.current || suppressListenRef.current || isLoadingRef.current) {
+                return;
+            }
             let interim = '';
             let final = '';
 
@@ -712,10 +788,14 @@ export default function LiveInterviewPage() {
         recognition.onend = () => {
             setIsListening(false);
             // Don't restart if permission was denied
-            if (micPermissionDenied || useTextInput || !autoListenRef.current) return;
+            if (micPermissionDenied || useTextInput || !autoListenRef.current || suppressListenRef.current) return;
 
             const currentPhase = phaseRef.current;
-            if (['greeting', 'warmup', 'interview', 'closing'].includes(currentPhase) && !isSpeaking && !isLoading) {
+            if (
+                ['greeting', 'warmup', 'interview', 'closing'].includes(currentPhase) &&
+                !isSpeakingRef.current &&
+                !isLoadingRef.current
+            ) {
                 setTimeout(() => {
                     try {
                         recognition.start();
@@ -731,16 +811,24 @@ export default function LiveInterviewPage() {
         recognitionRef.current = recognition;
 
         return () => { try { recognition.stop(); } catch (e) { } };
-    }, [interviewLang, isSpeaking, isLoading, processUserResponse, useTextInput]);
+    }, [interviewLang, processUserResponse, useTextInput]);
 
     // Start interview
     const startInterview = async () => {
         setPhase('connecting');
+        phaseRef.current = 'connecting';
         setIsLoading(true);
+        isLoadingRef.current = true;
         setSummaryData(null);
         setSummaryLoading(false);
         setTtsErrorShown(false);
         setTtsFallbackActive(false);
+        pendingAnswerRef.current = '';
+        lastAnswerRef.current = null;
+        processingRef.current = false;
+        suppressListenRef.current = false;
+        setLiveTranscript('');
+        stopListening();
 
         try {
             await unlockAudio();
@@ -765,7 +853,9 @@ export default function LiveInterviewPage() {
 
                 if (await handleAICreditsResponse(res.clone())) {
                     setPhase('setup');
+                    phaseRef.current = 'setup';
                     setIsLoading(false);
+                    isLoadingRef.current = false;
                     return;
                 }
                 const payload = await res.json().catch(() => ({}));
@@ -799,7 +889,9 @@ export default function LiveInterviewPage() {
             setResults([]);
             setCurrentQuestionIndex(0);
             setPhase('greeting');
+            phaseRef.current = 'greeting';
             setIsLoading(false);
+            isLoadingRef.current = false;
             autoListenRef.current = !useTextInput;
 
             const name = candidateName || (interviewLang === 'en' ? 'friend' : 'يا غالي');
@@ -811,7 +903,9 @@ export default function LiveInterviewPage() {
             console.error('Start error:', error);
             toast.error(interviewLang.startsWith('ar') ? 'فشل البدء' : 'Failed to start');
             setPhase('setup');
+            phaseRef.current = 'setup';
             setIsLoading(false);
+            isLoadingRef.current = false;
         }
     };
 
@@ -826,8 +920,10 @@ export default function LiveInterviewPage() {
         stopListening();
         audioRef.current?.pause();
         setIsSpeaking(false);
+        isSpeakingRef.current = false;
         autoListenRef.current = false;
         setPhase('ended');
+        phaseRef.current = 'ended';
     };
 
     const toggleTextInput = () => {

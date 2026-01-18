@@ -83,6 +83,7 @@ export default function ResumeEditorPage() {
     const [showPreview, setShowPreview] = useState(false); // Hidden by default on mobile
     const [showMobilePreview, setShowMobilePreview] = useState(false);
     const [showMobileSidebar, setShowMobileSidebar] = useState(false);
+    const [showAIHelp, setShowAIHelp] = useState(false);
     const [atsScore, setAtsScore] = useState<number | null>(null);
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
     const [lastSaved, setLastSaved] = useState<Date | null>(null);
@@ -395,6 +396,15 @@ export default function ResumeEditorPage() {
         );
     }
 
+    const summaryExperience = resume.experience?.items ?? [];
+    const summarySkills = Array.from(new Set([
+        ...(resume.skills?.simpleList ?? []),
+        ...(resume.skills?.categories ?? []).flatMap((category) => category.skills || []),
+        ...summaryExperience.flatMap((item) => item.skills || []),
+    ]
+        .filter((skill): skill is string => typeof skill === 'string' && skill.trim().length > 0)
+        .map((skill) => skill.trim())));
+
     const previewResume = resume ? mapResumeRecordToResumeData(resume) : null;
 
     return (
@@ -469,9 +479,14 @@ export default function ResumeEditorPage() {
                     )}
 
                     {/* AI Help - Hidden on mobile */}
-                    <Button variant="outline" size="sm" className="hidden lg:flex">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        className="hidden lg:flex"
+                        onClick={() => setShowAIHelp(true)}
+                    >
                         <Sparkles className="h-4 w-4 mr-1" />
-                        AI Help
+                        {locale === 'ar' ? 'مساعدة الذكاء الاصطناعي' : 'AI Help'}
                     </Button>
 
                     {/* Preview Toggle - Shows modal on mobile, panel on desktop */}
@@ -548,6 +563,9 @@ export default function ResumeEditorPage() {
                     {activeSection === 'summary' && (
                         <SummaryEditor
                             data={resume.summary as any}
+                            targetRole={resume.targetRole}
+                            experience={summaryExperience}
+                            skills={summarySkills}
                             onChange={(data) => handleChange('summary', data)}
                         />
                     )}
@@ -640,6 +658,22 @@ export default function ResumeEditorPage() {
                             <ATSScorePanel resume={resume as any} score={atsScore} />
                         </TabsContent>
                     </Tabs>
+                </DialogContent>
+            </Dialog>
+            {/* AI Help Dialog */}
+            <Dialog open={showAIHelp} onOpenChange={setShowAIHelp}>
+                <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                        <DialogTitle>{locale === 'ar' ? 'تدقيق السيرة الذاتية' : 'Resume Audit'}</DialogTitle>
+                    </DialogHeader>
+                    <div className="text-sm text-muted-foreground">
+                        {locale === 'ar'
+                            ? 'فحص سريع يحدد مشاكل ATS ونقاط التحسين مع اقتراحات واضحة.'
+                            : 'A quick scan that flags ATS issues and improvement opportunities with clear fixes.'}
+                    </div>
+                    <div className="mt-4">
+                        <ATSScorePanel resume={resume as any} score={atsScore} />
+                    </div>
                 </DialogContent>
             </Dialog>
             <PaywallModal

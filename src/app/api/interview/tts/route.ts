@@ -5,6 +5,9 @@ import { errors } from '@/lib/api-response';
 import { buildCreditErrorPayload, calculateCreditsFromUsd, calculateTtsCostUsd, getCreditSummary, recordAICreditUsage } from '@/lib/ai-credits';
 import { hasActiveSubscription } from '@/lib/subscription';
 
+export const runtime = 'nodejs';
+export const maxDuration = 60;
+
 export async function POST(request: NextRequest) {
     const session = await auth();
     if (!session?.user?.id) {

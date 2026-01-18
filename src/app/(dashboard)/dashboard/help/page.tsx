@@ -137,6 +137,113 @@ export default function DashboardHelpPage() {
                 </div>
             </div>
 
+            <Card>
+                <CardHeader>
+                    <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                            <LifeBuoy className="h-5 w-5 text-primary" />
+                        </div>
+                        <div>
+                            <CardTitle>{isArabic ? 'نظام رصيد الذكاء الاصطناعي' : 'AI Credits System'}</CardTitle>
+                            <CardDescription>
+                                {isArabic
+                                    ? 'شرح سريع لكيفية احتساب الرصيد وما الذي يستهلكه داخل المنصة.'
+                                    : 'A quick explanation of how credits work and what consumes them.'}
+                            </CardDescription>
+                        </div>
+                    </div>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                    <div className="grid gap-4 md:grid-cols-2">
+                        <div className="rounded-xl border p-4">
+                            <h3 className="font-semibold mb-2">
+                                {isArabic ? 'كيف يتم احتساب الرصيد؟' : 'How credits are calculated'}
+                            </h3>
+                            <ul className="text-sm text-muted-foreground space-y-2">
+                                <li>
+                                    {isArabic
+                                        ? 'تحصل على 50 رصيداً شهرياً ضمن الاشتراك.'
+                                        : 'You receive 50 credits per month with your subscription.'}
+                                </li>
+                                <li>
+                                    {isArabic
+                                        ? 'كل رصيد يعادل تقريباً 0.2 ريال سعودي من تكلفة الذكاء الاصطناعي.'
+                                        : 'Each credit roughly equals 0.2 SAR of AI usage cost.'}
+                                </li>
+                                <li>
+                                    {isArabic
+                                        ? 'الرصيد يُعاد ضبطه في بداية كل شهر.'
+                                        : 'Credits reset at the beginning of each month.'}
+                                </li>
+                                <li>
+                                    {isArabic
+                                        ? 'يمكنك شراء رصيد إضافي عند الحاجة.'
+                                        : 'You can top up credits whenever needed.'}
+                                </li>
+                            </ul>
+                        </div>
+                        <div className="rounded-xl border p-4">
+                            <h3 className="font-semibold mb-2">
+                                {isArabic ? 'ماذا يستهلك الرصيد؟' : 'What consumes credits'}
+                            </h3>
+                            <ul className="text-sm text-muted-foreground space-y-2">
+                                <li>
+                                    {isArabic
+                                        ? 'توليد ملخص السيرة، والنقاط، وتحسين النص.'
+                                        : 'Summary generation, bullet writing, and text polish.'}
+                                </li>
+                                <li>
+                                    {isArabic
+                                        ? 'تحليل مطابقة الوصف الوظيفي وATS.'
+                                        : 'Job description match analysis and ATS insights.'}
+                                </li>
+                                <li>
+                                    {isArabic
+                                        ? 'مقابلات الذكاء الاصطناعي والتقييمات.'
+                                        : 'AI interview practice and scoring.'}
+                                </li>
+                                <li>
+                                    {isArabic
+                                        ? 'مميزات الذكاء الاصطناعي الأخرى داخل لوحة التحكم.'
+                                        : 'Other AI-powered tools across the dashboard.'}
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div className="rounded-xl bg-muted/50 p-4">
+                        <h3 className="font-semibold mb-2">
+                            {isArabic ? 'أمثلة استهلاك تقديرية' : 'Typical usage examples'}
+                        </h3>
+                        <div className="grid gap-3 md:grid-cols-3 text-sm text-muted-foreground">
+                            <div className="rounded-lg border bg-background p-3">
+                                <p className="font-medium text-foreground mb-1">
+                                    {isArabic ? 'ملخص احترافي' : 'Professional summary'}
+                                </p>
+                                <p>{isArabic ? '≈ 0.5 - 1 رصيد' : '≈ 0.5 - 1 credit'}</p>
+                            </div>
+                            <div className="rounded-lg border bg-background p-3">
+                                <p className="font-medium text-foreground mb-1">
+                                    {isArabic ? 'تحسين نقاط الخبرة' : 'Experience bullets polish'}
+                                </p>
+                                <p>{isArabic ? '≈ 0.3 - 0.8 رصيد' : '≈ 0.3 - 0.8 credits'}</p>
+                            </div>
+                            <div className="rounded-lg border bg-background p-3">
+                                <p className="font-medium text-foreground mb-1">
+                                    {isArabic ? 'تحليل مطابقة الوظيفة' : 'Job match analysis'}
+                                </p>
+                                <p>{isArabic ? '≈ 0.8 - 2 رصيد' : '≈ 0.8 - 2 credits'}</p>
+                            </div>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-3">
+                            {isArabic
+                                ? 'القيم تقديرية وتختلف حسب طول المحتوى ونوع المهمة.'
+                                : 'Estimates vary based on input length and task complexity.'}
+                        </p>
+                    </div>
+                </CardContent>
+            </Card>
+
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {helpFeatures.map((feature) => {
                     const Icon = feature.icon;

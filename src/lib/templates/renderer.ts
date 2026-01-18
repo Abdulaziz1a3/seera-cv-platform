@@ -5,7 +5,8 @@ import { jsPDF } from 'jspdf';
 import type { ResumeData, TemplateId, ThemeId, ThemePalette, TemplateConfig } from '../resume-types';
 import { getTheme, hexToRgb, getContrastColor } from './themes';
 import { getTemplateConfig, getSectionHeader, formatDate, getPresentText } from './index';
-import { hasArabicContent, containsArabic, formatDateRange } from './fonts';
+import { hasArabicContent, formatTextForPDF } from './fonts';
+import { ensureArabicFonts } from './pdf-fonts';
 
 // ============================================
 // PDF Generator Class
@@ -19,6 +20,8 @@ class PDFRenderer {
   private pageWidth: number;
   private pageHeight: number;
   private y: number = 0;
+  private fontFamily: string = 'helvetica';
+  private isArabicMode: boolean = false;
 
   constructor(templateId: TemplateId, themeId: ThemeId, locale: 'en' | 'ar' = 'en') {
     this.doc = new jsPDF({
@@ -71,11 +74,53 @@ class PDFRenderer {
     return this.pageWidth - this.config.margins.left - this.config.margins.right;
   }
 
+  public async prepareFonts(resume: ResumeData): Promise<void> {
+    const hasArabic = this.locale === 'ar' || hasArabicContent(resume);
+    if (!hasArabic) {
+      this.isArabicMode = false;
+      this.fontFamily = 'helvetica';
+      return;
+    }
+
+    try {
+      await ensureArabicFonts(this.doc);
+      this.isArabicMode = true;
+      this.fontFamily = 'NotoSansArabic';
+    } catch (error) {
+      console.warn('Arabic font load failed, falling back to default font.', error);
+      this.isArabicMode = false;
+      this.fontFamily = 'helvetica';
+    }
+  }
+
+  private formatText(text: string): string {
+    return formatTextForPDF(text, this.isArabicMode);
+  }
+
+  private text(text: string, x: number, y: number, options?: any) {
+    this.doc.text(this.formatText(text), x, y, options);
+  }
+
+  private splitText(text: string, maxWidth: number): string[] {
+    return this.doc.splitTextToSize(this.formatText(text), maxWidth);
+  }
+
+  private getTextWidth(text: string): number {
+    return this.doc.getTextWidth(this.formatText(text));
+  }
+
+  private setFont(style: 'normal' | 'bold' | 'italic' | 'bolditalic' = 'normal') {
+    const safeStyle = this.isArabicMode && (style === 'italic' || style === 'bolditalic')
+      ? 'normal'
+      : style;
+    this.doc.setFont(this.fontFamily, safeStyle);
+  }
+
   private addWrappedText(text: string, x: number, maxWidth: number, lineHeight: number = 5): number {
-    const lines = this.doc.splitTextToSize(text, maxWidth);
+    const lines = this.splitText(text, maxWidth);
     lines.forEach((line: string) => {
       this.checkPageBreak();
-      this.doc.text(line, x, this.y);
+      this.text(line, x, this.y);
       this.y += lineHeight;
     });
     return lines.length * lineHeight;
@@ -92,16 +137,16 @@ class PDFRenderer {
     // Header: Name with accent underline
     this.setColor(this.theme.primary);
     this.doc.setFontSize(this.config.typography.nameSize);
-    this.doc.setFont('helvetica', 'bold');
+    this.setFont('bold');
     const name = (resume.contact.fullName || 'Your Name').toUpperCase();
-    this.doc.text(name, margin, this.y);
+    this.text(name, margin, this.y);
     this.y += 10;
 
     if (resume.title) {
-      this.doc.setFont('helvetica', 'normal');
+      this.setFont('normal');
       this.doc.setFontSize(11);
       this.setColor(this.theme.muted);
-      this.doc.text(resume.title, margin, this.y);
+      this.text(resume.title, margin, this.y);
       this.y += 6;
     }
 
@@ -113,7 +158,7 @@ class PDFRenderer {
 
     // Contact info row
     this.doc.setFontSize(this.config.typography.smallSize);
-    this.doc.setFont('helvetica', 'normal');
+    this.setFont('normal');
     this.setColor(this.theme.muted);
     const contactParts = [
       resume.contact.email,
@@ -121,12 +166,12 @@ class PDFRenderer {
       resume.contact.location,
     ].filter(Boolean);
     if (contactParts.length) {
-      this.doc.text(contactParts.join('  |  '), margin, this.y);
+      this.text(contactParts.join('  |  '), margin, this.y);
       this.y += 5;
     }
     if (resume.contact.linkedin) {
       this.setColor(this.theme.accent);
-      this.doc.text(resume.contact.linkedin, margin, this.y);
+      this.text(resume.contact.linkedin, margin, this.y);
       this.y += 5;
     }
     this.y += 8;
@@ -138,9 +183,9 @@ class PDFRenderer {
 
       // Section header with underline
       this.doc.setFontSize(this.config.typography.sectionHeaderSize);
-      this.doc.setFont('helvetica', 'bold');
+      this.setFont('bold');
       this.setColor(this.theme.primary);
-      this.doc.text(getSectionHeader(title, this.locale), margin, this.y);
+      this.text(getSectionHeader(title, this.locale), margin, this.y);
       this.y += 2;
       this.setColor(this.theme.accent, 'draw');
       this.doc.setLineWidth(0.5);
@@ -148,7 +193,7 @@ class PDFRenderer {
       this.y += 6;
 
       // Reset for content
-      this.doc.setFont('helvetica', 'normal');
+      this.setFont('normal');
       this.doc.setFontSize(this.config.typography.bodySize);
       this.setColor(this.theme.text);
 
@@ -170,40 +215,40 @@ class PDFRenderer {
           this.checkPageBreak(25);
 
           // Position
-          this.doc.setFont('helvetica', 'bold');
+          this.setFont('bold');
           this.doc.setFontSize(11);
           this.setColor(this.theme.text);
-          this.doc.text(exp.position || 'Position', margin, this.y);
+          this.text(exp.position || 'Position', margin, this.y);
 
           // Date range (right)
-          this.doc.setFont('helvetica', 'normal');
+          this.setFont('normal');
           this.doc.setFontSize(this.config.typography.smallSize);
           this.setColor(this.theme.accent);
           const dateText = `${formatDate(exp.startDate, this.locale)} - ${exp.current ? getPresentText(this.locale) : formatDate(exp.endDate, this.locale)}`;
-          const dateWidth = this.doc.getTextWidth(dateText);
-          this.doc.text(dateText, this.pageWidth - this.config.margins.right - dateWidth, this.y);
+          const dateWidth = this.getTextWidth(dateText);
+          this.text(dateText, this.pageWidth - this.config.margins.right - dateWidth, this.y);
           this.y += 4;
 
           // Company
-          this.doc.setFont('helvetica', 'italic');
+          this.setFont('italic');
           this.doc.setFontSize(this.config.typography.bodySize);
           this.setColor(this.theme.muted);
           let companyLine = exp.company || 'Company';
           if (exp.location) companyLine += `  |  ${exp.location}`;
-          this.doc.text(companyLine, margin, this.y);
+          this.text(companyLine, margin, this.y);
           this.y += 5;
 
           // Bullets
-          this.doc.setFont('helvetica', 'normal');
+          this.setFont('normal');
           this.setColor(this.theme.text);
           exp.bullets.filter(b => b?.trim()).forEach((bullet) => {
             this.checkPageBreak(8);
             this.setColor(this.theme.accent);
-            this.doc.text('-', margin + 2, this.y);
+            this.text('-', margin + 2, this.y);
             this.setColor(this.theme.text);
-            const bulletLines = this.doc.splitTextToSize(bullet, contentWidth - 8);
+            const bulletLines = this.splitText(bullet, contentWidth - 8);
             bulletLines.forEach((line: string) => {
-              this.doc.text(line, margin + 6, this.y);
+              this.text(line, margin + 6, this.y);
               this.y += 4;
             });
           });
@@ -219,30 +264,30 @@ class PDFRenderer {
           this.checkPageBreak(15);
 
           // Degree
-          this.doc.setFont('helvetica', 'bold');
+          this.setFont('bold');
           this.doc.setFontSize(11);
           this.setColor(this.theme.text);
           const degreeText = `${edu.degree}${edu.field ? ` in ${edu.field}` : ''}`;
-          this.doc.text(degreeText, margin, this.y);
+          this.text(degreeText, margin, this.y);
 
           // Date
           if (edu.graduationDate) {
-            this.doc.setFont('helvetica', 'normal');
+            this.setFont('normal');
             this.doc.setFontSize(this.config.typography.smallSize);
             this.setColor(this.theme.accent);
             const gradDate = formatDate(edu.graduationDate, this.locale);
-            const dateWidth = this.doc.getTextWidth(gradDate);
-            this.doc.text(gradDate, this.pageWidth - this.config.margins.right - dateWidth, this.y);
+            const dateWidth = this.getTextWidth(gradDate);
+            this.text(gradDate, this.pageWidth - this.config.margins.right - dateWidth, this.y);
           }
           this.y += 4;
 
           // Institution
-          this.doc.setFont('helvetica', 'italic');
+          this.setFont('italic');
           this.doc.setFontSize(this.config.typography.bodySize);
           this.setColor(this.theme.muted);
           let instLine = edu.institution || 'Institution';
           if (edu.gpa) instLine += `  |  GPA: ${edu.gpa}`;
-          this.doc.text(instLine, margin, this.y);
+          this.text(instLine, margin, this.y);
           this.y += 6;
         });
       });
@@ -261,20 +306,20 @@ class PDFRenderer {
       addSection('certifications', () => {
         resume.certifications.forEach((cert) => {
           this.checkPageBreak(8);
-          this.doc.setFont('helvetica', 'bold');
+          this.setFont('bold');
           this.doc.setFontSize(10);
           this.setColor(this.theme.text);
           let certLine = cert.name;
-          this.doc.setFont('helvetica', 'normal');
+          this.setFont('normal');
           if (cert.issuer) certLine += ` - ${cert.issuer}`;
-          this.doc.text(certLine, margin, this.y);
+          this.text(certLine, margin, this.y);
 
           if (cert.date) {
             this.doc.setFontSize(this.config.typography.smallSize);
             this.setColor(this.theme.accent);
             const certDate = formatDate(cert.date, this.locale);
-            const dateWidth = this.doc.getTextWidth(certDate);
-            this.doc.text(certDate, this.pageWidth - this.config.margins.right - dateWidth, this.y);
+            const dateWidth = this.getTextWidth(certDate);
+            this.text(certDate, this.pageWidth - this.config.margins.right - dateWidth, this.y);
           }
           this.y += 5;
         });
@@ -285,7 +330,7 @@ class PDFRenderer {
     if (resume.languages.length > 0) {
       addSection('languages', () => {
         const langText = resume.languages.map(l => `${l.name} (${l.proficiency})`).join('  |  ');
-        this.doc.text(langText, margin, this.y);
+        this.text(langText, margin, this.y);
         this.y += 5;
       });
     }
@@ -301,16 +346,16 @@ class PDFRenderer {
 
     // Name - large and simple
     this.doc.setFontSize(this.config.typography.nameSize);
-    this.doc.setFont('helvetica', 'bold');
+    this.setFont('bold');
     this.setColor(this.theme.text);
-    this.doc.text(resume.contact.fullName || 'Your Name', margin, this.y);
+    this.text(resume.contact.fullName || 'Your Name', margin, this.y);
     this.y += 12;
 
     if (resume.title) {
-      this.doc.setFont('helvetica', 'normal');
+      this.setFont('normal');
       this.doc.setFontSize(11);
       this.setColor(this.theme.muted);
-      this.doc.text(resume.title, margin, this.y);
+      this.text(resume.title, margin, this.y);
       this.y += 6;
     }
 
@@ -322,10 +367,10 @@ class PDFRenderer {
 
     // Contact - minimal
     this.doc.setFontSize(this.config.typography.smallSize);
-    this.doc.setFont('helvetica', 'normal');
+    this.setFont('normal');
     this.setColor(this.theme.muted);
     const contactLine = [resume.contact.email, resume.contact.phone, resume.contact.location].filter(Boolean).join('  /  ');
-    this.doc.text(contactLine, margin, this.y);
+    this.text(contactLine, margin, this.y);
     this.y += 12;
 
     // Section helper for Nordic
@@ -334,12 +379,12 @@ class PDFRenderer {
       this.checkPageBreak(15);
 
       this.doc.setFontSize(this.config.typography.sectionHeaderSize);
-      this.doc.setFont('helvetica', 'normal');
+      this.setFont('normal');
       this.setColor(this.theme.muted);
-      this.doc.text(getSectionHeader(title, this.locale), margin, this.y);
+      this.text(getSectionHeader(title, this.locale), margin, this.y);
       this.y += 8;
 
-      this.doc.setFont('helvetica', 'normal');
+      this.setFont('normal');
       this.doc.setFontSize(this.config.typography.bodySize);
       this.setColor(this.theme.text);
 
@@ -363,14 +408,14 @@ class PDFRenderer {
 
           // Position + Company inline
           this.doc.setFontSize(11);
-          this.doc.setFont('helvetica', 'bold');
+          this.setFont('bold');
           this.setColor(this.theme.text);
-          this.doc.text(exp.position, margin, this.y);
+          this.text(exp.position, margin, this.y);
 
-          this.doc.setFont('helvetica', 'normal');
+          this.setFont('normal');
           this.setColor(this.theme.muted);
           const meta = ` - ${exp.company}, ${formatDate(exp.startDate, this.locale)} - ${exp.current ? getPresentText(this.locale) : formatDate(exp.endDate, this.locale)}`;
-          this.doc.text(meta, margin + this.doc.getTextWidth(exp.position), this.y);
+          this.text(meta, margin + this.getTextWidth(exp.position), this.y);
           this.y += 6;
 
           // Bullets - minimal style with dash
@@ -378,9 +423,9 @@ class PDFRenderer {
           this.setColor(this.theme.text);
           exp.bullets.filter(b => b?.trim()).forEach((bullet) => {
             this.checkPageBreak(8);
-            const bulletLines = this.doc.splitTextToSize(`- ${bullet}`, contentWidth - 5);
+            const bulletLines = this.splitText(`- ${bullet}`, contentWidth - 5);
             bulletLines.forEach((line: string) => {
-              this.doc.text(line, margin + 3, this.y);
+              this.text(line, margin + 3, this.y);
               this.y += 5;
             });
           });
@@ -394,15 +439,15 @@ class PDFRenderer {
         resume.education.forEach((edu) => {
           this.checkPageBreak(12);
           this.doc.setFontSize(11);
-          this.doc.setFont('helvetica', 'bold');
+          this.setFont('bold');
           this.setColor(this.theme.text);
-          this.doc.text(`${edu.degree}${edu.field ? ', ' + edu.field : ''}`, margin, this.y);
+          this.text(`${edu.degree}${edu.field ? ', ' + edu.field : ''}`, margin, this.y);
           this.y += 5;
 
-          this.doc.setFont('helvetica', 'normal');
+          this.setFont('normal');
           this.doc.setFontSize(this.config.typography.bodySize);
           this.setColor(this.theme.muted);
-          this.doc.text(`${edu.institution}${edu.graduationDate ? ', ' + formatDate(edu.graduationDate, this.locale) : ''}`, margin, this.y);
+          this.text(`${edu.institution}${edu.graduationDate ? ', ' + formatDate(edu.graduationDate, this.locale) : ''}`, margin, this.y);
           this.y += 8;
         });
       });
@@ -413,7 +458,7 @@ class PDFRenderer {
       addSection('skills', () => {
         this.doc.setFontSize(this.config.typography.bodySize);
         this.setColor(this.theme.text);
-        this.doc.text(resume.skills.join(', '), margin, this.y);
+        this.text(resume.skills.join(', '), margin, this.y);
         this.y += 5;
       });
     }
@@ -449,32 +494,32 @@ class PDFRenderer {
     // Contact in sidebar
     this.doc.setTextColor(255, 255, 255);
     this.doc.setFontSize(10);
-    this.doc.setFont('helvetica', 'bold');
-    this.doc.text(getSectionHeader('contact', this.locale), 8, sideY);
+    this.setFont('bold');
+    this.text(getSectionHeader('contact', this.locale), 8, sideY);
     sideY += 8;
 
-    this.doc.setFont('helvetica', 'normal');
+    this.setFont('normal');
     this.doc.setFontSize(8.5);
     if (resume.contact.email) {
-      const emailLines = this.doc.splitTextToSize(resume.contact.email, sidebarWidth - 16);
+      const emailLines = this.splitText(resume.contact.email, sidebarWidth - 16);
       emailLines.forEach((line: string) => {
-        this.doc.text(line, 8, sideY);
+        this.text(line, 8, sideY);
         sideY += 4.5;
       });
     }
     if (resume.contact.phone) {
-      this.doc.text(resume.contact.phone, 8, sideY);
+      this.text(resume.contact.phone, 8, sideY);
       sideY += 5;
     }
     if (resume.contact.location) {
-      this.doc.text(resume.contact.location, 8, sideY);
+      this.text(resume.contact.location, 8, sideY);
       sideY += 5;
     }
     if (resume.contact.linkedin) {
       sideY += 2;
-      const linkedInLines = this.doc.splitTextToSize(resume.contact.linkedin.replace('https://', ''), sidebarWidth - 16);
+      const linkedInLines = this.splitText(resume.contact.linkedin.replace('https://', ''), sidebarWidth - 16);
       linkedInLines.forEach((line: string) => {
-        this.doc.text(line, 8, sideY);
+        this.text(line, 8, sideY);
         sideY += 4.5;
       });
     }
@@ -483,11 +528,11 @@ class PDFRenderer {
     if (resume.skills.length > 0) {
       sideY += 15;
       this.doc.setFontSize(10);
-      this.doc.setFont('helvetica', 'bold');
-      this.doc.text(getSectionHeader('skills', this.locale), 8, sideY);
+      this.setFont('bold');
+      this.text(getSectionHeader('skills', this.locale), 8, sideY);
       sideY += 8;
 
-      this.doc.setFont('helvetica', 'normal');
+      this.setFont('normal');
       this.doc.setFontSize(8);
       // Create a lighter shade for skill pill background
       const pillRgb = hexToRgb(this.theme.secondary);
@@ -500,7 +545,7 @@ class PDFRenderer {
         );
         this.doc.roundedRect(6, sideY - 3.5, sidebarWidth - 12, 5.5, 1, 1, 'F');
         this.doc.setTextColor(255, 255, 255);
-        this.doc.text(skill, 9, sideY);
+        this.text(skill, 9, sideY);
         sideY += 7;
       });
     }
@@ -509,16 +554,16 @@ class PDFRenderer {
     if (resume.languages.length > 0) {
       sideY += 12;
       this.doc.setFontSize(10);
-      this.doc.setFont('helvetica', 'bold');
-      this.doc.text(getSectionHeader('languages', this.locale), 8, sideY);
+      this.setFont('bold');
+      this.text(getSectionHeader('languages', this.locale), 8, sideY);
       sideY += 8;
 
-      this.doc.setFont('helvetica', 'normal');
+      this.setFont('normal');
       this.doc.setFontSize(8.5);
       resume.languages.forEach((lang) => {
-        this.doc.text(`${lang.name}`, 8, sideY);
+        this.text(`${lang.name}`, 8, sideY);
         this.doc.setFontSize(7.5);
-        this.doc.text(lang.proficiency, 8, sideY + 4);
+        this.text(lang.proficiency, 8, sideY + 4);
         this.doc.setFontSize(8.5);
         sideY += 10;
       });
@@ -526,21 +571,21 @@ class PDFRenderer {
 
     // Main content: Name
     this.setColor(this.theme.text);
-    this.doc.setFont('helvetica', 'bold');
+    this.setFont('bold');
     this.doc.setFontSize(26);
     const fullName = (resume.contact.fullName || 'Your Name').toUpperCase();
-    const nameLinesMain = this.doc.splitTextToSize(fullName, mainWidth);
+    const nameLinesMain = this.splitText(fullName, mainWidth);
     nameLinesMain.forEach((line: string) => {
-      this.doc.text(line, mainX, mainY);
+      this.text(line, mainX, mainY);
       mainY += 9;
     });
 
     // Title/role
     if (resume.title) {
-      this.doc.setFont('helvetica', 'normal');
+      this.setFont('normal');
       this.doc.setFontSize(11);
       this.setColor(this.theme.muted);
-      this.doc.text(resume.title.toUpperCase(), mainX, mainY);
+      this.text(resume.title.toUpperCase(), mainX, mainY);
       mainY += 10;
     }
 
@@ -553,10 +598,10 @@ class PDFRenderer {
       this.doc.setLineWidth(2);
       this.doc.line(mainX, mainY - 3, mainX, mainY + 5);
 
-      this.doc.setFont('helvetica', 'bold');
+      this.setFont('bold');
       this.doc.setFontSize(12);
       this.setColor(this.theme.text);
-      this.doc.text(getSectionHeader(title, this.locale), mainX + 4, mainY);
+      this.text(getSectionHeader(title, this.locale), mainX + 4, mainY);
       mainY += 8;
 
       mainY = callback(mainY);
@@ -565,12 +610,12 @@ class PDFRenderer {
     // Summary
     if (resume.summary) {
       addMainSection('summary', (y) => {
-        this.doc.setFont('helvetica', 'normal');
+        this.setFont('normal');
         this.doc.setFontSize(10);
         this.setColor(this.theme.muted);
-        const summaryLines = this.doc.splitTextToSize(resume.summary, mainWidth);
+        const summaryLines = this.splitText(resume.summary, mainWidth);
         summaryLines.forEach((line: string) => {
-          this.doc.text(line, mainX, y);
+          this.text(line, mainX, y);
           y += 5;
         });
         return y + 5;
@@ -591,33 +636,33 @@ class PDFRenderer {
 
           // Position
           this.doc.setFontSize(11);
-          this.doc.setFont('helvetica', 'bold');
+          this.setFont('bold');
           this.setColor(this.theme.text);
-          this.doc.text(exp.position || 'Position', mainX, y);
+          this.text(exp.position || 'Position', mainX, y);
 
           // Date (right)
           this.doc.setFontSize(9);
-          this.doc.setFont('helvetica', 'normal');
+          this.setFont('normal');
           this.setColor(this.theme.accent);
           const dateText = `${formatDate(exp.startDate, this.locale)} - ${exp.current ? getPresentText(this.locale) : formatDate(exp.endDate, this.locale)}`;
-          this.doc.text(dateText, this.pageWidth - 15 - this.doc.getTextWidth(dateText), y);
+          this.text(dateText, this.pageWidth - 15 - this.getTextWidth(dateText), y);
           y += 5;
 
           // Company
           this.doc.setFontSize(10);
           this.setColor(this.theme.muted);
-          this.doc.text(`${exp.company}${exp.location ? ' | ' + exp.location : ''}`, mainX, y);
+          this.text(`${exp.company}${exp.location ? ' | ' + exp.location : ''}`, mainX, y);
           y += 5;
 
           // Bullets
           this.doc.setFontSize(9);
           exp.bullets.filter(b => b?.trim()).forEach((bullet) => {
             this.setColor(this.theme.accent);
-            this.doc.text('-', mainX, y);
+            this.text('-', mainX, y);
             this.setColor(this.theme.text);
-            const bulletLines = this.doc.splitTextToSize(bullet, mainWidth - 8);
+            const bulletLines = this.splitText(bullet, mainWidth - 8);
             bulletLines.forEach((line: string) => {
-              this.doc.text(line, mainX + 5, y);
+              this.text(line, mainX + 5, y);
               y += 4.5;
             });
           });
@@ -632,23 +677,23 @@ class PDFRenderer {
       addMainSection('education', (y) => {
         resume.education.forEach((edu) => {
           this.doc.setFontSize(11);
-          this.doc.setFont('helvetica', 'bold');
+          this.setFont('bold');
           this.setColor(this.theme.text);
-          this.doc.text(`${edu.degree}${edu.field ? ' in ' + edu.field : ''}`, mainX, y);
+          this.text(`${edu.degree}${edu.field ? ' in ' + edu.field : ''}`, mainX, y);
 
           if (edu.graduationDate) {
             this.doc.setFontSize(9);
-            this.doc.setFont('helvetica', 'normal');
+            this.setFont('normal');
             this.setColor(this.theme.accent);
             const gradDate = formatDate(edu.graduationDate, this.locale);
-            this.doc.text(gradDate, this.pageWidth - 15 - this.doc.getTextWidth(gradDate), y);
+            this.text(gradDate, this.pageWidth - 15 - this.getTextWidth(gradDate), y);
           }
           y += 5;
 
           this.doc.setFontSize(10);
-          this.doc.setFont('helvetica', 'normal');
+          this.setFont('normal');
           this.setColor(this.theme.muted);
-          this.doc.text(edu.institution, mainX, y);
+          this.text(edu.institution, mainX, y);
           y += 7;
         });
         return y;
@@ -667,31 +712,31 @@ class PDFRenderer {
 
     // Centered header
     this.doc.setFontSize(this.config.typography.nameSize);
-    this.doc.setFont('helvetica', 'bold');
+    this.setFont('bold');
     this.setColor(this.theme.text);
     const name = resume.contact.fullName || 'Your Name';
-    this.doc.text(name, centerX, this.y, { align: 'center' });
+    this.text(name, centerX, this.y, { align: 'center' });
     this.y += 8;
 
     if (resume.title) {
-      this.doc.setFont('helvetica', 'normal');
+      this.setFont('normal');
       this.doc.setFontSize(11);
       this.setColor(this.theme.muted);
-      this.doc.text(resume.title, centerX, this.y, { align: 'center' });
+      this.text(resume.title, centerX, this.y, { align: 'center' });
       this.y += 5;
     }
 
     // Contact line centered
     this.doc.setFontSize(this.config.typography.smallSize);
-    this.doc.setFont('helvetica', 'normal');
+    this.setFont('normal');
     this.setColor(this.theme.muted);
     const contactParts = [resume.contact.email, resume.contact.phone, resume.contact.location].filter(Boolean);
     if (contactParts.length) {
-      this.doc.text(contactParts.join('  |  '), centerX, this.y, { align: 'center' });
+      this.text(contactParts.join('  |  '), centerX, this.y, { align: 'center' });
       this.y += 5;
     }
     if (resume.contact.linkedin) {
-      this.doc.text(resume.contact.linkedin, centerX, this.y, { align: 'center' });
+      this.text(resume.contact.linkedin, centerX, this.y, { align: 'center' });
       this.y += 5;
     }
     this.y += 8;
@@ -705,13 +750,13 @@ class PDFRenderer {
       this.setColor(this.theme.primary, 'fill');
       this.doc.rect(margin, this.y - 4, contentWidth, 7, 'F');
       this.doc.setFontSize(this.config.typography.sectionHeaderSize);
-      this.doc.setFont('helvetica', 'bold');
+      this.setFont('bold');
       const contrastColor = getContrastColor(this.theme.primary);
       this.doc.setTextColor(hexToRgb(contrastColor).r, hexToRgb(contrastColor).g, hexToRgb(contrastColor).b);
-      this.doc.text(getSectionHeader(title, this.locale), margin + 3, this.y + 1);
+      this.text(getSectionHeader(title, this.locale), margin + 3, this.y + 1);
       this.y += 10;
 
-      this.doc.setFont('helvetica', 'normal');
+      this.setFont('normal');
       this.doc.setFontSize(this.config.typography.bodySize);
       this.setColor(this.theme.text);
 
@@ -733,24 +778,24 @@ class PDFRenderer {
           this.checkPageBreak(25);
 
           // Position
-          this.doc.setFont('helvetica', 'bold');
+          this.setFont('bold');
           this.doc.setFontSize(11);
           this.setColor(this.theme.text);
-          this.doc.text(exp.position || 'Position', margin, this.y);
+          this.text(exp.position || 'Position', margin, this.y);
 
           // Date
-          this.doc.setFont('helvetica', 'normal');
+          this.setFont('normal');
           this.doc.setFontSize(this.config.typography.smallSize);
           this.setColor(this.theme.muted);
           const dateText = `${formatDate(exp.startDate, this.locale)} - ${exp.current ? getPresentText(this.locale) : formatDate(exp.endDate, this.locale)}`;
-          const dateWidth = this.doc.getTextWidth(dateText);
-          this.doc.text(dateText, this.pageWidth - this.config.margins.right - dateWidth, this.y);
+          const dateWidth = this.getTextWidth(dateText);
+          this.text(dateText, this.pageWidth - this.config.margins.right - dateWidth, this.y);
           this.y += 4;
 
           // Company
           this.doc.setFontSize(this.config.typography.bodySize);
           this.setColor(this.theme.muted);
-          this.doc.text(exp.company, margin, this.y);
+          this.text(exp.company, margin, this.y);
           this.y += 5;
 
           // Bullets
@@ -758,9 +803,9 @@ class PDFRenderer {
           this.setColor(this.theme.text);
           exp.bullets.filter(b => b?.trim()).forEach((bullet) => {
             this.checkPageBreak(8);
-            const bulletLines = this.doc.splitTextToSize(`- ${bullet}`, contentWidth - 5);
+            const bulletLines = this.splitText(`- ${bullet}`, contentWidth - 5);
             bulletLines.forEach((line: string) => {
-              this.doc.text(line, margin + 2, this.y);
+              this.text(line, margin + 2, this.y);
               this.y += 4.5;
             });
           });
@@ -773,25 +818,25 @@ class PDFRenderer {
       addSection('education', () => {
         resume.education.forEach((edu) => {
           this.checkPageBreak(12);
-          this.doc.setFont('helvetica', 'bold');
+          this.setFont('bold');
           this.doc.setFontSize(11);
           this.setColor(this.theme.text);
-          this.doc.text(`${edu.degree}${edu.field ? ' in ' + edu.field : ''}`, margin, this.y);
+          this.text(`${edu.degree}${edu.field ? ' in ' + edu.field : ''}`, margin, this.y);
 
           if (edu.graduationDate) {
-            this.doc.setFont('helvetica', 'normal');
+            this.setFont('normal');
             this.doc.setFontSize(this.config.typography.smallSize);
             this.setColor(this.theme.muted);
             const gradDate = formatDate(edu.graduationDate, this.locale);
-            const dateWidth = this.doc.getTextWidth(gradDate);
-            this.doc.text(gradDate, this.pageWidth - this.config.margins.right - dateWidth, this.y);
+            const dateWidth = this.getTextWidth(gradDate);
+            this.text(gradDate, this.pageWidth - this.config.margins.right - dateWidth, this.y);
           }
           this.y += 4;
 
-          this.doc.setFont('helvetica', 'normal');
+          this.setFont('normal');
           this.doc.setFontSize(this.config.typography.bodySize);
           this.setColor(this.theme.muted);
-          this.doc.text(edu.institution, margin, this.y);
+          this.text(edu.institution, margin, this.y);
           this.y += 6;
         });
       });
@@ -801,7 +846,7 @@ class PDFRenderer {
     if (resume.skills.length > 0) {
       addSection('skills', () => {
         const skillsText = resume.skills.join('  |  ');
-        this.doc.text(skillsText, centerX, this.y, { align: 'center', maxWidth: contentWidth });
+        this.text(skillsText, centerX, this.y, { align: 'center', maxWidth: contentWidth });
         this.y += 5;
       });
     }
@@ -826,33 +871,33 @@ class PDFRenderer {
 
     // Name in hero
     this.doc.setTextColor(255, 255, 255);
-    this.doc.setFont('helvetica', 'bold');
+    this.setFont('bold');
     this.doc.setFontSize(this.config.typography.nameSize);
     const name = (resume.contact.fullName || 'Your Name').toUpperCase();
-    const nameLines = this.doc.splitTextToSize(name, this.pageWidth - 2 * margin - 8);
+    const nameLines = this.splitText(name, this.pageWidth - 2 * margin - 8);
     let nameY = 28;
     nameLines.slice(0, 2).forEach((line: string) => {
-      this.doc.text(line, margin + 8, nameY);
+      this.text(line, margin + 8, nameY);
       nameY += 12;
     });
 
     // Title in accent color
     if (resume.title) {
       this.setColor(this.theme.accent);
-      this.doc.setFont('helvetica', 'normal');
+      this.setFont('normal');
       this.doc.setFontSize(11);
-      this.doc.text(resume.title.toUpperCase(), margin + 8, 48);
+      this.text(resume.title.toUpperCase(), margin + 8, 48);
     }
 
     this.y = heroHeight + 8;
 
     // Contact bar
-    this.doc.setFont('helvetica', 'normal');
+    this.setFont('normal');
     this.doc.setFontSize(9);
     this.setColor(this.theme.muted);
     const contactBar = [resume.contact.email, resume.contact.phone, resume.contact.location].filter(Boolean).join('   |   ');
     if (contactBar) {
-      this.doc.text(contactBar, this.pageWidth - margin, this.y, { align: 'right' });
+      this.text(contactBar, this.pageWidth - margin, this.y, { align: 'right' });
       this.y += 10;
     }
 
@@ -863,10 +908,10 @@ class PDFRenderer {
       const tagY = this.y;
 
       this.doc.setFontSize(8);
-      this.doc.setFont('helvetica', 'bold');
+      this.setFont('bold');
 
       resume.skills.slice(0, 10).forEach((skill) => {
-        const tagWidth = this.doc.getTextWidth(skill) + 8;
+        const tagWidth = this.getTextWidth(skill) + 8;
         if (tagX + tagWidth > this.pageWidth - margin) return;
 
         // Tag background
@@ -875,7 +920,7 @@ class PDFRenderer {
 
         // Tag text
         this.setColor(this.theme.text);
-        this.doc.text(skill, tagX + 4, tagY);
+        this.text(skill, tagX + 4, tagY);
         tagX += tagWidth + 5;
       });
       this.y += 15;
@@ -890,13 +935,13 @@ class PDFRenderer {
       this.setColor(this.theme.accent, 'fill');
       this.doc.circle(margin + 3, this.y - 2, 2, 'F');
 
-      this.doc.setFont('helvetica', 'bold');
+      this.setFont('bold');
       this.doc.setFontSize(12);
       this.setColor(this.theme.text);
-      this.doc.text(getSectionHeader(title, this.locale), margin + 9, this.y);
+      this.text(getSectionHeader(title, this.locale), margin + 9, this.y);
       this.y += 8;
 
-      this.doc.setFont('helvetica', 'normal');
+      this.setFont('normal');
       this.doc.setFontSize(this.config.typography.bodySize);
 
       content();
@@ -922,18 +967,18 @@ class PDFRenderer {
           this.doc.circle(margin + 3, this.y - 1, 1.5, 'F');
 
           // Position
-          this.doc.setFont('helvetica', 'bold');
+          this.setFont('bold');
           this.doc.setFontSize(11);
           this.setColor(this.theme.text);
-          this.doc.text(exp.position || 'Position', margin + 10, this.y);
+          this.text(exp.position || 'Position', margin + 10, this.y);
           this.y += 5;
 
           // Company + dates
-          this.doc.setFont('helvetica', 'normal');
+          this.setFont('normal');
           this.doc.setFontSize(9.5);
           this.setColor(this.theme.muted);
           const meta = `${exp.company} | ${formatDate(exp.startDate, this.locale)} - ${exp.current ? getPresentText(this.locale) : formatDate(exp.endDate, this.locale)}`;
-          this.doc.text(meta, margin + 10, this.y);
+          this.text(meta, margin + 10, this.y);
           this.y += 5;
 
           // Bullets
@@ -941,9 +986,9 @@ class PDFRenderer {
           this.setColor(this.theme.text);
           exp.bullets.filter(b => b?.trim()).forEach((bullet) => {
             this.checkPageBreak(8);
-            const bulletLines = this.doc.splitTextToSize(bullet, contentWidth - 15);
+            const bulletLines = this.splitText(bullet, contentWidth - 15);
             bulletLines.forEach((line: string) => {
-              this.doc.text(line, margin + 10, this.y);
+              this.text(line, margin + 10, this.y);
               this.y += 4.5;
             });
           });
@@ -956,16 +1001,16 @@ class PDFRenderer {
       addSection('education', () => {
         resume.education.forEach((edu) => {
           this.checkPageBreak(12);
-          this.doc.setFont('helvetica', 'bold');
+          this.setFont('bold');
           this.doc.setFontSize(11);
           this.setColor(this.theme.text);
-          this.doc.text(`${edu.degree}${edu.field ? ' in ' + edu.field : ''}`, margin, this.y);
+          this.text(`${edu.degree}${edu.field ? ' in ' + edu.field : ''}`, margin, this.y);
           this.y += 5;
 
-          this.doc.setFont('helvetica', 'normal');
+          this.setFont('normal');
           this.doc.setFontSize(10);
           this.setColor(this.theme.muted);
-          this.doc.text(`${edu.institution}${edu.graduationDate ? ' | ' + formatDate(edu.graduationDate, this.locale) : ''}`, margin, this.y);
+          this.text(`${edu.institution}${edu.graduationDate ? ' | ' + formatDate(edu.graduationDate, this.locale) : ''}`, margin, this.y);
           this.y += 8;
         });
       });
@@ -1018,6 +1063,7 @@ export async function generatePDF(
   const locale = resume.locale || 'en';
 
   const renderer = new PDFRenderer(template, theme, locale);
+  await renderer.prepareFonts(resume);
   renderer.render(resume, template);
   return renderer.toBlob();
 }

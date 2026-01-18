@@ -10,10 +10,14 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { handleAICreditsResponse } from '@/lib/ai-credits-client';
+import type { ExperienceItem } from '@/lib/resume-schema';
 
 interface SummaryEditorProps {
     data: { content?: string } | undefined;
     onChange: (data: { content: string }) => void;
+    targetRole?: string | null;
+    experience?: ExperienceItem[];
+    skills?: string[];
 }
 
 const exampleSummaries = [
@@ -22,7 +26,7 @@ const exampleSummaries = [
     "Detail-oriented financial analyst with strong expertise in financial modeling, forecasting, and risk assessment. Consistently delivered insights that improved profitability by 15% across multiple business units.",
 ];
 
-export function SummaryEditor({ data, onChange }: SummaryEditorProps) {
+export function SummaryEditor({ data, onChange, targetRole, experience, skills }: SummaryEditorProps) {
     const [isGenerating, setIsGenerating] = useState(false);
     const content = data?.content || '';
     const wordCount = content.trim().split(/\s+/).filter(Boolean).length;
@@ -30,10 +34,31 @@ export function SummaryEditor({ data, onChange }: SummaryEditorProps) {
     const handleGenerate = async () => {
         setIsGenerating(true);
         try {
+            const normalizedSkills = Array.from(
+                new Set((skills ?? []).map((skill) => skill.trim()).filter(Boolean))
+            ).slice(0, 20);
+            const normalizedExperience = (experience ?? [])
+                .filter((item) => item && (item.position || item.company))
+                .slice(0, 5)
+                .map((item) => ({
+                    position: item.position,
+                    company: item.company,
+                    description: item.description,
+                    bullets: (item.bullets || [])
+                        .map((bullet) => bullet?.content)
+                        .filter(Boolean)
+                        .slice(0, 2),
+                    skills: (item.skills || []).filter(Boolean).slice(0, 5),
+                }));
             const response = await fetch('/api/ai/generate-summary', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ currentContent: content }),
+                body: JSON.stringify({
+                    currentContent: content,
+                    targetRole: targetRole || undefined,
+                    experience: normalizedExperience,
+                    skills: normalizedSkills,
+                }),
             });
 
             if (await handleAICreditsResponse(response)) {

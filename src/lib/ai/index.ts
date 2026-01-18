@@ -83,10 +83,12 @@ Generate 3-5 bullet point suggestions for this experience. Format as a JSON arra
 
 RULES:
 - Keep it 2-4 sentences
-- Highlight years of experience, key skills, and notable achievements
+- Highlight the candidate's value proposition (impact + specialization)
+- Mention years of experience, key skills, and notable achievements
 - Avoid first-person pronouns (I, me, my)
 - Be truthful - NEVER invent qualifications
-- Tailor to the target role if provided
+- If a target role is provided, lead with it in the first sentence
+- Tailor keywords and strengths to the target role
 - Label your suggestions clearly as AI-generated
 
 User's context:
@@ -423,10 +425,31 @@ export async function generateSummary(
     targetRole?: string,
     tracking?: AITracking
 ): Promise<string> {
+    const recentExperience = experience
+        .filter((item) => item && (item.position || item.company))
+        .slice(0, 3)
+        .map((item) => {
+            const position = item.position || '';
+            const company = item.company || '';
+            const header = [position, company].filter(Boolean).join(' at ') || 'Role';
+            const bullets = Array.isArray(item.bullets)
+                ? item.bullets.map((bullet: any) => typeof bullet === 'string' ? bullet : bullet?.content)
+                : [];
+            const highlights = bullets.filter(Boolean).slice(0, 2).join('; ');
+            const description = typeof item.description === 'string' ? item.description : '';
+            const summary = highlights || description;
+            const trimmed = summary.length > 160 ? `${summary.slice(0, 157)}...` : summary;
+            return trimmed ? `${header}: ${trimmed}` : header;
+        })
+        .filter(Boolean);
+    const normalizedSkills = Array.from(
+        new Set(skills.map((skill) => skill.trim()).filter(Boolean))
+    ).slice(0, 12);
     const context = `
-Years of experience: ${experience.length > 0 ? 'Yes' : 'Entry level'}
-Recent roles: ${experience.slice(0, 3).map(e => e.position).join(', ')}
-Key skills: ${skills.slice(0, 10).join(', ')}
+Experience entries: ${experience.length}
+Recent roles:
+${recentExperience.length ? `- ${recentExperience.join('\n- ')}` : 'Not provided'}
+Key skills: ${normalizedSkills.length ? normalizedSkills.join(', ') : 'Not provided'}
 Target role: ${targetRole || 'Not specified'}
 `;
 
