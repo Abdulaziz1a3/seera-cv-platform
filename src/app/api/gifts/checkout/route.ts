@@ -73,6 +73,7 @@ export async function POST(request: Request) {
 
         return NextResponse.json({ url: bill.link });
     } catch (error) {
+        const message = error instanceof Error ? error.message : 'Failed to create gift checkout session';
         logger.error('Gift checkout error', { error: error as Error });
         if (error instanceof z.ZodError) {
             return NextResponse.json(
@@ -81,13 +82,10 @@ export async function POST(request: Request) {
             );
         }
 
-        if (error instanceof Error && error.message === 'Phone number is required for payments') {
-            return NextResponse.json({ error: error.message }, { status: 400 });
+        if (message === 'Phone number is required for payments') {
+            return NextResponse.json({ error: message }, { status: 400 });
         }
 
-        return NextResponse.json(
-            { error: 'Failed to create gift checkout session' },
-            { status: 500 }
-        );
+        return NextResponse.json({ error: message }, { status: 500 });
     }
 }

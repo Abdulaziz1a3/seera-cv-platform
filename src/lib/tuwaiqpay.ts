@@ -33,7 +33,12 @@ function getConfig() {
     if (!config.username || !config.password) {
         throw new Error('TuwaiqPay credentials are not configured');
     }
-    return config;
+    return {
+        ...config,
+        baseUrl: config.baseUrl.replace(/\/+$/, ''),
+        username: config.username.trim(),
+        userNameType: config.userNameType.trim(),
+    };
 }
 
 async function authenticate(): Promise<string> {
@@ -59,7 +64,9 @@ async function authenticate(): Promise<string> {
     });
 
     if (!response.ok) {
-        const payload = await response.json().catch(() => ({}));
+        const payload = await response.json().catch(async () => ({
+            message: await response.text().catch(() => ''),
+        }));
         logger.error('TuwaiqPay authentication failed', {
             status: response.status,
             payload,
@@ -151,7 +158,9 @@ export async function createTuwaiqPayBill(params: {
     });
 
     if (!response.ok) {
-        const payload = await response.json().catch(() => ({}));
+        const payload = await response.json().catch(async () => ({
+            message: await response.text().catch(() => ''),
+        }));
         logger.error('TuwaiqPay create bill failed', {
             status: response.status,
             payload,

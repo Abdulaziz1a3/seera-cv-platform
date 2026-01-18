@@ -48,6 +48,7 @@ export default function BillingGiftsPage() {
     const [giftCheckoutLoading, setGiftCheckoutLoading] = useState(false);
     const [giftsLoading, setGiftsLoading] = useState(false);
     const [gifts, setGifts] = useState<GiftListItem[]>([]);
+    const [upgradeLoading, setUpgradeLoading] = useState(false);
 
     useEffect(() => {
         let mounted = true;
@@ -113,6 +114,30 @@ export default function BillingGiftsPage() {
     const openCreditsModal = () => {
         if (typeof window === 'undefined') return;
         window.dispatchEvent(new CustomEvent('ai-credits-exceeded', { detail: creditsSummary }));
+    };
+
+    const handleUpgrade = async (plan: 'pro' | 'enterprise', interval: 'monthly' | 'yearly') => {
+        setUpgradeLoading(true);
+        try {
+            const res = await fetch('/api/billing/checkout', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ plan, interval }),
+            });
+            const payload = await res.json().catch(() => ({}));
+            if (!res.ok) {
+                throw new Error(payload?.error || 'Failed to start checkout');
+            }
+            if (payload?.url) {
+                window.location.href = payload.url;
+                return;
+            }
+            throw new Error(locale === 'ar' ? 'رابط الدفع غير متوفر' : 'Checkout URL missing');
+        } catch (error: any) {
+            toast.error(error?.message || (locale === 'ar' ? 'تعذر بدء الدفع' : 'Failed to start payment'));
+        } finally {
+            setUpgradeLoading(false);
+        }
     };
 
     const handleGiftCheckout = async () => {
@@ -208,7 +233,15 @@ export default function BillingGiftsPage() {
                                 {locale === 'ar' ? 'سير ذاتية غير محدودة، 100 توليد AI شهرياً' : 'Unlimited resumes, 100 AI generations/month'}
                             </p>
                         </div>
-                        <Button size="lg" className="shadow-lg">
+                        <Button
+                            size="lg"
+                            className="shadow-lg"
+                            onClick={() => handleUpgrade('pro', 'monthly')}
+                            disabled={upgradeLoading}
+                        >
+                            {upgradeLoading ? (
+                                <Loader2 className="h-4 w-4 me-2 animate-spin" />
+                            ) : null}
                             {t.settings.billing.upgrade}
                         </Button>
                     </div>
@@ -398,10 +431,16 @@ export default function BillingGiftsPage() {
                 <CardContent>
                     <div className="text-center py-8 border rounded-lg border-dashed">
                         <CreditCard className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
-                        <p className="text-sm text-muted-foreground mb-4">
-                            {t.settings.billing.noPaymentMethod}
+                        <p className="text-sm text-muted-foreground mb-1">
+                            {locale === 'ar'
+                                ? 'يتم الدفع عبر روابط TuwaiqPay الآمنة ولا توجد بطاقات محفوظة.'
+                                : 'Payments use secure TuwaiqPay links; no cards are stored.'}
                         </p>
-                        <Button variant="outline">{t.settings.billing.addPaymentMethod}</Button>
+                        <p className="text-xs text-muted-foreground">
+                            {locale === 'ar'
+                                ? 'استخدم زر الترقية للمتابعة.'
+                                : 'Use the upgrade button to continue.'}
+                        </p>
                     </div>
                 </CardContent>
             </Card>
