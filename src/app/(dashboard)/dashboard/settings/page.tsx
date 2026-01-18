@@ -35,6 +35,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useLocale } from '@/components/providers/locale-provider';
 
+export const dynamic = 'force-dynamic';
+
 type GiftListItem = {
     id: string;
     token: string;

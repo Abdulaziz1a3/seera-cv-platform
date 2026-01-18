@@ -5,6 +5,8 @@ import { slugSchema } from '@/lib/seera-link/schemas';
 import { validateSlug, generateSlugSuggestions } from '@/lib/seera-link/utils';
 import { checkRateLimit, getRateLimitKey, getClientIP, rateLimitConfigs } from '@/lib/seera-link/rate-limit';
 
+export const dynamic = 'force-dynamic';
+
 // GET /api/seera-link/check-slug?slug=xxx&profileId=xxx
 export async function GET(request: Request) {
   try {
