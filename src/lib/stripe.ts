@@ -647,7 +647,10 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
 
     if (session.mode === 'payment' && session.metadata?.type === 'gift_subscription') {
         const buyerId = session.metadata?.buyerId;
-        const giftPlanId = session.metadata?.planId as PlanId | undefined;
+        const planValue = session.metadata?.planId;
+        const giftPlanId = planValue === 'pro' || planValue === 'enterprise'
+            ? planValue
+            : undefined;
         const interval = session.metadata?.interval as 'monthly' | 'yearly' | undefined;
         const recipientEmailRaw = session.metadata?.recipientEmail || '';
         const message = session.metadata?.message || '';
