@@ -246,6 +246,7 @@ function buildFallbackPaths(
                     description: locale === 'ar'
                         ? 'تعميق الخبرة وتسليم نتائج أعلى تأثيراً.'
                         : 'Increase scope, impact, and ownership of outcomes.',
+                    salaryRange: getSalaryRange(labelRole, 'senior'),
                 },
                 {
                     title: locale === 'ar' ? `قائد ${labelRole}` : `Lead ${labelRole}`,
@@ -254,6 +255,7 @@ function buildFallbackPaths(
                     description: locale === 'ar'
                         ? 'قيادة مبادرات أكبر وتوجيه الفريق فنياً.'
                         : 'Lead larger initiatives and mentor peers.',
+                    salaryRange: getSalaryRange(labelRole, 'lead'),
                 },
             ],
             salaryProgression: [],
@@ -273,6 +275,7 @@ function buildFallbackPaths(
                     description: locale === 'ar'
                         ? 'إدارة مهام الفريق وتنسيق أصحاب المصلحة.'
                         : 'Own team delivery and stakeholder alignment.',
+                    salaryRange: getSalaryRange(labelRole, 'lead'),
                 },
                 {
                     title: locale === 'ar' ? `مدير ${labelRole}` : `Manager (${labelRole})`,
@@ -281,6 +284,7 @@ function buildFallbackPaths(
                     description: locale === 'ar'
                         ? 'قيادة الفريق وتحقيق أهداف الأداء.'
                         : 'Drive strategy, performance, and team growth.',
+                    salaryRange: getSalaryRange(labelRole, 'director'),
                 },
             ],
             salaryProgression: [],
