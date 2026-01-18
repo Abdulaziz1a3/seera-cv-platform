@@ -76,7 +76,6 @@ export default function TermsPage() {
                             <li>You authorize us to charge your payment method on a recurring basis</li>
                             <li>Subscriptions auto-renew unless cancelled before the renewal date</li>
                             <li>Prices may change with 30 days notice</li>
-                            <li>Refunds are available within 7 days of initial purchase</li>
                         </ul>
 
                         <h2>7. Intellectual Property</h2>

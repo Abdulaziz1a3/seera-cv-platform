@@ -181,6 +181,7 @@ export const DEFAULT_CONTACT: ContactInfo = {
   location: '',
   linkedin: '',
   website: '',
+  photo: '',
 };
 
 // ============================================

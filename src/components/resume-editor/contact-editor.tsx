@@ -1,8 +1,11 @@
 'use client';
 
+import { useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { toast } from 'sonner';
 import { contactSchema, type Contact } from '@/lib/resume-schema';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,6 +17,7 @@ interface ContactEditorProps {
 }
 
 export function ContactEditor({ data, onChange }: ContactEditorProps) {
+    const fileInputRef = useRef<HTMLInputElement | null>(null);
     const {
         register,
         formState: { errors },
@@ -28,6 +32,62 @@ export function ContactEditor({ data, onChange }: ContactEditorProps) {
 
     const handleFieldChange = (field: keyof Contact, value: string) => {
         onChange({ ...data, [field]: value });
+    };
+
+    const handlePickPhoto = () => {
+        fileInputRef.current?.click();
+    };
+
+    const handlePhotoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        const maxBytes = 2 * 1024 * 1024;
+        if (!file.type.startsWith('image/')) {
+            toast.error('Please choose an image file.');
+            event.target.value = '';
+            return;
+        }
+        if (file.size > maxBytes) {
+            toast.error('Photo must be under 2MB.');
+            event.target.value = '';
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = () => {
+            if (typeof reader.result === 'string') {
+                onChange({ ...data, photo: reader.result });
+            }
+            event.target.value = '';
+        };
+        reader.onerror = () => {
+            toast.error('Failed to read image.');
+            event.target.value = '';
+        };
+        reader.readAsDataURL(file);
+    };
+
+    const handleRemovePhoto = () => {
+        onChange({ ...data, photo: '' });
+    };
+
+    const handleUseProfilePhoto = async () => {
+        try {
+            const res = await fetch('/api/profile');
+            if (!res.ok) {
+                throw new Error('Failed to load profile photo.');
+            }
+            const payload = await res.json();
+            if (!payload?.image) {
+                toast.error('No profile photo found.');
+                return;
+            }
+            onChange({ ...data, photo: payload.image });
+        } catch (error) {
+            const message = error instanceof Error ? error.message : 'Failed to load profile photo.';
+            toast.error(message);
+        }
     };
 
     return (
@@ -45,6 +105,45 @@ export function ContactEditor({ data, onChange }: ContactEditorProps) {
                     <CardDescription>Your name and primary contact details</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                        <Label>Photo (optional)</Label>
+                        <div className="flex items-center gap-4">
+                            <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center overflow-hidden">
+                                {data.photo ? (
+                                    <img
+                                        src={data.photo}
+                                        alt="Profile"
+                                        className="h-full w-full object-cover"
+                                    />
+                                ) : (
+                                    <User className="h-6 w-6 text-muted-foreground" />
+                                )}
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                                <Button type="button" variant="outline" size="sm" onClick={handlePickPhoto}>
+                                    Upload Photo
+                                </Button>
+                                <Button type="button" variant="outline" size="sm" onClick={handleUseProfilePhoto}>
+                                    Use Profile Photo
+                                </Button>
+                                {data.photo && (
+                                    <Button type="button" variant="ghost" size="sm" onClick={handleRemovePhoto}>
+                                        Remove
+                                    </Button>
+                                )}
+                            </div>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                            JPG, PNG, GIF. Max 2MB. Shown only on templates that support photos.
+                        </p>
+                        <input
+                            ref={fileInputRef}
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={handlePhotoChange}
+                        />
+                    </div>
                     <div className="grid gap-4 sm:grid-cols-2">
                         <div className="space-y-2">
                             <Label htmlFor="fullName" required>Full Name</Label>

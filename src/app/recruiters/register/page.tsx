@@ -38,6 +38,7 @@ export default function RecruiterRegisterPage() {
     const [step, setStep] = useState(1);
     const [showPassword, setShowPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
+    const isComingSoon = true;
 
     // Form state
     const [formData, setFormData] = useState({
@@ -60,6 +61,10 @@ export default function RecruiterRegisterPage() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (isComingSoon) {
+            toast.info('Recruiter sign up is coming soon.');
+            return;
+        }
 
         if (step === 1) {
             if (!isCompanyEmail(formData.email)) {
@@ -139,9 +144,14 @@ export default function RecruiterRegisterPage() {
                             <span className="text-xl font-bold">Seera AI for Recruiters</span>
                         </Link>
 
-                        <h1 className="text-3xl font-bold mb-2">Create Your Account</h1>
+                        <div className="flex items-center gap-3 mb-2">
+                            <h1 className="text-3xl font-bold">Create Your Account</h1>
+                            {isComingSoon && <Badge variant="secondary">Coming soon</Badge>}
+                        </div>
                         <p className="text-muted-foreground">
-                            Join 500+ companies hiring top Saudi talent.
+                            {isComingSoon
+                                ? 'Recruiter access is not available yet.'
+                                : 'Join 500+ companies hiring top Saudi talent.'}
                         </p>
                     </div>
 
@@ -177,6 +187,7 @@ export default function RecruiterRegisterPage() {
                                             value={formData.fullName}
                                             onChange={(e) => updateField('fullName', e.target.value)}
                                             required
+                                            disabled={isComingSoon || isLoading}
                                         />
                                     </div>
                                 </div>
@@ -192,6 +203,7 @@ export default function RecruiterRegisterPage() {
                                             value={formData.email}
                                             onChange={(e) => updateField('email', e.target.value)}
                                             required
+                                            disabled={isComingSoon || isLoading}
                                         />
                                     </div>
                                 </div>
@@ -207,6 +219,7 @@ export default function RecruiterRegisterPage() {
                                             value={formData.phone}
                                             onChange={(e) => updateField('phone', e.target.value)}
                                             required
+                                            disabled={isComingSoon || isLoading}
                                         />
                                     </div>
                                 </div>
@@ -223,11 +236,13 @@ export default function RecruiterRegisterPage() {
                                             onChange={(e) => updateField('password', e.target.value)}
                                             required
                                             minLength={8}
+                                            disabled={isComingSoon || isLoading}
                                         />
                                         <button
                                             type="button"
                                             onClick={() => setShowPassword(!showPassword)}
                                             className="absolute end-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                                            disabled={isComingSoon || isLoading}
                                         >
                                             {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                                         </button>
@@ -248,6 +263,7 @@ export default function RecruiterRegisterPage() {
                                             value={formData.companyName}
                                             onChange={(e) => updateField('companyName', e.target.value)}
                                             required
+                                            disabled={isComingSoon || isLoading}
                                         />
                                     </div>
                                 </div>
@@ -262,13 +278,18 @@ export default function RecruiterRegisterPage() {
                                             className="ps-10 h-12"
                                             value={formData.companyWebsite}
                                             onChange={(e) => updateField('companyWebsite', e.target.value)}
+                                            disabled={isComingSoon || isLoading}
                                         />
                                     </div>
                                 </div>
 
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium">Industry</label>
-                                    <Select value={formData.industry} onValueChange={(v) => updateField('industry', v)}>
+                                    <Select
+                                        value={formData.industry}
+                                        onValueChange={(v) => updateField('industry', v)}
+                                        disabled={isComingSoon || isLoading}
+                                    >
                                         <SelectTrigger className="h-12">
                                             <SelectValue placeholder="Select industry" />
                                         </SelectTrigger>
@@ -282,7 +303,11 @@ export default function RecruiterRegisterPage() {
 
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium">Company Size</label>
-                                    <Select value={formData.companySize} onValueChange={(v) => updateField('companySize', v)}>
+                                    <Select
+                                        value={formData.companySize}
+                                        onValueChange={(v) => updateField('companySize', v)}
+                                        disabled={isComingSoon || isLoading}
+                                    >
                                         <SelectTrigger className="h-12">
                                             <SelectValue placeholder="Select company size" />
                                         </SelectTrigger>
@@ -304,6 +329,7 @@ export default function RecruiterRegisterPage() {
                                             value={formData.jobTitle}
                                             onChange={(e) => updateField('jobTitle', e.target.value)}
                                             required
+                                            disabled={isComingSoon || isLoading}
                                         />
                                     </div>
                                 </div>
@@ -317,6 +343,7 @@ export default function RecruiterRegisterPage() {
                                     variant="outline"
                                     className="flex-1 h-12"
                                     onClick={() => setStep(1)}
+                                    disabled={isComingSoon || isLoading}
                                 >
                                     Back
                                 </Button>
@@ -324,9 +351,15 @@ export default function RecruiterRegisterPage() {
                             <Button
                                 type="submit"
                                 className="flex-1 h-12 bg-gradient-to-r from-blue-600 to-purple-600"
-                                disabled={isLoading}
+                                disabled={isComingSoon || isLoading}
                             >
-                                {isLoading ? 'Creating account...' : step === 1 ? 'Continue' : 'Create Account'}
+                                {isComingSoon
+                                    ? 'Coming soon'
+                                    : isLoading
+                                        ? 'Creating account...'
+                                        : step === 1
+                                            ? 'Continue'
+                                            : 'Create Account'}
                                 <ArrowRight className="h-4 w-4 ms-2" />
                             </Button>
                         </div>
@@ -334,9 +367,7 @@ export default function RecruiterRegisterPage() {
 
                     <p className="mt-6 text-center text-sm text-muted-foreground">
                         Already have an account?{' '}
-                        <Link href="/recruiters/login" className="text-primary font-medium hover:underline">
-                            Sign in
-                        </Link>
+                        <span className="text-muted-foreground">Recruiter sign in is coming soon.</span>
                     </p>
 
                     <div className="mt-8 pt-8 border-t">

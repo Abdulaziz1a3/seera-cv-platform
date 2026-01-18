@@ -93,8 +93,19 @@ export async function POST(request: Request) {
             }
         }
 
+        const user = await prisma.user.findUnique({
+            where: { id: session.user.id },
+            select: { image: true },
+        });
+
         // Create empty resume structure
         const emptyResume = createEmptyResume(data.title);
+        if (user?.image) {
+            emptyResume.contact = {
+                ...emptyResume.contact,
+                photo: user.image,
+            };
+        }
 
         const resume = await prisma.$transaction(async (tx) => {
             const created = await tx.resume.create({

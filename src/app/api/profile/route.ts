@@ -8,6 +8,7 @@ import { isValidPhone } from '@/lib/utils';
 const profileSchema = z.object({
     name: z.string().min(1).max(120).optional(),
     phone: z.string().optional(),
+    image: z.union([z.string(), z.null()]).optional(),
 });
 
 export async function GET() {
@@ -29,6 +30,7 @@ export async function GET() {
         name: user.name || '',
         email: user.email,
         phone: user.profile?.phone || '',
+        image: user.image || '',
     });
 }
 
@@ -41,9 +43,26 @@ export async function PUT(request: Request) {
     try {
         const body = await request.json();
         const data = profileSchema.parse(body);
-        const updates: { name?: string } = {};
+        const updates: { name?: string; image?: string | null } = {};
         if (data.name?.trim()) {
             updates.name = data.name.trim();
+        }
+
+        if (data.image !== undefined) {
+            const imageValue = data.image;
+            if (!imageValue) {
+                updates.image = null;
+            } else if (!imageValue.startsWith('data:image/')) {
+                return NextResponse.json({ error: 'Invalid image format' }, { status: 400 });
+            } else {
+                const base64 = imageValue.split(',')[1] || '';
+                const byteLength = Buffer.byteLength(base64, 'base64');
+                const maxBytes = 2 * 1024 * 1024;
+                if (byteLength > maxBytes) {
+                    return NextResponse.json({ error: 'Image exceeds 2MB limit' }, { status: 400 });
+                }
+                updates.image = imageValue;
+            }
         }
 
         let normalizedPhone: string | null | undefined = undefined;
@@ -80,6 +99,7 @@ export async function PUT(request: Request) {
             name: user.name || '',
             email: user.email,
             phone: user.profile?.phone || '',
+            image: user.image || '',
         });
     } catch (error) {
         if (error instanceof z.ZodError) {

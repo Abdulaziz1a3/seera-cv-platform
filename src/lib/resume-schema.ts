@@ -7,6 +7,7 @@ import { z } from 'zod';
 export const contactSchema = z.object({
     fullName: z.string().min(1, 'Name is required'),
     email: z.string().email('Invalid email address'),
+    photo: z.string().optional().or(z.literal('')),
     phone: z.string().optional(),
     location: z.string().optional(),
     website: z.string().url().optional().or(z.literal('')),
@@ -344,6 +345,7 @@ export function createEmptyResume(title: string = 'Untitled Resume'): Resume {
         contact: {
             fullName: '',
             email: '',
+            photo: '',
         },
         sectionOrder: [
             'contact',

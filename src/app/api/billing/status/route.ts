@@ -23,7 +23,7 @@ export async function GET() {
         && (!subscription?.currentPeriodEnd || subscription.currentPeriodEnd >= new Date());
 
     return NextResponse.json({
-        plan: subscription?.plan || 'PRO',
+        plan: subscription?.plan || 'FREE',
         status,
         isActive,
         currentPeriodEnd: subscription?.currentPeriodEnd,

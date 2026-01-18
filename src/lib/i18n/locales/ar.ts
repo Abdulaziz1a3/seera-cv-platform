@@ -679,9 +679,8 @@ export const ar = {
             resumes: 'السير الذاتية',
             aiGenerations: 'توليدات AI',
             paymentMethod: 'طريقة الدفع',
-            paymentMethodDesc: 'إدارة طرق الدفع',
+            paymentMethodDesc: 'يتم الدفع عبر TuwaiqPay ولا يتم حفظ البطاقات.',
             noPaymentMethod: 'لا توجد طريقة دفع مسجلة',
-            addPaymentMethod: 'إضافة طريقة دفع',
             billingHistory: 'سجل الفواتير',
             noBillingHistory: 'لا يوجد سجل فواتير',
             gifts: {

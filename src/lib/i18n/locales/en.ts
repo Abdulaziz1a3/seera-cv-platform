@@ -679,9 +679,8 @@ export const en = {
             resumes: 'Resumes',
             aiGenerations: 'AI Generations',
             paymentMethod: 'Payment Method',
-            paymentMethodDesc: 'Manage your payment methods',
+            paymentMethodDesc: 'Payments are handled via TuwaiqPay. No cards are stored.',
             noPaymentMethod: 'No payment method on file',
-            addPaymentMethod: 'Add Payment Method',
             billingHistory: 'Billing History',
             noBillingHistory: 'No billing history available',
             gifts: {

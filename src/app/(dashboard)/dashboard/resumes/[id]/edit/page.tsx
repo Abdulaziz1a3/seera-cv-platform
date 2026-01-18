@@ -93,6 +93,16 @@ export default function ResumeEditorPage() {
     const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
     const resumeRef = useRef<ResumeRecord | null>(null);
 
+    const defaultContact = {
+        fullName: '',
+        email: '',
+        phone: '',
+        location: '',
+        linkedin: '',
+        website: '',
+        photo: '',
+    };
+
     // Keep resumeRef in sync
     useEffect(() => {
         resumeRef.current = resume;
@@ -100,7 +110,7 @@ export default function ResumeEditorPage() {
 
     const normalizeResume = (data: ResumeRecord): ResumeRecord => ({
         ...data,
-        contact: data.contact || { fullName: '', email: '' },
+        contact: { ...defaultContact, ...data.contact },
         template: data.template || 'prestige-executive',
         theme: data.theme || 'obsidian',
         summary: data.summary || { content: '' },

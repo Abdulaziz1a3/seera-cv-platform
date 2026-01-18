@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { toast } from 'sonner';
 import {
@@ -17,6 +17,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
@@ -26,9 +27,11 @@ import { useLocale } from '@/components/providers/locale-provider';
 export default function SettingsPage() {
     const { data: session, update } = useSession();
     const { t, locale } = useLocale();
+    const fileInputRef = useRef<HTMLInputElement | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [name, setName] = useState(session?.user?.name || '');
     const [phone, setPhone] = useState('');
+    const [image, setImage] = useState(session?.user?.image || '');
     const [showPassword, setShowPassword] = useState(false);
     const [notifications, setNotifications] = useState({
         resumeTips: true,
@@ -47,6 +50,7 @@ export default function SettingsPage() {
                 if (!mounted) return;
                 setName(data?.name || '');
                 setPhone(data?.phone || '');
+                setImage(data?.image || '');
             } catch {
                 // Ignore
             }
@@ -63,13 +67,13 @@ export default function SettingsPage() {
             const res = await fetch('/api/profile', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name, phone }),
+                body: JSON.stringify({ name, phone, image }),
             });
             const data = await res.json().catch(() => ({}));
             if (!res.ok) {
                 throw new Error(data?.error || 'Failed to update profile');
             }
-            await update({ name });
+            await update({ name, image });
             toast.success(locale === 'ar' ? 'تم حفظ التغييرات' : 'Changes saved successfully');
         } catch (error) {
             const message = error instanceof Error ? error.message : 'Failed to update profile';
@@ -77,6 +81,44 @@ export default function SettingsPage() {
         } finally {
             setIsLoading(false);
         }
+    };
+
+    const handlePickPhoto = () => {
+        fileInputRef.current?.click();
+    };
+
+    const handlePhotoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        const maxBytes = 2 * 1024 * 1024;
+        if (!file.type.startsWith('image/')) {
+            toast.error(locale === 'ar' ? 'يرجى اختيار صورة فقط.' : 'Please choose an image file.');
+            event.target.value = '';
+            return;
+        }
+        if (file.size > maxBytes) {
+            toast.error(locale === 'ar' ? 'حجم الصورة يجب ألا يتجاوز 2MB.' : 'Photo must be under 2MB.');
+            event.target.value = '';
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = () => {
+            if (typeof reader.result === 'string') {
+                setImage(reader.result);
+            }
+            event.target.value = '';
+        };
+        reader.onerror = () => {
+            toast.error(locale === 'ar' ? 'تعذر قراءة الصورة.' : 'Failed to read image.');
+            event.target.value = '';
+        };
+        reader.readAsDataURL(file);
+    };
+
+    const handleRemovePhoto = () => {
+        setImage('');
     };
 
 
@@ -116,16 +158,33 @@ export default function SettingsPage() {
                         <CardContent className="space-y-6">
                             {/* Avatar */}
                             <div className="flex items-center gap-4">
-                                <div className="h-20 w-20 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center text-2xl font-bold text-white">
-                                    {session?.user?.name?.charAt(0) || 'U'}
-                                </div>
+                                <Avatar className="h-20 w-20">
+                                    <AvatarImage src={image || undefined} />
+                                    <AvatarFallback className="bg-gradient-to-br from-primary to-primary/60 text-2xl font-bold text-white">
+                                        {name?.charAt(0) || 'U'}
+                                    </AvatarFallback>
+                                </Avatar>
                                 <div>
-                                    <Button variant="outline" size="sm">
+                                    <div className="flex flex-wrap gap-2">
+                                        <Button variant="outline" size="sm" onClick={handlePickPhoto}>
                                         {locale === 'ar' ? 'تغيير الصورة' : 'Change Photo'}
                                     </Button>
+                                        {image && (
+                                            <Button variant="ghost" size="sm" onClick={handleRemovePhoto}>
+                                                {locale === 'ar' ? 'إزالة' : 'Remove'}
+                                            </Button>
+                                        )}
+                                    </div>
                                     <p className="text-xs text-muted-foreground mt-1">
                                         JPG, PNG, GIF. Max 2MB
                                     </p>
+                                    <input
+                                        ref={fileInputRef}
+                                        type="file"
+                                        accept="image/*"
+                                        className="hidden"
+                                        onChange={handlePhotoChange}
+                                    />
                                 </div>
                             </div>
 

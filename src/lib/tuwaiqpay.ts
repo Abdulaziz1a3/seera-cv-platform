@@ -28,16 +28,29 @@ const TOKEN_TTL_MS = 25 * 60 * 1000;
 
 let cachedToken: { value: string; expiresAt: number } | null = null;
 
+function extractErrorMessage(payload: unknown, fallback: string): string {
+    if (!payload || typeof payload !== 'object') return fallback;
+    const maybe = payload as { message?: string; error?: string; errors?: string[] };
+    if (typeof maybe.message === 'string' && maybe.message.trim()) return maybe.message.trim();
+    if (typeof maybe.error === 'string' && maybe.error.trim()) return maybe.error.trim();
+    if (Array.isArray(maybe.errors) && maybe.errors.length > 0) {
+        return maybe.errors.filter(Boolean).join(', ');
+    }
+    return fallback;
+}
+
 function getConfig() {
     const config = env.tuwaiqpay;
     if (!config.username || !config.password) {
         throw new Error('TuwaiqPay credentials are not configured');
     }
+    const rawType = (config.userNameType || 'MOBILE').trim().toUpperCase();
+    const userNameType = rawType === 'EMAIL' || rawType === 'MOBILE' ? rawType : 'MOBILE';
     return {
         ...config,
-        baseUrl: config.baseUrl.replace(/\/+$/, ''),
+        baseUrl: config.baseUrl.trim().replace(/\/+$/, ''),
         username: config.username.trim(),
-        userNameType: config.userNameType.trim(),
+        userNameType,
     };
 }
 
@@ -53,6 +66,7 @@ async function authenticate(): Promise<string> {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
+            Accept: 'application/json',
             'X-Language': config.language,
         },
         body: JSON.stringify({
@@ -67,11 +81,12 @@ async function authenticate(): Promise<string> {
         const payload = await response.json().catch(async () => ({
             message: await response.text().catch(() => ''),
         }));
+        const message = extractErrorMessage(payload, 'TuwaiqPay authentication failed');
         logger.error('TuwaiqPay authentication failed', {
             status: response.status,
             payload,
         });
-        throw new Error('TuwaiqPay authentication failed');
+        throw new Error(message);
     }
 
     const payload = (await response.json().catch(() => ({}))) as AuthResponse;
@@ -98,6 +113,7 @@ async function fetchWithAuth(url: string, init: RequestInit): Promise<Response> 
             ...(init.headers || {}),
             Authorization: `Bearer ${token}`,
             'Content-Type': 'application/json',
+            Accept: 'application/json',
             'X-Language': config.language,
         },
         cache: 'no-store',
@@ -115,6 +131,7 @@ async function fetchWithAuth(url: string, init: RequestInit): Promise<Response> 
             ...(init.headers || {}),
             Authorization: `Bearer ${refreshedToken}`,
             'Content-Type': 'application/json',
+            Accept: 'application/json',
             'X-Language': config.language,
         },
         cache: 'no-store',
@@ -161,11 +178,12 @@ export async function createTuwaiqPayBill(params: {
         const payload = await response.json().catch(async () => ({
             message: await response.text().catch(() => ''),
         }));
+        const message = extractErrorMessage(payload, 'Failed to create TuwaiqPay bill');
         logger.error('TuwaiqPay create bill failed', {
             status: response.status,
             payload,
         });
-        throw new Error('Failed to create TuwaiqPay bill');
+        throw new Error(message);
     }
 
     const payload = (await response.json().catch(() => ({}))) as CreateBillResponse;

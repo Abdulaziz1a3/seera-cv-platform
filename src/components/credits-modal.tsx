@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useLocale } from '@/components/providers/locale-provider';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -34,6 +35,7 @@ interface CreditsModalProps {
 
 export function CreditsModal({ isOpen, onClose, initialCredits }: CreditsModalProps) {
     const { locale } = useLocale();
+    const router = useRouter();
     const [summary, setSummary] = useState<CreditSummary | null>(initialCredits as CreditSummary | null);
     const [amountSar, setAmountSar] = useState<number>(initialCredits?.minRechargeSar ?? 5);
     const [loading, setLoading] = useState(false);
@@ -82,6 +84,16 @@ export function CreditsModal({ isOpen, onClose, initialCredits }: CreditsModalPr
 
         setLoading(true);
         try {
+            const profileRes = await fetch('/api/profile');
+            const profile = profileRes.ok ? await profileRes.json() : null;
+            if (!profile?.phone) {
+                toast.error(locale === 'ar'
+                    ? 'يرجى إضافة رقم الهاتف لإتمام الدفع.'
+                    : 'Please add your phone number to complete payments.');
+                router.push('/dashboard/settings');
+                return;
+            }
+
             const res = await fetch('/api/credits/checkout', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },

@@ -119,6 +119,7 @@ export function normalizeResumeForAI(resume: ResumeRecord): ResumeAIProfile {
         contact: {
             fullName: resume.contact?.fullName || '',
             email: resume.contact?.email || '',
+            photo: resume.contact?.photo || '',
             phone: resume.contact?.phone || '',
             location: resume.contact?.location || '',
             linkedin: resume.contact?.linkedin || '',
@@ -169,6 +170,7 @@ export function normalizeResumeForCareer(resume: ResumeRecord): ResumeCareerProf
         contact: {
             fullName: resume.contact?.fullName || '',
             email: resume.contact?.email || '',
+            photo: resume.contact?.photo || '',
             phone: resume.contact?.phone || '',
             location: resume.contact?.location || '',
             linkedin: resume.contact?.linkedin || '',
@@ -260,6 +262,7 @@ export function mapResumeRecordToResumeData(resume: ResumeRecord): ResumeData {
             location: resume.contact?.location || '',
             linkedin: resume.contact?.linkedin || '',
             website: resume.contact?.website || '',
+            photo: resume.contact?.photo || '',
         },
         summary: summaryText,
         experience: experienceItems,

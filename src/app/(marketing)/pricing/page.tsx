@@ -134,17 +134,28 @@ export default function PricingPage() {
                                         ))}
                                     </ul>
 
-                                    <Button
-                                        className={`w-full ${plan.popular ? 'shadow-lg' : ''}`}
-                                        variant={plan.popular ? 'default' : 'outline'}
-                                        size="lg"
-                                        asChild
-                                    >
-                                        <Link href={plan.href}>
-                                            {plan.cta}
-                                            <ArrowRight className="h-4 w-4 ms-2" />
-                                        </Link>
-                                    </Button>
+                                    {plan.href.startsWith('/recruiters') ? (
+                                        <Button
+                                            className={`w-full ${plan.popular ? 'shadow-lg' : ''}`}
+                                            variant={plan.popular ? 'default' : 'outline'}
+                                            size="lg"
+                                            disabled
+                                        >
+                                            {locale === 'ar' ? 'قريباً' : 'Coming soon'}
+                                        </Button>
+                                    ) : (
+                                        <Button
+                                            className={`w-full ${plan.popular ? 'shadow-lg' : ''}`}
+                                            variant={plan.popular ? 'default' : 'outline'}
+                                            size="lg"
+                                            asChild
+                                        >
+                                            <Link href={plan.href}>
+                                                {plan.cta}
+                                                <ArrowRight className="h-4 w-4 ms-2" />
+                                            </Link>
+                                        </Button>
+                                    )}
 
                                     {plan.monthlyPrice > 0 && (
                                         <p className="text-xs text-muted-foreground mt-4 text-center">

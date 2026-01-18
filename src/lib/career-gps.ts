@@ -380,6 +380,28 @@ function buildExperienceHighlights(experience: ResumeCareerProfile['experience']
     }).join('\n');
 }
 
+function buildExperienceSummary(experience: ResumeCareerProfile['experience']): string {
+    if (!experience || experience.length === 0) return 'Not provided';
+    return experience.slice(0, 4).map((exp) => {
+        const role = exp.position || 'Role';
+        const company = exp.company ? ` at ${exp.company}` : '';
+        const range = exp.startDate
+            ? `${exp.startDate} - ${exp.current ? 'Present' : exp.endDate || 'Present'}`
+            : 'Dates not provided';
+        const bullets = exp.bullets.slice(0, 2).join('; ');
+        return `- ${role}${company} (${range}): ${bullets || 'No bullet highlights listed'}`;
+    }).join('\n');
+}
+
+function buildEducationSummary(education: ResumeCareerProfile['education']): string {
+    if (!education || education.length === 0) return 'Not provided';
+    return education.slice(0, 3).map((edu) => {
+        const degree = edu.degree || 'Degree';
+        const field = edu.field ? ` in ${edu.field}` : '';
+        return `- ${degree}${field}`;
+    }).join('\n');
+}
+
 // Calculate years of experience from resume
 function calculateYearsExperience(resume: ResumeCareerProfile): number {
     if (!resume.experience || resume.experience.length === 0) return 0;
@@ -424,6 +446,8 @@ export async function analyzeCareer(
     const trimmedEducation = resume.education.slice(0, 2).map((e) => `${e.degree} in ${e.field}`.trim()).join('; ');
     const trimmedSummary = (resume.summary || 'Not provided').slice(0, 400);
     const experienceHighlights = buildExperienceHighlights(resume.experience);
+    const experienceSummary = buildExperienceSummary(resume.experience);
+    const educationSummary = buildEducationSummary(resume.education);
     const certificationNames = resume.certifications
         .map((cert) => cert.name || '')
         .filter((name) => name.trim().length > 0)
@@ -439,20 +463,28 @@ export async function analyzeCareer(
         ? `أنت مستشار مهني خبير في سوق العمل السعودي والخليجي. حلل السيرة الذاتية بدقة وقدم مسارات واقعية مبنية على البيانات فقط. لا تخترع خبرات أو مهارات غير موجودة.`
         : `You are an expert career advisor for the Saudi/GCC job market. Analyze the resume precisely and suggest realistic paths grounded in the provided details only. Do not invent skills or experience.`;
 
-    const userPrompt = `Analyze this professional's career and provide detailed guidance:
+    const userPrompt = `Analyze this professional's career and provide detailed, resume-specific guidance.
 
+Key Facts:
 Current Role: ${currentRole}
 Target Role: ${targetRole || 'Not provided'}
+Location: ${resume.contact?.location || 'Not provided'}
 Experience: ${yearsExp} years
-Skills: ${trimmedSkills.join(', ')}
-Education: ${trimmedEducation || 'Not provided'}
+Skills: ${trimmedSkills.length ? trimmedSkills.join(', ') : 'Not provided'}
+Education (summary): ${trimmedEducation || 'Not provided'}
 Summary: ${trimmedSummary}
-Experience Highlights:
+Experience Summary:
+${experienceSummary}
+Top Experience Highlights:
 ${experienceHighlights}
 Certifications: ${certificationNames || 'Not provided'}
 Projects: ${projectNames || 'Not provided'}
-
 ${targetIndustry ? `Target Industry: ${targetIndustry}` : ''}
+
+Rules:
+- Use only the resume data above for strengths and role fit.
+- List skill gaps only if they are NOT already listed in the resume skills.
+- Avoid generic advice; tie each path and action to the resume content.
 
 Provide a comprehensive career analysis in JSON format:
 {

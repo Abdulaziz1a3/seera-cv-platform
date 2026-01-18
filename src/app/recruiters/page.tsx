@@ -277,6 +277,22 @@ export default function RecruiterPortalPage() {
             </header>
 
             <main className="max-w-7xl mx-auto px-4 py-6">
+                <Card className="mb-6 border-amber-200 bg-amber-50/60 dark:border-amber-900/40 dark:bg-amber-950/30">
+                    <CardContent className="py-4 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                        <div>
+                            <div className="flex items-center gap-2">
+                                <Badge variant="secondary">Coming soon</Badge>
+                                <span className="font-semibold">Recruiter portal is not live yet</span>
+                            </div>
+                            <p className="text-sm text-muted-foreground">
+                                We're polishing the recruiter experience. Access will open soon.
+                            </p>
+                        </div>
+                        <Button variant="outline" disabled>
+                            Notify me
+                        </Button>
+                    </CardContent>
+                </Card>
                 <div className="relative">
                     <div className={!isEnterprise ? 'pointer-events-none opacity-50' : undefined}>
                 {/* Stats */}

@@ -193,6 +193,9 @@ export default function LiveInterviewPage() {
     const processingRef = useRef(false);
     const lastAnswerRef = useRef<{ text: string; at: number } | null>(null);
     const pendingAudioUrlRef = useRef<string | null>(null);
+    const lastInterviewerRef = useRef<{ normalized: string; at: number } | null>(null);
+    const lastSpeakAtRef = useRef(0);
+    const lastSpeakEndedAtRef = useRef(0);
 
     // Get phrases for current language
     const phrases = PHRASES[interviewLang];
@@ -232,6 +235,12 @@ export default function LiveInterviewPage() {
             .replace(/[^a-z0-9\u0600-\u06FF]+/g, '')
             .trim()
     ), []);
+
+    const rememberInterviewerMessage = useCallback((text: string) => {
+        const normalized = normalizeSpeechText(text);
+        if (!normalized) return;
+        lastInterviewerRef.current = { normalized, at: Date.now() };
+    }, [normalizeSpeechText]);
 
     const buildFallbackQuestions = useCallback(() => {
         const list = FALLBACK_QUESTIONS[interviewLang] || FALLBACK_QUESTIONS.en;
@@ -429,6 +438,7 @@ export default function LiveInterviewPage() {
             setIsSpeaking(true);
             isSpeakingRef.current = true;
             stopListening(true);
+            lastSpeakAtRef.current = Date.now();
             await unlockAudio();
             audioRef.current.src = pendingAudioUrlRef.current;
             await audioRef.current.play();
@@ -448,6 +458,7 @@ export default function LiveInterviewPage() {
             isSpeakingRef.current = false;
             setIsSpeaking(false);
             suppressListenRef.current = false;
+            lastSpeakEndedAtRef.current = Date.now();
             setTimeout(() => startListening(), 500);
         }
     }, [audioErrorShown, locale, startListening, stopListening, unlockAudio]);
@@ -466,6 +477,7 @@ export default function LiveInterviewPage() {
 
         setIsSpeaking(true);
         isSpeakingRef.current = true;
+        lastSpeakAtRef.current = Date.now();
         stopListening(true);
         pendingAnswerRef.current = '';
         setLiveTranscript('');
@@ -488,6 +500,8 @@ export default function LiveInterviewPage() {
             });
 
             if (await handleAICreditsResponse(response.clone())) {
+                setTtsFallbackActive(true);
+                await speakWithBrowser(text);
                 return;
             }
             if (!response.ok) {
@@ -551,6 +565,7 @@ export default function LiveInterviewPage() {
             isSpeakingRef.current = false;
             setIsSpeaking(false);
             suppressListenRef.current = false;
+            lastSpeakEndedAtRef.current = Date.now();
             if (shouldResume && !playbackFailed) {
                 setTimeout(() => startListening(), 500);
             }
@@ -569,13 +584,12 @@ export default function LiveInterviewPage() {
             return;
         }
 
-        const lastInterviewer = [...messagesRef.current].reverse().find((msg) => msg.role === 'interviewer');
-        if (lastInterviewer) {
-            const normalizedInterviewer = normalizeSpeechText(lastInterviewer.content);
-            if (
-                normalizedAnswer.length >= 8 &&
-                (normalizedInterviewer.includes(normalizedAnswer) || normalizedAnswer.includes(normalizedInterviewer))
-            ) {
+        const fallbackInterviewer = [...messagesRef.current].reverse().find((msg) => msg.role === 'interviewer');
+        const normalizedInterviewer = lastInterviewerRef.current?.normalized
+            || (fallbackInterviewer ? normalizeSpeechText(fallbackInterviewer.content) : '');
+        if (normalizedAnswer && normalizedInterviewer) {
+            const isEcho = normalizedInterviewer.includes(normalizedAnswer) || normalizedAnswer.includes(normalizedInterviewer);
+            if (isEcho && now - lastSpeakEndedAtRef.current < 4000) {
                 return;
             }
         }
@@ -722,6 +736,7 @@ export default function LiveInterviewPage() {
             }
 
             if (responseText) {
+                rememberInterviewerMessage(responseText);
                 setMessages((prev) => [
                     ...prev,
                     {
@@ -748,6 +763,7 @@ export default function LiveInterviewPage() {
         }
     }, [
         normalizeSpeechText,
+        rememberInterviewerMessage,
         targetRole,
         questions,
         currentQuestionIndex,
@@ -860,8 +876,6 @@ export default function LiveInterviewPage() {
 
     // Start interview
     const startInterview = async () => {
-        setPhase('connecting');
-        phaseRef.current = 'connecting';
         setIsLoading(true);
         isLoadingRef.current = true;
         setSummaryData(null);
@@ -876,7 +890,28 @@ export default function LiveInterviewPage() {
         stopListening();
 
         try {
-            await unlockAudio();
+            const audioOk = await unlockAudio();
+            if (!audioOk) {
+                setAudioBlocked(true);
+                setIsLoading(false);
+                isLoadingRef.current = false;
+                return;
+            }
+            setAudioBlocked(false);
+            let textInputFallback = useTextInput || !speechSupported;
+            if (!textInputFallback && !micReady) {
+                const micOk = await requestMicAccess();
+                if (!micOk) {
+                    textInputFallback = true;
+                    setUseTextInput(true);
+                    toast.info(interviewLang.startsWith('ar')
+                        ? 'تم تفعيل وضع الكتابة لعدم توفر الميكروفون.'
+                        : 'Microphone not available. Switching to text input.');
+                }
+            }
+
+            setPhase('connecting');
+            phaseRef.current = 'connecting';
             let generatedQuestions: Array<{ question: string; category: string }> = [];
 
             try {
@@ -937,11 +972,11 @@ export default function LiveInterviewPage() {
             phaseRef.current = 'greeting';
             setIsLoading(false);
             isLoadingRef.current = false;
-            autoListenRef.current = !useTextInput;
+            autoListenRef.current = !textInputFallback;
 
             const name = candidateName || (interviewLang === 'en' ? 'friend' : 'يا غالي');
             const greeting = phrases.greeting(name);
-
+            rememberInterviewerMessage(greeting);
             setMessages([{ id: '1', role: 'interviewer', content: greeting, timestamp: new Date() }]);
             await speak(greeting);
         } catch (error) {

@@ -12,9 +12,7 @@ import {
     Mic,
     Compass,
     Linkedin,
-    Briefcase,
     Share2,
-    BookOpen,
     LifeBuoy,
 } from 'lucide-react';
 
@@ -88,16 +86,6 @@ const helpFeatures: HelpFeature[] = [
         href: '/dashboard/linkedin',
     },
     {
-        key: 'applications',
-        icon: Briefcase,
-        label: { en: 'Application Tracker', ar: 'متابعة التقديمات' },
-        description: {
-            en: 'Track applications, add notes, and stay on top of deadlines.',
-            ar: 'تتبّع التقديمات وأضف الملاحظات وابقَ على المسار الصحيح.',
-        },
-        href: '/dashboard/applications',
-    },
-    {
         key: 'seera-link',
         icon: Share2,
         label: { en: 'Seera Link', ar: 'رابط سيرة' },
@@ -127,14 +115,6 @@ export default function DashboardHelpPage() {
                         ? 'دليل سريع لشرح أهم الميزات داخل لوحة التحكم مع روابط مباشرة لكل أداة.'
                         : 'A quick guide to the most important dashboard features with direct links to each tool.'}
                 </p>
-                <div className="flex flex-wrap gap-3">
-                    <Button asChild>
-                        <Link href="/help">
-                            <BookOpen className="h-4 w-4 me-2" />
-                            {isArabic ? 'الاطلاع على الدليل الكامل' : 'Open full guide'}
-                        </Link>
-                    </Button>
-                </div>
             </div>
 
             <Card>

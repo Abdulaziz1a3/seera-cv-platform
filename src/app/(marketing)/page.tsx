@@ -197,12 +197,13 @@ export default function Home() {
                                     <ArrowRight className="h-5 w-5" />
                                 </Button>
                             </Link>
-                            <Link href="/recruiters/register">
-                                <Button size="lg" variant="outline" className="h-14 px-8 text-lg gap-2 border-2">
-                                    <Building2 className="h-5 w-5" />
-                                    {locale === 'ar' ? 'أنا أوظف مواهب' : "I'm Hiring Talent"}
-                                </Button>
-                            </Link>
+                            <Button size="lg" variant="outline" className="h-14 px-8 text-lg gap-2 border-2" disabled>
+                                <Building2 className="h-5 w-5" />
+                                {locale === 'ar' ? 'أنا أوظف مواهب' : "I'm Hiring Talent"}
+                                <Badge variant="secondary" className="ms-2">
+                                    {locale === 'ar' ? 'قريباً' : 'Coming soon'}
+                                </Badge>
+                            </Button>
                         </div>
 
                         <p className="text-sm text-muted-foreground">
@@ -324,17 +325,15 @@ export default function Home() {
                                 </ul>
 
                                 <div className="flex flex-col sm:flex-row gap-4">
-                                    <Link href="/recruiters/register">
-                                        <Button size="lg" className="bg-white text-blue-600 hover:bg-white/90 gap-2">
-                                            {locale === 'ar' ? 'ابدأ التوظيف' : 'Start Hiring'}
-                                            <ArrowRight className="h-5 w-5" />
-                                        </Button>
-                                    </Link>
-                                    <Link href="/recruiters/login">
-                                        <Button size="lg" variant="outline" className="border-white/50 text-white hover:bg-white/10">
-                                            {locale === 'ar' ? 'شاهد الأسعار' : 'View Pricing'}
-                                        </Button>
-                                    </Link>
+                                    <Button size="lg" className="bg-white text-blue-600 hover:bg-white/90 gap-2" disabled>
+                                        {locale === 'ar' ? 'ابدأ التوظيف' : 'Start Hiring'}
+                                        <Badge variant="secondary" className="ms-2">
+                                            {locale === 'ar' ? 'قريباً' : 'Coming soon'}
+                                        </Badge>
+                                    </Button>
+                                    <Button size="lg" variant="outline" className="border-white/50 text-white hover:bg-white/10" disabled>
+                                        {locale === 'ar' ? 'شاهد الأسعار' : 'View Pricing'}
+                                    </Button>
                                 </div>
                             </div>
 
@@ -489,12 +488,13 @@ export default function Home() {
                                     <ArrowRight className="h-5 w-5" />
                                 </Button>
                             </Link>
-                            <Link href="/recruiters/register">
-                                <Button size="lg" variant="outline" className="h-14 px-8 text-lg gap-2">
-                                    <Building2 className="h-5 w-5" />
-                                    {locale === 'ar' ? 'للشركات' : 'For Recruiters'}
-                                </Button>
-                            </Link>
+                            <Button size="lg" variant="outline" className="h-14 px-8 text-lg gap-2" disabled>
+                                <Building2 className="h-5 w-5" />
+                                {locale === 'ar' ? 'للشركات' : 'For Recruiters'}
+                                <Badge variant="secondary" className="ms-2">
+                                    {locale === 'ar' ? 'قريباً' : 'Coming soon'}
+                                </Badge>
+                            </Button>
                         </div>
                         {/* Trust Elements */}
                         <SecurityBadges className="mt-8" />

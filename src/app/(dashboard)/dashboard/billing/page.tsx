@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { CreditCard, Copy, Gift, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -31,6 +32,7 @@ type GiftListItem = {
 
 export default function BillingGiftsPage() {
     const { t, locale } = useLocale();
+    const router = useRouter();
     const giftParamHandled = useRef(false);
 
     const [creditsSummary, setCreditsSummary] = useState<{
@@ -49,6 +51,12 @@ export default function BillingGiftsPage() {
     const [giftsLoading, setGiftsLoading] = useState(false);
     const [gifts, setGifts] = useState<GiftListItem[]>([]);
     const [upgradeLoading, setUpgradeLoading] = useState(false);
+    const [paymentProfileMissing, setPaymentProfileMissing] = useState(false);
+    const [billingStatus, setBillingStatus] = useState<{
+        plan: 'FREE' | 'PRO' | 'ENTERPRISE';
+        status: string;
+        isActive: boolean;
+    } | null>(null);
 
     useEffect(() => {
         let mounted = true;
@@ -62,6 +70,20 @@ export default function BillingGiftsPage() {
                     usedCredits: data.usedCredits ?? 0,
                     remainingCredits: data.remainingCredits ?? 0,
                 });
+            })
+            .catch(() => null);
+        return () => {
+            mounted = false;
+        };
+    }, []);
+
+    useEffect(() => {
+        let mounted = true;
+        fetch('/api/profile')
+            .then((res) => (res.ok ? res.json() : null))
+            .then((data) => {
+                if (!mounted || !data) return;
+                setPaymentProfileMissing(!data.phone);
             })
             .catch(() => null);
         return () => {
@@ -87,6 +109,24 @@ export default function BillingGiftsPage() {
 
     useEffect(() => {
         fetchGifts();
+    }, []);
+
+    useEffect(() => {
+        let mounted = true;
+        fetch('/api/billing/status')
+            .then((res) => (res.ok ? res.json() : null))
+            .then((data) => {
+                if (!mounted || !data) return;
+                setBillingStatus({
+                    plan: data.plan || 'FREE',
+                    status: data.status || 'UNPAID',
+                    isActive: Boolean(data.isActive),
+                });
+            })
+            .catch(() => null);
+        return () => {
+            mounted = false;
+        };
     }, []);
 
     useEffect(() => {
@@ -117,6 +157,13 @@ export default function BillingGiftsPage() {
     };
 
     const handleUpgrade = async (plan: 'pro' | 'enterprise', interval: 'monthly' | 'yearly') => {
+        if (paymentProfileMissing) {
+            toast.error(locale === 'ar'
+                ? 'يرجى إضافة رقم الهاتف لإتمام الدفع.'
+                : 'Please add your phone number to complete payments.');
+            router.push('/dashboard/settings');
+            return;
+        }
         setUpgradeLoading(true);
         try {
             const res = await fetch('/api/billing/checkout', {
@@ -141,6 +188,13 @@ export default function BillingGiftsPage() {
     };
 
     const handleGiftCheckout = async () => {
+        if (paymentProfileMissing) {
+            toast.error(locale === 'ar'
+                ? 'يرجى إضافة رقم الهاتف لإتمام الدفع.'
+                : 'Please add your phone number to complete payments.');
+            router.push('/dashboard/settings');
+            return;
+        }
         setGiftCheckoutLoading(true);
         try {
             const response = await fetch('/api/gifts/checkout', {
@@ -202,6 +256,37 @@ export default function BillingGiftsPage() {
         });
     };
 
+    const currentPlanLabel = (() => {
+        const plan = billingStatus?.plan || 'FREE';
+        if (plan === 'PRO') return locale === 'ar' ? 'خطة برو' : 'Pro Plan';
+        if (plan === 'ENTERPRISE') return locale === 'ar' ? 'خطة المؤسسات' : 'Enterprise Plan';
+        return locale === 'ar' ? 'الخطة المجانية' : 'Free Plan';
+    })();
+    const currentPlanDescription = (() => {
+        const plan = billingStatus?.plan || 'FREE';
+        if (plan === 'PRO') {
+            return locale === 'ar'
+                ? 'سير ذاتية غير محدودة، 100 توليد AI شهرياً'
+                : 'Unlimited resumes, 100 AI generations/month';
+        }
+        if (plan === 'ENTERPRISE') {
+            return locale === 'ar'
+                ? 'سير ذاتية غير محدودة، توليد AI غير محدود، دعم مميز'
+                : 'Unlimited resumes, unlimited AI, priority support';
+        }
+        return locale === 'ar'
+            ? 'سيرة ذاتية واحدة، 50 رصيد AI شهرياً'
+            : '1 resume, 50 AI credits/month';
+    })();
+    const upgradeTargetPlan = billingStatus?.plan === 'PRO' ? 'enterprise' : 'pro';
+    const upgradeLabel = (() => {
+        const plan = billingStatus?.plan || 'FREE';
+        if (plan === 'PRO') return locale === 'ar' ? 'الترقية إلى المؤسسات' : 'Upgrade to Enterprise';
+        if (plan === 'ENTERPRISE') return locale === 'ar' ? 'خطة المؤسسات مفعلة' : 'Enterprise Active';
+        return t.settings.billing.upgrade;
+    })();
+    const upgradeDisabled = billingStatus?.plan === 'ENTERPRISE' && billingStatus?.isActive;
+
     return (
         <div className="max-w-4xl mx-auto space-y-6">
             <div>
@@ -214,6 +299,18 @@ export default function BillingGiftsPage() {
             </div>
 
             <Card>
+                {paymentProfileMissing && (
+                    <div className="px-6 pt-6">
+                        <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+                            {locale === 'ar'
+                                ? 'أكمل ملف الدفع بإضافة رقم هاتف سعودي لإتمام عمليات الدفع.'
+                                : 'Complete your payment profile by adding a Saudi phone number.'}
+                            <Link href="/dashboard/settings" className="ms-2 underline">
+                                {locale === 'ar' ? 'تحديث الملف الشخصي' : 'Update profile'}
+                            </Link>
+                        </div>
+                    </div>
+                )}
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                         <CreditCard className="h-5 w-5 text-primary" />
@@ -225,24 +322,24 @@ export default function BillingGiftsPage() {
                         <div>
                             <div className="flex items-center gap-2">
                                 <h3 className="text-2xl font-bold">
-                                    {locale === 'ar' ? 'خطة برو' : 'Pro Plan'}
+                                    {currentPlanLabel}
                                 </h3>
                                 <Badge>{t.settings.billing.current}</Badge>
                             </div>
                             <p className="text-sm text-muted-foreground mt-1">
-                                {locale === 'ar' ? 'سير ذاتية غير محدودة، 100 توليد AI شهرياً' : 'Unlimited resumes, 100 AI generations/month'}
+                                {currentPlanDescription}
                             </p>
                         </div>
                         <Button
                             size="lg"
                             className="shadow-lg"
-                            onClick={() => handleUpgrade('pro', 'monthly')}
-                            disabled={upgradeLoading}
+                            onClick={() => handleUpgrade(upgradeTargetPlan as 'pro' | 'enterprise', 'monthly')}
+                            disabled={upgradeLoading || upgradeDisabled}
                         >
                             {upgradeLoading ? (
                                 <Loader2 className="h-4 w-4 me-2 animate-spin" />
                             ) : null}
-                            {t.settings.billing.upgrade}
+                            {upgradeLabel}
                         </Button>
                     </div>
 

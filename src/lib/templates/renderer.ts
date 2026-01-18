@@ -22,6 +22,7 @@ class PDFRenderer {
   private y: number = 0;
   private fontFamily: string = 'helvetica';
   private isArabicMode: boolean = false;
+  private rtlEnabled: boolean = false;
   private fontStyle: 'normal' | 'bold' | 'italic' | 'bolditalic' = 'normal';
 
   constructor(templateId: TemplateId, themeId: ThemeId, locale: 'en' | 'ar' = 'en') {
@@ -79,22 +80,36 @@ class PDFRenderer {
     const hasArabic = this.locale === 'ar' || hasArabicContent(resume);
     if (!hasArabic) {
       this.isArabicMode = false;
+      this.rtlEnabled = false;
       this.fontFamily = 'helvetica';
+      const docAny = this.doc as any;
+      if (typeof docAny.setR2L === 'function') {
+        docAny.setR2L(false);
+      }
       return;
     }
 
     try {
       await ensureArabicFonts(this.doc);
       this.isArabicMode = true;
+      const docAny = this.doc as any;
+      this.rtlEnabled = typeof docAny.setR2L === 'function';
+      if (this.rtlEnabled) {
+        docAny.setR2L(true);
+      }
       this.fontFamily = 'NotoSansArabic';
     } catch (error) {
       console.warn('Arabic font load failed, falling back to default font.', error);
       this.isArabicMode = false;
+      this.rtlEnabled = false;
       this.fontFamily = 'helvetica';
     }
   }
 
   private formatText(text: string): string {
+    if (!this.isArabicMode || this.rtlEnabled) {
+      return text;
+    }
     return formatTextForPDF(text, this.isArabicMode);
   }
 
@@ -134,6 +149,33 @@ class PDFRenderer {
     this.fontStyle = style;
     const safeStyle = this.getFontStyleForFamily(this.fontFamily);
     this.doc.setFont(this.fontFamily, safeStyle);
+  }
+
+  private getImageType(dataUrl: string): 'PNG' | 'JPEG' | 'WEBP' | null {
+    const match = /^data:image\/(png|jpe?g|webp);base64,/i.exec(dataUrl);
+    if (!match) return null;
+    const type = match[1].toLowerCase();
+    if (type === 'png') return 'PNG';
+    if (type === 'webp') return 'WEBP';
+    return 'JPEG';
+  }
+
+  private addCircularImage(dataUrl: string, x: number, y: number, size: number): boolean {
+    const imageType = this.getImageType(dataUrl);
+    if (!imageType) return false;
+
+    const docAny = this.doc as any;
+    if (typeof docAny.saveGraphicsState === 'function' && typeof docAny.clip === 'function') {
+      docAny.saveGraphicsState();
+      docAny.circle(x + size / 2, y + size / 2, size / 2, null);
+      docAny.clip();
+      docAny.addImage(dataUrl, imageType, x, y, size, size);
+      docAny.restoreGraphicsState();
+    } else {
+      this.doc.addImage(dataUrl, imageType, x, y, size, size);
+    }
+
+    return true;
   }
 
   private addWrappedText(text: string, x: number, maxWidth: number, lineHeight: number = 5): number {
@@ -502,13 +544,20 @@ class PDFRenderer {
 
     // Photo placeholder circle (semi-transparent effect using lighter color)
     const bgRgb = hexToRgb(this.theme.secondary);
-    // Create a lighter shade for the placeholder circle
-    this.doc.setFillColor(
-      Math.min(255, bgRgb.r + 40),
-      Math.min(255, bgRgb.g + 40),
-      Math.min(255, bgRgb.b + 40)
-    );
-    this.doc.circle(sidebarWidth / 2, sideY + 8, 12, 'F');
+    const photoSize = 24;
+    const photoX = sidebarWidth / 2 - photoSize / 2;
+    const photoY = sideY + 8 - photoSize / 2;
+    const photoData = resume.contact.photo?.trim();
+    const renderedPhoto = photoData ? this.addCircularImage(photoData, photoX, photoY, photoSize) : false;
+    if (!renderedPhoto) {
+      // Create a lighter shade for the placeholder circle
+      this.doc.setFillColor(
+        Math.min(255, bgRgb.r + 40),
+        Math.min(255, bgRgb.g + 40),
+        Math.min(255, bgRgb.b + 40)
+      );
+      this.doc.circle(sidebarWidth / 2, sideY + 8, 12, 'F');
+    }
     sideY += 30;
 
     // Contact in sidebar

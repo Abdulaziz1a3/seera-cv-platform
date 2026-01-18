@@ -29,9 +29,14 @@ export default function RecruiterLoginPage() {
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
+    const isComingSoon = true;
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (isComingSoon) {
+            toast.info('Recruiter portal is coming soon.');
+            return;
+        }
         if (!isCompanyEmail(email)) {
             toast.error('Please use your company email address.');
             return;
@@ -71,9 +76,14 @@ export default function RecruiterLoginPage() {
                             <span className="text-xl font-bold">Seera AI for Recruiters</span>
                         </Link>
 
-                        <h1 className="text-3xl font-bold mb-2">Welcome Back</h1>
+                        <div className="flex items-center gap-3 mb-2">
+                            <h1 className="text-3xl font-bold">Welcome Back</h1>
+                            {isComingSoon && <Badge variant="secondary">Coming soon</Badge>}
+                        </div>
                         <p className="text-muted-foreground">
-                            Sign in to access your recruiter dashboard
+                            {isComingSoon
+                                ? 'Recruiter access is not available yet.'
+                                : 'Sign in to access your recruiter dashboard'}
                         </p>
                     </div>
 
@@ -89,6 +99,7 @@ export default function RecruiterLoginPage() {
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
                                     required
+                                    disabled={isComingSoon || isLoading}
                                 />
                             </div>
                         </div>
@@ -104,11 +115,13 @@ export default function RecruiterLoginPage() {
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
                                     required
+                                    disabled={isComingSoon || isLoading}
                                 />
                                 <button
                                     type="button"
                                     onClick={() => setShowPassword(!showPassword)}
                                     className="absolute end-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                                    disabled={isComingSoon || isLoading}
                                 >
                                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                                 </button>
@@ -117,7 +130,7 @@ export default function RecruiterLoginPage() {
 
                         <div className="flex items-center justify-between text-sm">
                             <label className="flex items-center gap-2">
-                                <input type="checkbox" className="rounded" />
+                                <input type="checkbox" className="rounded" disabled={isComingSoon || isLoading} />
                                 <span>Remember me</span>
                             </label>
                             <Link href="/recruiters/forgot-password" className="text-primary hover:underline">
@@ -128,18 +141,16 @@ export default function RecruiterLoginPage() {
                         <Button
                             type="submit"
                             className="w-full h-12 bg-gradient-to-r from-blue-600 to-purple-600"
-                            disabled={isLoading}
+                            disabled={isComingSoon || isLoading}
                         >
-                            {isLoading ? 'Signing in...' : 'Sign In'}
+                            {isComingSoon ? 'Coming soon' : isLoading ? 'Signing in...' : 'Sign In'}
                             <ArrowRight className="h-4 w-4 ms-2" />
                         </Button>
                     </form>
 
                     <p className="mt-6 text-center text-sm text-muted-foreground">
                         Don't have an account?{' '}
-                        <Link href="/recruiters/register" className="text-primary font-medium hover:underline">
-                            Create an account
-                        </Link>
+                        <span className="text-muted-foreground">Recruiter sign up is coming soon.</span>
                     </p>
 
                     <div className="mt-8 pt-8 border-t">

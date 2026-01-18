@@ -26,11 +26,12 @@ export async function getUserPaymentProfile(userId: string): Promise<{
     if (!normalizedPhone || !isValidPhone(normalizedPhone)) {
         throw new Error('Phone number is required for payments');
     }
+    const sanitizedPhone = normalizedPhone.replace(/[^\d+]/g, '');
 
     return {
         userId: user.id,
         email: user.email,
         customerName,
-        customerPhone: normalizedPhone,
+        customerPhone: sanitizedPhone,
     };
 }

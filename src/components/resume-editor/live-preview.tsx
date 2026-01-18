@@ -286,12 +286,25 @@ function MetropolitanSplitPreview({
   theme: typeof THEMES.obsidian;
   locale: 'en' | 'ar';
 }) {
+  const photo = resume.contact.photo?.trim();
+
   return (
     <div className="flex min-h-full">
       {/* Sidebar */}
       <div className="w-24 p-4" style={{ backgroundColor: theme.secondary }}>
         {/* Photo placeholder */}
-        <div className="w-12 h-12 mx-auto rounded-full mb-6" style={{ backgroundColor: 'rgba(255,255,255,0.1)' }} />
+        {photo ? (
+          <img
+            src={photo}
+            alt="Profile"
+            className="w-12 h-12 mx-auto rounded-full mb-6 object-cover"
+          />
+        ) : (
+          <div
+            className="w-12 h-12 mx-auto rounded-full mb-6"
+            style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}
+          />
+        )}
 
         {/* Contact */}
         <div className="text-white text-[8px] mb-6">
