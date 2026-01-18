@@ -203,6 +203,10 @@ export async function PUT(request: NextRequest) {
                     }
                 });
 
+                if (!subscription) {
+                    return NextResponse.json({ error: 'Subscription not found' }, { status: 404 });
+                }
+
                 if (!isEmailConfigured()) {
                     return NextResponse.json({ error: 'Email service not configured' }, { status: 503 });
                 }
