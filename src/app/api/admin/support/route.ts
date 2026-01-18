@@ -177,7 +177,10 @@ export async function PUT(request: NextRequest) {
         }
 
         let result;
-        const ticket = await prisma.supportTicket.findUnique({ where: { id: ticketId } });
+        const ticket = await prisma.supportTicket.findUnique({
+            where: { id: ticketId },
+            include: { user: { select: { name: true } } },
+        });
 
         if (!ticket) {
             return NextResponse.json({ error: 'Ticket not found' }, { status: 404 });
