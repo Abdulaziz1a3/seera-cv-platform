@@ -148,7 +148,7 @@ export default function PricingPage() {
 
                                     {plan.monthlyPrice > 0 && (
                                         <p className="text-xs text-muted-foreground mt-4 text-center">
-                                            {locale === 'ar' ? 'دفع آمن عبر Stripe' : 'Secure payment via Stripe'}
+                                            {locale === 'ar' ? 'دفع آمن عبر TuwaiqPay' : 'Secure payment via TuwaiqPay'}
                                         </p>
                                     )}
                                 </CardContent>

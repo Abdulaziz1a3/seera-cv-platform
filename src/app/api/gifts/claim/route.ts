@@ -60,15 +60,6 @@ export async function POST(request: Request) {
             && (subscription.status === 'ACTIVE' || subscription.status === 'TRIALING')
             && (!subscription.currentPeriodEnd || subscription.currentPeriodEnd >= now);
 
-        const hasActiveStripeSubscription = hasActivePaidSubscription && Boolean(subscription?.stripeSubscriptionId);
-
-        if (hasActiveStripeSubscription) {
-            return NextResponse.json(
-                { error: 'You already have an active subscription. Cancel it before claiming this gift.' },
-                { status: 409 }
-            );
-        }
-
         const durationMonths = gift.interval === 'YEARLY' ? 12 : 1;
         const baseEnd = hasActivePaidSubscription && subscription?.currentPeriodEnd && subscription.currentPeriodEnd > now
             ? subscription.currentPeriodEnd

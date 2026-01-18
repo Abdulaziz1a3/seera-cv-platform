@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createCheckoutSession, PLANS } from '@/lib/stripe';
+import { PLANS } from '@/lib/stripe';
+import { createTuwaiqPayBill } from '@/lib/tuwaiqpay';
+import { getUserPaymentProfile } from '@/lib/payments';
+import { prisma } from '@/lib/db';
 
 export async function POST(request: NextRequest) {
     try {
@@ -19,17 +22,43 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // In production, get userId from session
-        const returnUrl = `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/settings`;
+        if (!userId) {
+            return NextResponse.json({ error: 'Missing userId' }, { status: 400 });
+        }
 
-        const checkoutUrl = await createCheckoutSession(
-            userId || 'anonymous',
-            planId as 'pro' | 'enterprise',
-            billing as 'monthly' | 'yearly',
-            returnUrl
-        );
+        const planConfig = PLANS[planId as 'pro' | 'enterprise'];
+        const amountSar = billing === 'yearly' ? planConfig.priceYearly : planConfig.priceMonthly;
+        const customer = await getUserPaymentProfile(userId);
 
-        return NextResponse.json({ url: checkoutUrl });
+        const bill = await createTuwaiqPayBill({
+            amountSar,
+            description: `Seera AI ${planConfig.name.en} (${billing})`,
+            customerName: customer.customerName,
+            customerMobilePhone: customer.customerPhone,
+        });
+
+        await prisma.paymentTransaction.create({
+            data: {
+                provider: 'TUWAIQPAY',
+                status: 'PENDING',
+                purpose: 'SUBSCRIPTION',
+                userId,
+                amountSar,
+                plan: planId.toUpperCase() as 'PRO' | 'ENTERPRISE',
+                interval: billing === 'yearly' ? 'YEARLY' : 'MONTHLY',
+                providerTransactionId: bill.transactionId,
+                providerBillId: bill.billId ? bill.billId.toString() : undefined,
+                providerReference: bill.merchantTransactionId,
+                paymentLink: bill.link,
+                metadata: {
+                    interval: billing,
+                    planId,
+                    billExpiresAt: bill.expireDate,
+                },
+            },
+        });
+
+        return NextResponse.json({ url: bill.link });
     } catch (error: any) {
         console.error('Checkout error:', error);
         return NextResponse.json(

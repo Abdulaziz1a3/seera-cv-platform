@@ -4,10 +4,12 @@ import { useState, useEffect, useCallback } from 'react';
 import { useLocale } from '@/components/providers/locale-provider';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Textarea } from '@/components/ui/textarea';
 import {
     Table,
     TableBody,
@@ -46,7 +48,6 @@ import {
     Mail,
     Shield,
     Ban,
-    UserPlus,
     Download,
     RefreshCw,
     CheckCircle,
@@ -85,6 +86,7 @@ function AdminUsersContent() {
     const [data, setData] = useState<UsersData | null>(null);
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState<string | null>(null);
+    const [bulkActionLoading, setBulkActionLoading] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [planFilter, setPlanFilter] = useState('all');
     const [statusFilter, setStatusFilter] = useState('all');
@@ -94,6 +96,16 @@ function AdminUsersContent() {
         open: false,
         user: null,
     });
+    const [editDialog, setEditDialog] = useState<{ open: boolean; user: User | null }>({
+        open: false,
+        user: null,
+    });
+    const [editForm, setEditForm] = useState({ name: '', role: 'USER', plan: 'FREE' });
+    const [emailDialog, setEmailDialog] = useState<{ open: boolean; recipients: User[] }>({
+        open: false,
+        recipients: [],
+    });
+    const [emailForm, setEmailForm] = useState({ subject: '', message: '' });
 
     const fetchUsers = useCallback(async () => {
         setLoading(true);
@@ -132,14 +144,123 @@ function AdminUsersContent() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ userId, action, data }),
             });
-            if (!res.ok) throw new Error('Action failed');
+            const json = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(json.error || 'Action failed');
             toast.success(`User ${action} successful`);
             fetchUsers();
+            return json;
         } catch (error) {
-            toast.error(`Failed to ${action} user`);
+            toast.error(error instanceof Error ? error.message : `Failed to ${action} user`);
+            return null;
         } finally {
             setActionLoading(null);
             setDeleteDialog({ open: false, user: null });
+        }
+    };
+
+    const openEditDialog = (user: User) => {
+        setEditForm({
+            name: user.name,
+            role: user.role,
+            plan: user.plan,
+        });
+        setEditDialog({ open: true, user });
+    };
+
+    const openEmailDialog = (recipients: User[]) => {
+        setEmailForm({ subject: '', message: '' });
+        setEmailDialog({ open: true, recipients });
+    };
+
+    const handleSaveUser = async () => {
+        if (!editDialog.user) return;
+        await handleAction(editDialog.user.id, 'update', {
+            name: editForm.name,
+            role: editForm.role,
+            plan: editForm.plan,
+        });
+        setEditDialog({ open: false, user: null });
+    };
+
+    const handleSendEmail = async () => {
+        if (!emailDialog.recipients.length) return;
+        setBulkActionLoading(true);
+        try {
+            const res = await fetch('/api/admin/users', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'send_email',
+                    userIds: emailDialog.recipients.map((user) => user.id),
+                    data: emailForm,
+                }),
+            });
+            const json = await res.json().catch(() => ({}));
+            if (!res.ok) {
+                throw new Error(json.error || 'Failed to send email');
+            }
+            toast.success(
+                locale === 'ar'
+                    ? `تم إرسال البريد إلى ${json.result?.sent || emailDialog.recipients.length} مستخدم`
+                    : `Email sent to ${json.result?.sent || emailDialog.recipients.length} user(s)`
+            );
+            setEmailDialog({ open: false, recipients: [] });
+        } catch (error: any) {
+            toast.error(error.message || 'Failed to send email');
+        } finally {
+            setBulkActionLoading(false);
+        }
+    };
+
+    const handleBulkSuspend = async () => {
+        if (!selectedUsers.length) return;
+        if (!confirm(locale === 'ar' ? 'تعليق المستخدمين المحددين؟' : 'Suspend selected users?')) return;
+        setBulkActionLoading(true);
+        try {
+            const res = await fetch('/api/admin/users', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'bulk_suspend', userIds: selectedUsers }),
+            });
+            const json = await res.json().catch(() => ({}));
+            if (!res.ok) {
+                throw new Error(json.error || 'Failed to suspend users');
+            }
+            toast.success(
+                locale === 'ar'
+                    ? `تم تعليق ${json.result?.updated || selectedUsers.length} مستخدم`
+                    : `Suspended ${json.result?.updated || selectedUsers.length} user(s)`
+            );
+            setSelectedUsers([]);
+            fetchUsers();
+        } catch (error: any) {
+            toast.error(error.message || 'Failed to suspend users');
+        } finally {
+            setBulkActionLoading(false);
+        }
+    };
+
+    const handleExport = async () => {
+        try {
+            const params = new URLSearchParams({
+                search: searchQuery,
+                plan: planFilter,
+                status: statusFilter,
+                export: 'csv',
+                limit: '1000',
+            });
+            const res = await fetch(`/api/admin/users?${params}`);
+            if (!res.ok) throw new Error('Export failed');
+            const csv = await res.text();
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `users-export-${new Date().toISOString().slice(0, 10)}.csv`;
+            link.click();
+            URL.revokeObjectURL(url);
+        } catch {
+            toast.error(locale === 'ar' ? 'فشل التصدير' : 'Export failed');
         }
     };
 
@@ -217,7 +338,7 @@ function AdminUsersContent() {
                         <RefreshCw className={`h-4 w-4 me-2 ${loading ? 'animate-spin' : ''}`} />
                         {locale === 'ar' ? 'تحديث' : 'Refresh'}
                     </Button>
-                    <Button variant="outline">
+                    <Button variant="outline" onClick={handleExport} disabled={loading}>
                         <Download className="h-4 w-4 me-2" />
                         {locale === 'ar' ? 'تصدير' : 'Export'}
                     </Button>
@@ -281,11 +402,22 @@ function AdminUsersContent() {
                             <span className="text-sm text-muted-foreground">
                                 {selectedUsers.length} {locale === 'ar' ? 'محدد' : 'selected'}
                             </span>
-                            <Button variant="outline" size="sm">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => openEmailDialog(data?.users.filter((user) => selectedUsers.includes(user.id)) || [])}
+                                disabled={bulkActionLoading}
+                            >
                                 <Mail className="h-4 w-4 me-1" />
                                 {locale === 'ar' ? 'إرسال بريد' : 'Send Email'}
                             </Button>
-                            <Button variant="outline" size="sm" className="text-destructive">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                className="text-destructive"
+                                onClick={handleBulkSuspend}
+                                disabled={bulkActionLoading}
+                            >
                                 <Ban className="h-4 w-4 me-1" />
                                 {locale === 'ar' ? 'تعليق' : 'Suspend'}
                             </Button>
@@ -409,15 +541,15 @@ function AdminUsersContent() {
                                                     </Button>
                                                 </DropdownMenuTrigger>
                                                 <DropdownMenuContent align="end">
-                                                    <DropdownMenuItem>
+                                                    <DropdownMenuItem onClick={() => openEditDialog(user)}>
                                                         <Edit className="h-4 w-4 me-2" />
                                                         {locale === 'ar' ? 'تعديل' : 'Edit'}
                                                     </DropdownMenuItem>
-                                                    <DropdownMenuItem>
+                                                    <DropdownMenuItem onClick={() => openEmailDialog([user])}>
                                                         <Mail className="h-4 w-4 me-2" />
                                                         {locale === 'ar' ? 'إرسال بريد' : 'Send Email'}
                                                     </DropdownMenuItem>
-                                                    <DropdownMenuItem>
+                                                    <DropdownMenuItem onClick={() => handleAction(user.id, 'reset_password')}>
                                                         <Shield className="h-4 w-4 me-2" />
                                                         {locale === 'ar' ? 'إعادة كلمة المرور' : 'Reset Password'}
                                                     </DropdownMenuItem>
@@ -484,6 +616,115 @@ function AdminUsersContent() {
                     </div>
                 </div>
             )}
+
+            {/* Edit User Dialog */}
+            <Dialog open={editDialog.open} onOpenChange={(open) => setEditDialog({ open, user: null })}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>{locale === 'ar' ? 'تعديل المستخدم' : 'Edit User'}</DialogTitle>
+                        <DialogDescription>
+                            {editDialog.user?.email}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                        <div className="space-y-2">
+                            <Label>{locale === 'ar' ? 'الاسم' : 'Name'}</Label>
+                            <Input
+                                value={editForm.name}
+                                onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label>{locale === 'ar' ? 'الدور' : 'Role'}</Label>
+                            <Select
+                                value={editForm.role}
+                                onValueChange={(value) => setEditForm({ ...editForm, role: value })}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="USER">USER</SelectItem>
+                                    <SelectItem value="ADMIN">ADMIN</SelectItem>
+                                    <SelectItem value="SUPER_ADMIN">SUPER_ADMIN</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-2">
+                            <Label>{locale === 'ar' ? 'الخطة' : 'Plan'}</Label>
+                            <Select
+                                value={editForm.plan}
+                                onValueChange={(value) => setEditForm({ ...editForm, plan: value })}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="FREE">FREE</SelectItem>
+                                    <SelectItem value="PRO">PRO</SelectItem>
+                                    <SelectItem value="ENTERPRISE">ENTERPRISE</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setEditDialog({ open: false, user: null })}>
+                            {locale === 'ar' ? 'إلغاء' : 'Cancel'}
+                        </Button>
+                        <Button onClick={handleSaveUser} disabled={actionLoading === editDialog.user?.id}>
+                            {actionLoading === editDialog.user?.id && (
+                                <Loader2 className="h-4 w-4 me-2 animate-spin" />
+                            )}
+                            {locale === 'ar' ? 'حفظ' : 'Save'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Email Dialog */}
+            <Dialog open={emailDialog.open} onOpenChange={(open) => setEmailDialog({ open, recipients: [] })}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>{locale === 'ar' ? 'إرسال بريد' : 'Send Email'}</DialogTitle>
+                        <DialogDescription>
+                            {emailDialog.recipients.length > 1
+                                ? locale === 'ar'
+                                    ? `إلى ${emailDialog.recipients.length} مستخدم`
+                                    : `To ${emailDialog.recipients.length} users`
+                                : emailDialog.recipients[0]?.email}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                        <div className="space-y-2">
+                            <Label>{locale === 'ar' ? 'الموضوع' : 'Subject'}</Label>
+                            <Input
+                                value={emailForm.subject}
+                                onChange={(e) => setEmailForm({ ...emailForm, subject: e.target.value })}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label>{locale === 'ar' ? 'الرسالة' : 'Message'}</Label>
+                            <Textarea
+                                rows={5}
+                                value={emailForm.message}
+                                onChange={(e) => setEmailForm({ ...emailForm, message: e.target.value })}
+                            />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setEmailDialog({ open: false, recipients: [] })}>
+                            {locale === 'ar' ? 'إلغاء' : 'Cancel'}
+                        </Button>
+                        <Button
+                            onClick={handleSendEmail}
+                            disabled={bulkActionLoading || !emailForm.subject.trim() || !emailForm.message.trim()}
+                        >
+                            {bulkActionLoading && <Loader2 className="h-4 w-4 me-2 animate-spin" />}
+                            {locale === 'ar' ? 'إرسال' : 'Send'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
 
             {/* Delete Confirmation Dialog */}
             <Dialog open={deleteDialog.open} onOpenChange={(open) => setDeleteDialog({ open, user: null })}>

@@ -8,6 +8,14 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
+import {
     Table,
     TableBody,
     TableCell,
@@ -58,7 +66,6 @@ interface Subscription {
     plan: string;
     status: string;
     amount: number;
-    stripeSubscriptionId: string | null;
     currentPeriodStart: string | null;
     currentPeriodEnd: string | null;
     cancelAtPeriodEnd: boolean;
@@ -95,6 +102,10 @@ function AdminSubscriptionsContent() {
     const [searchQuery, setSearchQuery] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
     const [page, setPage] = useState(1);
+    const [detailsDialog, setDetailsDialog] = useState<{ open: boolean; subscription: Subscription | null }>({
+        open: false,
+        subscription: null,
+    });
 
     const fetchSubscriptions = useCallback(async () => {
         setLoading(true);
@@ -132,11 +143,12 @@ function AdminSubscriptionsContent() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ subscriptionId, action, data: actionData }),
             });
-            if (!res.ok) throw new Error('Action failed');
+            const json = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(json.error || 'Action failed');
             toast.success(`Subscription ${action} successful`);
             fetchSubscriptions();
         } catch (error) {
-            toast.error(`Failed to ${action} subscription`);
+            toast.error(error instanceof Error ? error.message : `Failed to ${action} subscription`);
         } finally {
             setActionLoading(null);
         }
@@ -167,7 +179,7 @@ function AdminSubscriptionsContent() {
     const stats = data?.stats ? [
         {
             label: locale === 'ar' ? 'الإيرادات الشهرية' : 'Monthly Revenue',
-            value: `$${Number(data.stats.monthlyRevenue).toLocaleString()}`,
+            value: `${Number(data.stats.monthlyRevenue).toLocaleString()} SAR`,
             change: '+15.2%',
             trend: 'up',
             icon: DollarSign,
@@ -188,7 +200,7 @@ function AdminSubscriptionsContent() {
         },
         {
             label: locale === 'ar' ? 'متوسط العائد' : 'ARPU',
-            value: `$${data.stats.arpu}`,
+            value: `${data.stats.arpu} SAR`,
             change: '+3.2%',
             trend: 'up',
             icon: TrendingUp,
@@ -354,7 +366,7 @@ function AdminSubscriptionsContent() {
                                             </Badge>
                                         </TableCell>
                                         <TableCell>{getStatusBadge(sub.status)}</TableCell>
-                                        <TableCell>${sub.amount}/mo</TableCell>
+                                        <TableCell>{sub.amount} SAR/mo</TableCell>
                                         <TableCell>{formatDate(sub.currentPeriodStart)}</TableCell>
                                         <TableCell>
                                             {sub.cancelAtPeriodEnd ? (
@@ -378,11 +390,15 @@ function AdminSubscriptionsContent() {
                                                     </Button>
                                                 </DropdownMenuTrigger>
                                                 <DropdownMenuContent align="end">
-                                                    <DropdownMenuItem>
+                                                    <DropdownMenuItem
+                                                        onClick={() => setDetailsDialog({ open: true, subscription: sub })}
+                                                    >
                                                         <Eye className="h-4 w-4 me-2" />
                                                         {locale === 'ar' ? 'عرض التفاصيل' : 'View Details'}
                                                     </DropdownMenuItem>
-                                                    <DropdownMenuItem>
+                                                    <DropdownMenuItem
+                                                        onClick={() => handleAction(sub.id, 'send_invoice')}
+                                                    >
                                                         <Mail className="h-4 w-4 me-2" />
                                                         {locale === 'ar' ? 'إرسال فاتورة' : 'Send Invoice'}
                                                     </DropdownMenuItem>
@@ -441,6 +457,49 @@ function AdminSubscriptionsContent() {
                     </div>
                 </div>
             )}
+
+            <Dialog
+                open={detailsDialog.open}
+                onOpenChange={(open) => setDetailsDialog({ open, subscription: null })}
+            >
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>{locale === 'ar' ? 'تفاصيل الاشتراك' : 'Subscription Details'}</DialogTitle>
+                        <DialogDescription>
+                            {detailsDialog.subscription?.user.email}
+                        </DialogDescription>
+                    </DialogHeader>
+                    {detailsDialog.subscription && (
+                        <div className="space-y-3 text-sm">
+                            <div className="flex items-center justify-between">
+                                <span>{locale === 'ar' ? 'الخطة' : 'Plan'}</span>
+                                <span className="font-medium">{detailsDialog.subscription.plan}</span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <span>{locale === 'ar' ? 'الحالة' : 'Status'}</span>
+                                <span className="font-medium">{detailsDialog.subscription.status}</span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <span>{locale === 'ar' ? 'المبلغ' : 'Amount'}</span>
+                                <span className="font-medium">{detailsDialog.subscription.amount} SAR/mo</span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <span>{locale === 'ar' ? 'بداية الفترة' : 'Period Start'}</span>
+                                <span className="font-medium">{formatDate(detailsDialog.subscription.currentPeriodStart)}</span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <span>{locale === 'ar' ? 'نهاية الفترة' : 'Period End'}</span>
+                                <span className="font-medium">{formatDate(detailsDialog.subscription.currentPeriodEnd)}</span>
+                            </div>
+                        </div>
+                    )}
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setDetailsDialog({ open: false, subscription: null })}>
+                            {locale === 'ar' ? 'إغلاق' : 'Close'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

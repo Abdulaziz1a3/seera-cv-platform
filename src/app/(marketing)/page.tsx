@@ -74,9 +74,9 @@ export default function Home() {
         },
         {
             icon: PenTool,
-            title: locale === 'ar' ? '???? ????' : 'Seera Link',
+            title: locale === 'ar' ? 'سيرة لينك' : 'Seera Link',
             description: locale === 'ar'
-                ? '????? ??? ?????? ?????? ????? ?????? ?????? ???? ????? ?????? ?????.'
+                ? 'أنشئ صفحة ملف مهني قابلة للمشاركة مع وسائل تواصل مباشرة والوصول للسيرة الذاتية.'
                 : 'Create a shareable career profile page with direct contact actions and CV access.',
             color: 'from-fuchsia-500 to-rose-500',
             badge: 'PUBLIC PROFILE',
@@ -117,19 +117,19 @@ export default function Home() {
     ];
 
     const stats = [
-        { value: locale === 'ar' ? '?????' : 'Thousands', label: locale === 'ar' ? '???? ?????' : 'Resumes Created' },
-        { value: locale === 'ar' ? '?????' : 'Hundreds', label: locale === 'ar' ? '????' : 'Companies Hiring' },
-        { value: locale === 'ar' ? '???? ???' : 'Strong', label: locale === 'ar' ? '???? ??????' : 'Success Rate' },
-        { value: locale === 'ar' ? '????? ????' : 'Top-rated', label: locale === 'ar' ? '????? ??????????' : 'User Rating' },
+        { value: locale === 'ar' ? 'آلاف' : 'Thousands', label: locale === 'ar' ? 'سير ذاتية منشأة' : 'Resumes Created' },
+        { value: locale === 'ar' ? 'مئات' : 'Hundreds', label: locale === 'ar' ? 'شركات توظف' : 'Companies Hiring' },
+        { value: locale === 'ar' ? 'قوي' : 'Strong', label: locale === 'ar' ? 'معدل النجاح' : 'Success Rate' },
+        { value: locale === 'ar' ? 'تقييم عالٍ' : 'Top-rated', label: locale === 'ar' ? 'تقييم المستخدمين' : 'User Rating' },
     ];
 
     const templatePreviewBase = getTemplatePreviewData(locale === 'ar' ? 'ar' : 'en');
     const templateShowcase: { id: TemplateId; name: string; theme: ThemeId }[] = [
-        { id: 'prestige-executive', name: locale === 'ar' ? '???????? ???????' : 'Prestige Executive', theme: 'obsidian' },
-        { id: 'metropolitan-split', name: locale === 'ar' ? '????? ???????' : 'Metropolitan Split', theme: 'sapphire' },
-        { id: 'nordic-minimal', name: locale === 'ar' ? '????? ???????' : 'Nordic Minimal', theme: 'ivory' },
-        { id: 'classic-professional', name: locale === 'ar' ? '?????? ???????' : 'Classic Professional', theme: 'emerald' },
-        { id: 'impact-modern', name: locale === 'ar' ? '???? ?????' : 'Impact Modern', theme: 'graphite' },
+        { id: 'prestige-executive', name: locale === 'ar' ? 'هيبة تنفيذية' : 'Prestige Executive', theme: 'obsidian' },
+        { id: 'metropolitan-split', name: locale === 'ar' ? 'المتروبوليتان المقسّم' : 'Metropolitan Split', theme: 'sapphire' },
+        { id: 'nordic-minimal', name: locale === 'ar' ? 'الشمالي البسيط' : 'Nordic Minimal', theme: 'ivory' },
+        { id: 'classic-professional', name: locale === 'ar' ? 'الكلاسيكي الاحترافي' : 'Classic Professional', theme: 'emerald' },
+        { id: 'impact-modern', name: locale === 'ar' ? 'التأثير العصري' : 'Impact Modern', theme: 'graphite' },
     ];
 
     const faq = [
@@ -340,10 +340,10 @@ export default function Home() {
 
                             <div className="grid grid-cols-2 gap-4">
                                 {[
-                                    { icon: Users, value: locale === 'ar' ? '?????' : 'Thousands', label: locale === 'ar' ? 'سيرة ذاتية' : 'CVs' },
-                                    { icon: Building2, value: locale === 'ar' ? '?????' : 'Hundreds', label: locale === 'ar' ? 'شركة' : 'Companies' },
-                                    { icon: Zap, value: locale === 'ar' ? '???? ????' : 'High', label: locale === 'ar' ? 'معدل الاستجابة' : 'Response Rate' },
-                                    { icon: Award, value: locale === 'ar' ? '???? ??????' : 'Fast', label: locale === 'ar' ? 'أيام للتوظيف' : 'Days to Hire' },
+                                    { icon: Users, value: locale === 'ar' ? 'آلاف' : 'Thousands', label: locale === 'ar' ? 'سيرة ذاتية' : 'CVs' },
+                                    { icon: Building2, value: locale === 'ar' ? 'مئات' : 'Hundreds', label: locale === 'ar' ? 'شركة' : 'Companies' },
+                                    { icon: Zap, value: locale === 'ar' ? 'مرتفع' : 'High', label: locale === 'ar' ? 'معدل الاستجابة' : 'Response Rate' },
+                                    { icon: Award, value: locale === 'ar' ? 'سريع' : 'Fast', label: locale === 'ar' ? 'أيام للتوظيف' : 'Days to Hire' },
                                 ].map((stat) => (
                                     <div key={stat.label} className="bg-white/10 backdrop-blur rounded-2xl p-6 text-center">
                                         <stat.icon className="h-8 w-8 mx-auto mb-2 text-white/80" />

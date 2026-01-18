@@ -82,11 +82,90 @@ function escapeHtml(value: string): string {
         .replace(/'/g, '&#39;');
 }
 
+function formatPlainTextMessage(message: string): string {
+    return escapeHtml(message).replace(/\n/g, '<br>');
+}
+
 // Email sending functions
 interface EmailResult {
     success: boolean;
     messageId?: string;
     error?: string;
+}
+
+export async function sendAdminEmail(params: {
+    to: string;
+    subject: string;
+    heading: string;
+    message: string;
+    ctaLabel?: string;
+    ctaUrl?: string;
+    name?: string;
+}): Promise<EmailResult> {
+    if (!resend) {
+        logger.warn('Email service not configured - skipping admin email', { email: params.to });
+        return { success: false, error: 'Email service not configured' };
+    }
+
+    const greeting = params.name ? `Hi ${params.name.split(' ')[0]},` : 'Hi there,';
+    const ctaBlock = params.ctaUrl && params.ctaLabel
+        ? `<div style="text-align: center; margin: 32px 0;">
+            <a href="${params.ctaUrl}" style="${getButtonStyle()}">${escapeHtml(params.ctaLabel)}</a>
+        </div>`
+        : '';
+
+    const content = `
+        <h1 style="margin: 0 0 16px 0; font-size: 24px; font-weight: 700; color: #18181b;">${escapeHtml(params.heading)}</h1>
+        <p style="margin: 0 0 24px 0; font-size: 16px; color: #3f3f46; line-height: 1.6;">
+            ${greeting}<br><br>
+            ${formatPlainTextMessage(params.message)}
+        </p>
+        ${ctaBlock}
+    `;
+
+    try {
+        const { data, error } = await resend.emails.send({
+            from: FROM_EMAIL,
+            to: params.to,
+            subject: params.subject,
+            html: getBaseTemplate(content),
+        });
+
+        if (error) {
+            logger.error('Failed to send admin email', { email: params.to, error });
+            return { success: false, error: error.message };
+        }
+
+        logger.info('Admin email sent', { email: params.to, messageId: data?.id });
+        return { success: true, messageId: data?.id };
+    } catch (error) {
+        logger.error('Admin email sending failed', { email: params.to, error: error as Error });
+        return { success: false, error: 'Failed to send email' };
+    }
+}
+
+export async function sendPaymentLinkEmail(
+    email: string,
+    paymentUrl: string,
+    name?: string
+): Promise<EmailResult> {
+    return sendAdminEmail({
+        to: email,
+        subject: `Complete your payment - ${APP_NAME}`,
+        heading: 'Complete your payment',
+        message: 'Use the secure link below to finish your payment and activate your subscription.',
+        ctaLabel: 'Pay Now',
+        ctaUrl: paymentUrl,
+        name,
+    });
+}
+
+export async function sendBillingPortalEmail(
+    email: string,
+    portalUrl: string,
+    name?: string
+): Promise<EmailResult> {
+    return sendPaymentLinkEmail(email, portalUrl, name);
 }
 
 export async function sendVerificationEmail(
@@ -583,10 +662,13 @@ export async function sendExportReadyEmail(
 
 export default {
     isEmailConfigured,
+    sendAdminEmail,
+    sendPaymentLinkEmail,
     sendVerificationEmail,
     sendPasswordResetEmail,
     sendWelcomeEmail,
     sendSubscriptionConfirmation,
+    sendBillingPortalEmail,
     sendGiftSubscriptionEmail,
     sendResumeReminderEmail,
     sendWeeklyTipsEmail,

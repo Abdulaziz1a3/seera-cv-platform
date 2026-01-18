@@ -45,6 +45,7 @@ import { useLocale } from '@/components/providers/locale-provider';
 import { WelcomeModal } from '@/components/onboarding/welcome-modal';
 import { SkipLink } from '@/components/accessibility';
 import { CreditsModal } from '@/components/credits-modal';
+import { toast } from 'sonner';
 
 export default function DashboardLayout({
     children,
@@ -348,7 +349,11 @@ export default function DashboardLayout({
                                                     body: JSON.stringify({ plan: 'pro', interval: 'monthly' }),
                                                 });
                                                 const data = await res.json();
-                                                if (data?.url) window.location.href = data.url;
+                                                if (data?.url) {
+                                                    window.location.href = data.url;
+                                                    return;
+                                                }
+                                                toast.error(data?.error || (locale === 'ar' ? 'تعذر بدء الدفع' : 'Failed to start payment'));
                                             }}
                                         >
                                             {locale === 'ar' ? 'برو شهري' : 'Pro Monthly'}
@@ -363,14 +368,18 @@ export default function DashboardLayout({
                                                     body: JSON.stringify({ plan: 'pro', interval: 'yearly' }),
                                                 });
                                                 const data = await res.json();
-                                                if (data?.url) window.location.href = data.url;
+                                                if (data?.url) {
+                                                    window.location.href = data.url;
+                                                    return;
+                                                }
+                                                toast.error(data?.error || (locale === 'ar' ? 'تعذر بدء الدفع' : 'Failed to start payment'));
                                             }}
                                         >
                                             {locale === 'ar' ? 'برو سنوي' : 'Pro Yearly'}
                                         </Button>
                                     </div>
                                     <p className="mt-3 text-xs text-muted-foreground">
-                                        {locale === 'ar' ? 'الدفع آمن عبر Stripe' : 'Secure payment via Stripe'}
+                                        {locale === 'ar' ? 'الدفع آمن عبر TuwaiqPay' : 'Secure payment via TuwaiqPay'}
                                     </p>
                                 </div>
                             </div>

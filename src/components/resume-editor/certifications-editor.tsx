@@ -131,24 +131,24 @@ export function CertificationsEditor({ data, onChange }: CertificationsEditorPro
 
                                 <div className="grid gap-4 sm:grid-cols-2">
                                     <div className="space-y-2">
-                                        <Label>{locale === 'ar' ? '??? ??????? *' : 'Certification Name *'}</Label>
+                                        <Label>{locale === 'ar' ? 'اسم الشهادة *' : 'Certification Name *'}</Label>
                                         <Input
                                             value={cert.name ?? ''}
                                             onChange={(e) => updateCertification(cert.id, 'name', e.target.value)}
-                                            placeholder={locale === 'ar' ? '??? ???????' : 'Certification Name'}
+                                            placeholder={locale === 'ar' ? 'اسم الشهادة' : 'Certification Name'}
                                         />
                                     </div>
 
                                     <div className="space-y-2">
-                                        <Label>{locale === 'ar' ? '????? ???????' : 'Issuing Organization'}</Label>
+                                        <Label>{locale === 'ar' ? 'الجهة المانحة' : 'Issuing Organization'}</Label>
                                         <Input
                                             value={cert.issuer ?? ''}
                                             onChange={(e) => updateCertification(cert.id, 'issuer', e.target.value)}
-                                            placeholder={locale === 'ar' ? '????? ???????' : 'e.g., Google, AWS'}
+                                            placeholder={locale === 'ar' ? 'مثال: Google, AWS' : 'e.g., Google, AWS'}
                                         />
                                     </div>
                                     <div className="space-y-2">
-                                        <Label>{locale === 'ar' ? '????? ??????' : 'Issue Date'}</Label>
+                                        <Label>{locale === 'ar' ? 'تاريخ الإصدار' : 'Issue Date'}</Label>
                                         <Input
                                             type="month"
                                             value={cert.issueDate ?? ''}
@@ -157,7 +157,7 @@ export function CertificationsEditor({ data, onChange }: CertificationsEditorPro
                                     </div>
 
                                     <div className="space-y-2">
-                                        <Label>{locale === 'ar' ? '????? ??????' : 'Expiration Date'}</Label>
+                                        <Label>{locale === 'ar' ? 'تاريخ الانتهاء' : 'Expiration Date'}</Label>
                                         <Input
                                             type="month"
                                             value={cert.expirationDate ?? ''}
@@ -166,16 +166,16 @@ export function CertificationsEditor({ data, onChange }: CertificationsEditorPro
                                     </div>
 
                                     <div className="space-y-2">
-                                        <Label>{locale === 'ar' ? '??? ???????' : 'Credential ID'}</Label>
+                                        <Label>{locale === 'ar' ? 'معرف الشهادة' : 'Credential ID'}</Label>
                                         <Input
                                             value={cert.credentialId ?? ''}
                                             onChange={(e) => updateCertification(cert.id, 'credentialId', e.target.value)}
-                                            placeholder={locale === 'ar' ? '??? ???????' : 'Credential ID'}
+                                            placeholder={locale === 'ar' ? 'معرف الشهادة' : 'Credential ID'}
                                         />
                                     </div>
 
                                     <div className="space-y-2">
-                                        <Label>{locale === 'ar' ? '???? ???????' : 'Credential URL'}</Label>
+                                        <Label>{locale === 'ar' ? 'رابط الشهادة' : 'Credential URL'}</Label>
                                         <Input
                                             type="url"
                                             value={cert.credentialUrl ?? ''}

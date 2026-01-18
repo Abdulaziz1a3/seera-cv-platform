@@ -26,6 +26,7 @@ import {
     MessageSquare,
     Flag,
     LogOut,
+    Gift,
 } from 'lucide-react';
 
 const adminNavItems = [
@@ -58,6 +59,11 @@ const adminNavItems = [
         href: '/admin/subscriptions',
         icon: CreditCard,
         label: { en: 'Subscriptions', ar: 'الاشتراكات' },
+    },
+    {
+        href: '/admin/gifts',
+        icon: Gift,
+        label: { en: 'Gifts', ar: 'الهدايا' },
     },
     {
         href: '/admin/support',

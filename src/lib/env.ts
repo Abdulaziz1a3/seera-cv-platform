@@ -19,14 +19,23 @@ const envSchema = z.object({
     // OpenAI
     OPENAI_API_KEY: z.string().min(1, 'OPENAI_API_KEY is required for AI features'),
 
-    // Stripe
-    STRIPE_SECRET_KEY: z.string().min(1, 'STRIPE_SECRET_KEY is required for payments'),
-    STRIPE_PUBLISHABLE_KEY: z.string().min(1, 'STRIPE_PUBLISHABLE_KEY is required'),
-    STRIPE_WEBHOOK_SECRET: z.string().min(1, 'STRIPE_WEBHOOK_SECRET is required for webhooks'),
+    // Stripe (legacy)
+    STRIPE_SECRET_KEY: z.string().optional(),
+    STRIPE_PUBLISHABLE_KEY: z.string().optional(),
+    STRIPE_WEBHOOK_SECRET: z.string().optional(),
     STRIPE_PRO_MONTHLY_PRICE_ID: z.string().optional(),
     STRIPE_PRO_YEARLY_PRICE_ID: z.string().optional(),
     STRIPE_ENTERPRISE_MONTHLY_PRICE_ID: z.string().optional(),
     STRIPE_ENTERPRISE_YEARLY_PRICE_ID: z.string().optional(),
+
+    // TuwaiqPay
+    TUWAIQPAY_BASE_URL: z.string().url().optional(),
+    TUWAIQPAY_USERNAME: z.string().optional(),
+    TUWAIQPAY_USER_NAME_TYPE: z.enum(['MOBILE', 'EMAIL']).optional(),
+    TUWAIQPAY_PASSWORD: z.string().optional(),
+    TUWAIQPAY_WEBHOOK_HEADER_NAME: z.string().optional(),
+    TUWAIQPAY_WEBHOOK_HEADER_VALUE: z.string().optional(),
+    TUWAIQPAY_LANGUAGE: z.enum(['ar', 'en']).optional(),
 
     // Email
     RESEND_API_KEY: z.string().optional(),
@@ -128,15 +137,27 @@ export const env = {
 
     get stripe() {
         return {
-            secretKey: process.env.STRIPE_SECRET_KEY!,
-            publishableKey: process.env.STRIPE_PUBLISHABLE_KEY!,
-            webhookSecret: process.env.STRIPE_WEBHOOK_SECRET!,
+            secretKey: process.env.STRIPE_SECRET_KEY,
+            publishableKey: process.env.STRIPE_PUBLISHABLE_KEY,
+            webhookSecret: process.env.STRIPE_WEBHOOK_SECRET,
             prices: {
                 proMonthly: process.env.STRIPE_PRO_MONTHLY_PRICE_ID,
                 proYearly: process.env.STRIPE_PRO_YEARLY_PRICE_ID,
                 enterpriseMonthly: process.env.STRIPE_ENTERPRISE_MONTHLY_PRICE_ID,
                 enterpriseYearly: process.env.STRIPE_ENTERPRISE_YEARLY_PRICE_ID,
             },
+        };
+    },
+
+    get tuwaiqpay() {
+        return {
+            baseUrl: process.env.TUWAIQPAY_BASE_URL || 'https://onboarding-prod.tuwaiqpay.com.sa',
+            username: process.env.TUWAIQPAY_USERNAME,
+            userNameType: process.env.TUWAIQPAY_USER_NAME_TYPE || 'MOBILE',
+            password: process.env.TUWAIQPAY_PASSWORD,
+            webhookHeaderName: process.env.TUWAIQPAY_WEBHOOK_HEADER_NAME || 'x-signature',
+            webhookHeaderValue: process.env.TUWAIQPAY_WEBHOOK_HEADER_VALUE || 'Tuwaiqpay',
+            language: process.env.TUWAIQPAY_LANGUAGE || 'en',
         };
     },
 
@@ -203,8 +224,8 @@ export function checkRequiredServices() {
     if (!process.env.OPENAI_API_KEY) {
         warnings.push('OPENAI_API_KEY is not configured - AI features will be disabled');
     }
-    if (!process.env.STRIPE_SECRET_KEY) {
-        warnings.push('STRIPE_SECRET_KEY is not configured - payments will be disabled');
+    if (!process.env.TUWAIQPAY_USERNAME || !process.env.TUWAIQPAY_PASSWORD) {
+        warnings.push('TUWAIQPAY credentials are not configured - payments will be disabled');
     }
     if (!process.env.RESEND_API_KEY) {
         warnings.push('RESEND_API_KEY is not configured - emails will not be sent');

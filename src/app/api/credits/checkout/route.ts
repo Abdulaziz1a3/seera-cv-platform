@@ -1,8 +1,11 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { auth } from '@/lib/auth';
-import { createCreditTopupSession } from '@/lib/stripe';
-import { MIN_RECHARGE_SAR } from '@/lib/ai-credits';
+import { MIN_RECHARGE_SAR, sarToCredits } from '@/lib/ai-credits';
+import { createTuwaiqPayBill } from '@/lib/tuwaiqpay';
+import { getUserPaymentProfile } from '@/lib/payments';
+import { prisma } from '@/lib/db';
+import { logger } from '@/lib/logger';
 
 const requestSchema = z.object({
     amountSar: z.number().min(MIN_RECHARGE_SAR),
@@ -17,19 +20,45 @@ export async function POST(request: Request) {
         }
 
         const body = await request.json();
-        const { amountSar, returnUrl } = requestSchema.parse(body);
+        const { amountSar } = requestSchema.parse(body);
 
-        const origin = request.headers.get('origin') || '';
-        const fallbackReturnUrl = origin ? `${origin}/dashboard/billing` : returnUrl;
-        const checkoutUrl = await createCreditTopupSession(
-            session.user.id,
+        const customer = await getUserPaymentProfile(session.user.id);
+        const credits = sarToCredits(amountSar);
+        const bill = await createTuwaiqPayBill({
             amountSar,
-            returnUrl || fallbackReturnUrl || 'https://seera-ai.com/dashboard/billing'
-        );
+            description: `Seera AI Credits (${credits})`,
+            customerName: customer.customerName,
+            customerMobilePhone: customer.customerPhone,
+        });
 
-        return NextResponse.json({ url: checkoutUrl });
+        await prisma.paymentTransaction.create({
+            data: {
+                provider: 'TUWAIQPAY',
+                status: 'PENDING',
+                purpose: 'AI_CREDITS',
+                userId: session.user.id,
+                amountSar,
+                credits,
+                providerTransactionId: bill.transactionId,
+                providerBillId: bill.billId ? bill.billId.toString() : undefined,
+                providerReference: bill.merchantTransactionId,
+                paymentLink: bill.link,
+                metadata: {
+                    credits,
+                    billExpiresAt: bill.expireDate,
+                },
+            },
+        });
+
+        logger.paymentEvent('tuwaiqpay_credit_bill_created', session.user.id, amountSar, {
+            credits,
+            billId: bill.billId,
+        });
+
+        return NextResponse.json({ url: bill.link });
     } catch (error) {
         const message = error instanceof Error ? error.message : 'Failed to start credit recharge';
-        return NextResponse.json({ error: message }, { status: 400 });
+        const status = message === 'Phone number is required for payments' ? 400 : 500;
+        return NextResponse.json({ error: message }, { status });
     }
 }

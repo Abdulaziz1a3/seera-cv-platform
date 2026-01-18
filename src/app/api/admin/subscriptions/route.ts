@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db';
+import { PLANS } from '@/lib/stripe';
+import { createTuwaiqPayBill } from '@/lib/tuwaiqpay';
+import { getUserPaymentProfile } from '@/lib/payments';
+import { isEmailConfigured, sendPaymentLinkEmail } from '@/lib/email';
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
@@ -112,7 +116,6 @@ export async function GET(request: NextRequest) {
             plan: sub.plan,
             status: sub.status,
             amount: sub.plan === 'PRO' ? 39 : sub.plan === 'ENTERPRISE' ? 249 : 0,
-            stripeSubscriptionId: sub.stripeSubscriptionId,
             currentPeriodStart: sub.currentPeriodStart,
             currentPeriodEnd: sub.currentPeriodEnd,
             cancelAtPeriodEnd: sub.cancelAtPeriodEnd,
@@ -192,6 +195,73 @@ export async function PUT(request: NextRequest) {
                 });
                 break;
 
+            case 'send_invoice': {
+                const subscription = await prisma.subscription.findUnique({
+                    where: { id: subscriptionId },
+                    include: {
+                        user: { select: { email: true, name: true } }
+                    }
+                });
+
+                if (!isEmailConfigured()) {
+                    return NextResponse.json({ error: 'Email service not configured' }, { status: 503 });
+                }
+
+                const planKey = data?.plan === 'enterprise'
+                    ? 'enterprise'
+                    : data?.plan === 'pro'
+                        ? 'pro'
+                        : subscription.plan === 'ENTERPRISE'
+                            ? 'enterprise'
+                            : 'pro';
+                const planConfig = PLANS[planKey];
+                const interval = data?.interval === 'yearly' ? 'yearly' : 'monthly';
+                const amountSar = interval === 'yearly' ? planConfig.priceYearly : planConfig.priceMonthly;
+                const customer = await getUserPaymentProfile(subscription.userId);
+
+                const bill = await createTuwaiqPayBill({
+                    amountSar,
+                    description: `Seera AI ${planConfig.name.en} (${interval})`,
+                    customerName: customer.customerName,
+                    customerMobilePhone: customer.customerPhone,
+                });
+
+                const payment = await prisma.paymentTransaction.create({
+                    data: {
+                        provider: 'TUWAIQPAY',
+                        status: 'PENDING',
+                        purpose: 'SUBSCRIPTION',
+                        userId: subscription.userId,
+                        amountSar,
+                        plan: subscription.plan,
+                        interval: interval === 'yearly' ? 'YEARLY' : 'MONTHLY',
+                        providerTransactionId: bill.transactionId,
+                        providerBillId: bill.billId ? bill.billId.toString() : undefined,
+                        providerReference: bill.merchantTransactionId,
+                        paymentLink: bill.link,
+                        metadata: {
+                            interval,
+                            planId: planKey,
+                            billExpiresAt: bill.expireDate,
+                            issuedByAdmin: true,
+                        },
+                    },
+                });
+
+                const emailResult = await sendPaymentLinkEmail(
+                    subscription.user.email,
+                    bill.link,
+                    subscription.user.name || undefined
+                );
+
+                if (!emailResult.success) {
+                    return NextResponse.json({ error: emailResult.error || 'Failed to send invoice' }, { status: 500 });
+                }
+
+                result = { paymentUrl: payment.paymentLink };
+                break;
+            }
+
             default:
                 return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
         }
@@ -210,9 +280,11 @@ export async function PUT(request: NextRequest) {
         return NextResponse.json({ success: true, result });
     } catch (error) {
         console.error('Admin subscription update error:', error);
+        const message = error instanceof Error ? error.message : 'Failed to update subscription';
+        const status = message === 'Phone number is required for payments' ? 400 : 500;
         return NextResponse.json(
-            { error: 'Failed to update subscription' },
-            { status: 500 }
+            { error: message },
+            { status }
         );
     }
 }

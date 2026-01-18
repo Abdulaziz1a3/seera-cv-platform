@@ -1,0 +1,322 @@
+TuwaiqPay
+API Integration Documentation
+Version 1.1 | Last Updated: January 2026
+Introduction
+Welcome to the TuwaiqPay API Integration Documentation. This document provides
+comprehensive information for integrating your system with TuwaiqPay's payment
+processing services.
+TuwaiqPay offers a secure, reliable payment gateway solution that enables merchants
+to accept payments from customers through various payment methods including
+credit cards, debit cards, and digital wallets.
+Table of Contents
+1. Authentication API
+2. Create Bill API
+3. Webhooks
+4. Supported Payment Methods
+1. Authentication API
+Before making any API calls, you need to authenticate and obtain an access token. The
+authentication endpoint validates your credentials and returns an access token.
+P O S T /api/v1/auth/authenticate
+Request Headers
+Header Required Description
+Content-Type Yes application/json
+X-Language No Language code (ar, en). Default: en
+Request Body
+{
+    "username": "+966000000000",
+    "userNameType": "MOBILE",
+    "password": "P@SSWORD"
+}
+Request Parameters
+Parameter Type Required Description
+username String Yes User's mobile number or email address
+userNameType String Yes Type of username: "MOBILE" or "EMAIL"
+password String Yes User's password
+Sample cURL Request
+curl --location 'https://onboarding-
+prod.tuwaiqpay.com.sa/api/v1/auth/authenticate' \
+--header 'X-Language: ar' \
+--header 'Content-Type: application/json' \
+--data '{
+    "username": "+966000000000",
+    "userNameType": "MOBILE",
+    "password": "P@SSWORD"
+}'
+Response
+{
+    "data": {
+        "userStatus": "ACTIVE",
+        "accountType": "CUSTOMER",
+        "access_token": "TOKEN_VALUE"
+    },
+    "message": "SUCCESS"
+}
+Note: Store the access_token securely. You will need to include it in the
+Authorization header for all subsequent API requests. The access token has a
+limited lifetime.
+2. Create Bill API
+Use this endpoint to create a new bill that customers can pay. The API returns a
+payment link and QR code that can be used by customers to complete the payment.
+P O S T /api/v1/integration/bills
+Request Headers
+Header Required Description
+Authorization YesBearer {access_token} - Token obtained from
+authentication
+Content-Type Yes application/json
+Request Body
+{
+    "actionDateInDays": 1,
+    "amount": 15,
+    "currencyId": 1,
+    "supportedPaymentMethods": [
+        "VISA",
+        "MASTER",
+        "MADA",
+        "AMEX"
+    ],
+    "description": "Bill description",
+    "customerName": "Customer Name",
+    "customerMobilePhone": "+31291923872",
+    "includeVat": false,
+    "continueWithMaxCharge": false
+}
+Request Parameters
+Parameter Type Required Description
+actionDateInDays Integer YesNumber of days until
+the bill expires
+amount Double Yes Bill amount
+currencyId Long YesCurrency identifier (1
+= SAR, etc.)
+supportedPaymentMethodsArray[String]YesList of payment
+method codes (VISA,
+MASTER, MADA,
+AMEX)
+description String Yes Bill description
+customerName String YesCustomer's full name
+(max 100 characters)
+customerMobilePhone String YesCustomer's mobile
+number with country
+code (max 100
+characters)
+includeVat Boolean NoWhether VAT is
+included in the
+amount (default: false)
+continueWithMaxCharge Boolean NoAllow payment even if
+amount exceeds
+maximum charge
+(default: false)
+Sample cURL Request
+curl --location 'https://onboarding-
+prod.tuwaiqpay.com.sa/api/v1/integration/bills' \
+--header 'Authorization: Bearer <access_token>' \
+--header 'Content-Type: application/json' \
+--data '{
+    "actionDateInDays": 1,
+    "amount": 15,
+    "currencyId": 1,
+    "supportedPaymentMethods": [
+        "VISA",
+        "MASTER",
+        "MADA",
+        "AMEX"
+    ],
+    "description": "Bill description",
+    "customerName": "Customer Name",
+    "customerMobilePhone": "+31291923872",
+    "includeVat": false,
+    "continueWithMaxCharge": false
+}'
+Response
+{
+    "data": {
+        "createdAt": "2026-01-12T00:16:26.251268649",
+        "transactionId": "379d3a82fafea80adf299891e19d6706",
+        "transactionIdDisplay": "1768166185493",
+        "merchantTransactionId": "lHNDXEZxEox8_1768166185493_101150",
+        "buildNumber": "64426",
+        "ndc": "lHNDXEZxEox8_1768166185493_101150",
+        "link": "https://dev-payment.tuwaiqpay.com.sa/pay/3j1Bk2EV",
+        "qrCode": "https://hospitality.hyperpay.com/generate-qrcode?
+value=https://hypbill.com/3j1Bk2EV&size=177",
+        "expireDate": "2026-01-12T00:16:25.464112100",
+        "billId": 101150,
+        "amount": 33.0,
+        "paymentMethodDTOS": [
+            {
+                "id": 1,
+                "code": "VISA",
+                "nameEn": "VISA",
+                "nameAr": "VISA",
+                "url": "VISA.com",
+                "icon": "https://objectstorage.me-jeddah-
+1.oraclecloud.com/.../VISA.png",
+                "displayName": "VISA"
+            }
+        ]
+    }
+}
+Response Fields
+Field Type Description
+link StringPayment link that customers can use to pay
+the bill
+qrCode String QR code URL for mobile payments
+transactionId String Unique transaction identifier
+merchantTransactionId String Merchant's transaction reference
+billId Long Bill identifier
+expireDate DateTimeBill expiration date and time
+Important: Share the payment link or QR code with your customer. Once they
+complete the payment, a webhook will be sent to your configured endpoint with
+the payment details.
+3. Webhooks
+Webhooks allow TuwaiqPay to send real-time notifications to your system when
+payment events occur. This enables you to update your system immediately when a
+customer completes a payment.
+Webhook Configuration
+To configure webhooks, you need to provide TuwaiqPay with a POST endpoint URL
+where we will send payment notifications. Please share your webhook endpoint URL
+with the TuwaiqPay integration team.
+Example Webhook URL: https://your-domain.com/api/webhooks/tuwaiqpay-
+payment
+Webhook Request
+When a customer completes a payment, TuwaiqPay will send a POST request to your
+webhook endpoint with the payment details in the request body.
+P O S T {Your Webhook Endpoint URL}
+Webhook Headers
+TuwaiqPay includes a verification header in all webhook requests to allow you to verify
+that the request originates from TuwaiqPay's system. During the integration setup, you
+can share your own custom header key and value with the TuwaiqPay integration team.
+If you do not provide custom credentials, TuwaiqPay will use the default verification
+header values.
+Default Verification Header: If no custom header key and value are provided
+during integration setup, TuwaiqPay will use the following default values:
+Header Key: x-signature
+Header Value: Tuwaiqpay
+Header Required Description
+x-signature (default)
+or Custom KeyYesVerification header key. Default is 'x-
+signature' if custom key not provided.
+Tuwaiqpay (default) or
+Custom ValueYesVerification header value. Default is
+'Tuwaiqpay' if custom value not provided.
+Content-Type Yes application/json
+Custom Header Setup: If you would like to use your own custom header key and
+value for webhook verification, please share them with the TuwaiqPay integration
+team during the setup process. Your custom credentials will be securely stored
+and used for all webhook requests sent to your endpoint.
+Security Requirement: Always verify the webhook signature header before
+processing any webhook requests. Compare the header key and value with the
+credentials provided (either custom or default) to ensure the request is authentic
+and originates from TuwaiqPay's system. Reject any requests that fail verification.
+Webhook Payload
+{
+    "transactionDetails": {
+        "id": 12345,
+        "createdAt": "2026-01-11T23:00:00",
+        "paymentDate": "2026-01-11T23:05:00",
+        "eventDate": "2026-01-11T23:10:00",
+        "transactionId": "TXN123456789",
+        "transactionIdDisplay": "TXN-1234",
+        "checkoutId": "CHK987654321",
+        "transactionType": "DB",
+        "merchantTransactionId": "MTX987654",
+        "transactionStatus": "PENDING_SETTLEMENT",
+        "buildNumber": "1.0.0",
+        "ndc": "NDC123456",
+        "link": "https://example.com/transaction",
+        "proxyLink": "https://proxy.example.com/transaction",
+        "qrCode": "https://example.com/qrcode.png",
+        "paymentMethod": {
+            "id": 1,
+            "code": "VISA",
+            "nameEn": "VISA",
+            "nameAr": "VISA",
+            "displayName": "VISA"
+        },
+        "bill": {
+            "id": 101,
+            "billDate": "2026-01-11T12:00:00",
+            "expireDate": "2026-01-18T12:00:00",
+            "eventDate": "2026-01-11T12:30:00",
+            "actionDateInDay": 7,
+            "status": "PAID",
+            "includeVAT": true,
+            "amount": 250.75,
+            "vatAmount": 37.61,
+            "currency": {
+                "code": "USD",
+                "name": "US Dollar",
+                "symbol": "$"
+            },
+            "processedPaymentMethod": {
+                "id": 1,
+                "code": "VISA",
+                "displayName": "VISA"
+            },
+            "transactionId": "TXN123456789",
+            "entityId": "ENT987654",
+            "description": "Monthly subscription bill",
+            "customerName": "John Doe",
+            "customerEmail": "john.doe@example.com",
+            "customerMobilePhone": "+966501234567"
+        }
+    }
+}
+Webhook Payload Fields
+Field Type Description
+transactionId String Unique transaction identifier
+merchantTransactionId String Your original transaction reference
+transactionStatus StringPayment status (e.g.,
+PENDING_SETTLEMENT, PAID, FAILED)
+Field Type Description
+bill.status String Bill status (PAID, PENDING, FAILED, etc.)
+bill.amount Double Bill amount
+paymentDate DateTimeDate and time when payment was
+completed
+Webhook Implementation Requirements
+1. Your webhook endpoint must accept POST requests
+2. The endpoint should return HTTP 200 status code upon successful processing
+3. Implement idempotency to handle duplicate webhook calls
+4. Process webhooks asynchronously to avoid timeouts
+5. Log all webhook requests for debugging and audit purposes
+6. Validate the webhook payload structure before processing
+Security Note: Always validate webhook requests. Consider implementing
+signature verification if provided by TuwaiqPay. Never expose sensitive operations
+through your webhook endpoint without proper authentication.
+Best Practice: Respond to webhook requests quickly (within 5 seconds). If
+processing takes longer, acknowledge the webhook immediately and process it
+asynchronously in the background.
+4. Supported Payment Methods
+TuwaiqPay supports multiple payment methods. You can specify which payment
+methods to offer when creating a bill through the supportedPaymentMethods array.
+Payment Method Code Description
+VISA Visa credit and debit cards
+MASTER Mastercard credit and debit cards
+MADA MADA debit cards (Saudi Arabia)
+AMEX American Express cards
+5. Error Handling
+All API endpoints return standard HTTP status codes. In case of an error, the response
+will include an error message in the following format:
+{
+    "message": "Error description",
+    "errors": ["Detailed error messages"]
+}
+Common HTTP Status Codes
+Status Code Description
+200 Success
+400 Bad Request - Invalid parameters
+401 Unauthorized - Invalid or expired token
+403 Forbidden - Insufficient permissions
+404 Not Found - Resource does not exist
+500 Internal Server Error
+6. Base URLs
+Environment Base URL
+Production https://onboarding-prod.tuwaiqpay.com.sa
+UAT https://onboarding-uat.tuwaiqpay.com.sa
+7. Support and Contact
+For integration support, technical questions, or to report issues, please contact the
+TuwaiqPay integration team.
+Support Email: Support@tuwaiqpay.com.sa
+Integration Team: Contact your assigned integration specialist
+Technical Support: Available during business hours
+© 2026 TuwaiqPay. All rights reserved.
+This document is confidential and intended for authorized integration partners only.

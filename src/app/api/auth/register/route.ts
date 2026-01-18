@@ -17,6 +17,12 @@ const registerSchema = z.object({
         .regex(/[0-9]/, 'Password must contain at least one number'),
 });
 
+function addMonths(date: Date, months: number): Date {
+    const next = new Date(date);
+    next.setMonth(next.getMonth() + months);
+    return next;
+}
+
 export async function POST(request: Request) {
     try {
         const ip = request.headers.get('x-forwarded-for')?.split(',')[0] ||
@@ -52,26 +58,66 @@ export async function POST(request: Request) {
         // Determine if we should auto-verify (when email service not configured)
         const shouldAutoVerify = !isEmailConfigured();
 
-        // Create user with profile and subscription
-        const user = await prisma.user.create({
-            data: {
-                name,
-                email: normalizedEmail,
-                passwordHash,
-                emailVerified: shouldAutoVerify ? new Date() : null,
-                profile: {
-                    create: {
-                        firstName: name.split(' ')[0],
-                        lastName: name.split(' ').slice(1).join(' ') || null,
-                    },
-                },
-                subscription: {
-                    create: {
-                        plan: 'PRO',
-                        status: 'UNPAID',
-                    },
-                },
+        const now = new Date();
+        const pendingGift = await prisma.giftSubscription.findFirst({
+            where: {
+                recipientEmail: { equals: normalizedEmail, mode: 'insensitive' },
+                status: 'PENDING',
+                OR: [
+                    { expiresAt: null },
+                    { expiresAt: { gt: now } },
+                ],
             },
+            orderBy: { createdAt: 'desc' },
+        });
+
+        const giftDurationMonths = pendingGift?.interval === 'YEARLY' ? 12 : 1;
+        const giftPeriodEnd = pendingGift ? addMonths(now, giftDurationMonths) : null;
+
+        const user = await prisma.$transaction(async (tx) => {
+            const createdUser = await tx.user.create({
+                data: {
+                    name,
+                    email: normalizedEmail,
+                    passwordHash,
+                    emailVerified: shouldAutoVerify ? new Date() : null,
+                    profile: {
+                        create: {
+                            firstName: name.split(' ')[0],
+                            lastName: name.split(' ').slice(1).join(' ') || null,
+                        },
+                    },
+                    subscription: {
+                        create: pendingGift
+                            ? {
+                                plan: pendingGift.plan,
+                                status: 'ACTIVE',
+                                currentPeriodStart: now,
+                                currentPeriodEnd: giftPeriodEnd,
+                                cancelAtPeriodEnd: false,
+                                stripeSubscriptionId: null,
+                                stripePriceId: null,
+                            }
+                            : {
+                                plan: 'PRO',
+                                status: 'UNPAID',
+                            },
+                    },
+                },
+            });
+
+            if (pendingGift) {
+                await tx.giftSubscription.update({
+                    where: { id: pendingGift.id },
+                    data: {
+                        status: 'REDEEMED',
+                        redeemedAt: now,
+                        redeemedByUserId: createdUser.id,
+                    },
+                });
+            }
+
+            return createdUser;
         });
 
         // Log registration

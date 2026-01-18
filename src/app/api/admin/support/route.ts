@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db';
+import { isEmailConfigured, sendAdminEmail } from '@/lib/email';
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
@@ -208,6 +209,16 @@ export async function PUT(request: NextRequest) {
                     where: { id: ticketId },
                     data: updateData
                 });
+
+                if (isEmailConfigured()) {
+                    await sendAdminEmail({
+                        to: ticket.email,
+                        subject: `Support reply: ${ticket.subject}`,
+                        heading: 'We responded to your ticket',
+                        message: data.message,
+                        name: ticket.user?.name || undefined,
+                    });
+                }
                 break;
 
             case 'close':

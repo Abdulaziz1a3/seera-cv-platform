@@ -3,12 +3,12 @@
 // Content Security Policy
 const ContentSecurityPolicy = `
   default-src 'self';
-  script-src 'self' 'unsafe-eval' 'unsafe-inline' https://js.stripe.com https://www.googletagmanager.com https://www.google-analytics.com;
+  script-src 'self' 'unsafe-eval' 'unsafe-inline' https://www.googletagmanager.com https://www.google-analytics.com;
   style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
   img-src 'self' blob: data: https: https://lh3.googleusercontent.com https://avatars.githubusercontent.com;
   font-src 'self' https://fonts.gstatic.com;
-  connect-src 'self' https://api.stripe.com https://www.google-analytics.com https://api.openai.com https://vitals.vercel-insights.com;
-  frame-src 'self' https://js.stripe.com https://hooks.stripe.com;
+  connect-src 'self' https://www.google-analytics.com https://api.openai.com https://vitals.vercel-insights.com;
+  frame-src 'self';
   worker-src 'self' blob:;
   object-src 'none';
   base-uri 'self';

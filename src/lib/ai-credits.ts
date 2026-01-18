@@ -165,7 +165,7 @@ export async function recordAICreditUsage(params: {
 export async function recordAICreditTopup(params: {
     userId: string;
     amountSar: number;
-    source: 'stripe' | 'admin' | 'manual';
+    source: 'stripe' | 'tuwaiqpay' | 'admin' | 'manual';
     reference?: string;
 }): Promise<number> {
     const credits = sarToCredits(params.amountSar);

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { toast } from 'sonner';
 import {
@@ -28,6 +28,7 @@ export default function SettingsPage() {
     const { t, locale } = useLocale();
     const [isLoading, setIsLoading] = useState(false);
     const [name, setName] = useState(session?.user?.name || '');
+    const [phone, setPhone] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [notifications, setNotifications] = useState({
         resumeTips: true,
@@ -36,11 +37,46 @@ export default function SettingsPage() {
         marketing: false,
     });
 
+    useEffect(() => {
+        let mounted = true;
+        const loadProfile = async () => {
+            try {
+                const res = await fetch('/api/profile');
+                if (!res.ok) return;
+                const data = await res.json();
+                if (!mounted) return;
+                setName(data?.name || '');
+                setPhone(data?.phone || '');
+            } catch {
+                // Ignore
+            }
+        };
+        loadProfile();
+        return () => {
+            mounted = false;
+        };
+    }, []);
+
     const handleSaveProfile = async () => {
         setIsLoading(true);
-        await new Promise((r) => setTimeout(r, 1000));
-        toast.success(locale === 'ar' ? 'تم حفظ التغييرات' : 'Changes saved successfully');
-        setIsLoading(false);
+        try {
+            const res = await fetch('/api/profile', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, phone }),
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) {
+                throw new Error(data?.error || 'Failed to update profile');
+            }
+            await update({ name });
+            toast.success(locale === 'ar' ? 'تم حفظ التغييرات' : 'Changes saved successfully');
+        } catch (error) {
+            const message = error instanceof Error ? error.message : 'Failed to update profile';
+            toast.error(locale === 'ar' ? `تعذر حفظ التغييرات: ${message}` : `Failed to save: ${message}`);
+        } finally {
+            setIsLoading(false);
+        }
     };
 
 
@@ -113,6 +149,22 @@ export default function SettingsPage() {
                                     />
                                     <p className="text-xs text-muted-foreground">
                                         {t.settings.profile.emailHint}
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="grid gap-4 sm:grid-cols-2">
+                                <div className="space-y-2">
+                                    <Label htmlFor="phone">{locale === 'ar' ? 'رقم الهاتف' : 'Phone Number'}</Label>
+                                    <Input
+                                        id="phone"
+                                        value={phone}
+                                        onChange={(e) => setPhone(e.target.value)}
+                                        placeholder="+9665xxxxxxxx"
+                                    />
+                                    <p className="text-xs text-muted-foreground">
+                                        {locale === 'ar'
+                                            ? 'يستخدم الرقم لإتمام عمليات الدفع.'
+                                            : 'Required to complete payments.'}
                                     </p>
                                 </div>
                             </div>

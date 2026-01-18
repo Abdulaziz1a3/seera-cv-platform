@@ -11,10 +11,6 @@ import { sendGiftSubscriptionEmail } from './email';
 // Initialize Stripe with proper error handling
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
 
-if (!stripeSecretKey && process.env.NODE_ENV === 'production') {
-    logger.error('STRIPE_SECRET_KEY is not configured');
-}
-
 const stripe = stripeSecretKey
     ? new Stripe(stripeSecretKey, {
           apiVersion: '2023-10-16',

@@ -219,33 +219,33 @@ export default function AdminAnalyticsPage() {
 
     const conversionFunnel = data ? [
         {
-            stage: locale === 'ar' ? '??????? ???????' : 'Registered Users',
+            stage: locale === 'ar' ? 'المستخدمون المسجلون' : 'Registered Users',
             count: data.conversionFunnel.registeredUsers,
             rate: 100
         },
         {
-            stage: locale === 'ar' ? '????? ???????' : 'Users with Resumes',
+            stage: locale === 'ar' ? 'مستخدمون لديهم سير ذاتية' : 'Users with Resumes',
             count: data.conversionFunnel.usersWithResumes,
             rate: data.conversionFunnel.registeredUsers > 0
                 ? (data.conversionFunnel.usersWithResumes / data.conversionFunnel.registeredUsers) * 100
                 : 0
         },
         {
-            stage: locale === 'ar' ? '?????? ???????' : 'Resume Exports',
+            stage: locale === 'ar' ? 'تصديرات السير الذاتية' : 'Resume Exports',
             count: data.conversionFunnel.exports,
             rate: data.conversionFunnel.usersWithResumes > 0
                 ? (data.conversionFunnel.exports / data.conversionFunnel.usersWithResumes) * 100
                 : 0
         },
         {
-            stage: locale === 'ar' ? '?????????? ??????' : 'Active Subscriptions',
+            stage: locale === 'ar' ? 'الاشتراكات النشطة' : 'Active Subscriptions',
             count: data.conversionFunnel.activeSubscriptions,
             rate: data.conversionFunnel.registeredUsers > 0
                 ? (data.conversionFunnel.activeSubscriptions / data.conversionFunnel.registeredUsers) * 100
                 : 0
         },
         {
-            stage: locale === 'ar' ? '?????????? ????????' : 'Enterprise Subscribers',
+            stage: locale === 'ar' ? 'مشتركو إنتربرايز' : 'Enterprise Subscribers',
             count: data.conversionFunnel.enterpriseSubscriptions,
             rate: data.conversionFunnel.activeSubscriptions > 0
                 ? (data.conversionFunnel.enterpriseSubscriptions / data.conversionFunnel.activeSubscriptions) * 100

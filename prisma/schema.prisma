@@ -45,6 +45,7 @@ model User {
     recruiterSavedSearches RecruiterSavedSearch[]
   giftSubscriptionsSent GiftSubscription[] @relation("GiftSubscriptionsSent")
   giftSubscriptionsRedeemed GiftSubscription[] @relation("GiftSubscriptionsRedeemed")
+  paymentTransactions PaymentTransaction[]
 
   // Two-factor authentication
   twoFactorEnabled Boolean @default(false)
@@ -549,11 +550,49 @@ model GiftSubscription {
   redeemedBy        User?      @relation("GiftSubscriptionsRedeemed", fields: [redeemedByUserId], references: [id], onDelete: SetNull)
   createdAt         DateTime   @default(now())
   updatedAt         DateTime   @updatedAt
+  paymentTransactions PaymentTransaction[]
 
   @@index([createdByUserId])
   @@index([recipientEmail])
   @@index([status])
   @@index([expiresAt])
+}
+
+model PaymentTransaction {
+  id                     String          @id @default(cuid())
+  provider               PaymentProvider @default(TUWAIQPAY)
+  status                 PaymentStatus   @default(PENDING)
+  purpose                PaymentPurpose
+
+  userId                 String?
+  user                   User?           @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  providerTransactionId  String?         @unique
+  providerBillId         String?         @unique
+  providerReference      String?
+  paymentLink            String?
+
+  amountSar              Float
+  currency               String          @default("SAR")
+  plan                   PlanType?
+  interval               GiftInterval?
+  credits                Float?
+  recipientEmail         String?
+  message                String?
+  metadata               Json?
+  paidAt                 DateTime?
+
+  giftId                 String?
+  giftSubscription       GiftSubscription? @relation(fields: [giftId], references: [id], onDelete: SetNull)
+
+  createdAt              DateTime        @default(now())
+  updatedAt              DateTime        @updatedAt
+
+  @@index([provider])
+  @@index([status])
+  @@index([purpose])
+  @@index([userId])
+  @@index([giftId])
 }
 
 enum PlanType {
@@ -572,6 +611,23 @@ enum GiftStatus {
   REDEEMED
   EXPIRED
   CANCELED
+}
+
+enum PaymentProvider {
+  TUWAIQPAY
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  EXPIRED
+}
+
+enum PaymentPurpose {
+  SUBSCRIPTION
+  AI_CREDITS
+  GIFT
 }
 
 enum SubscriptionStatus {

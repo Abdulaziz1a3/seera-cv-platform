@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db';
+import { generateVerificationToken } from '@/lib/auth';
+import { isEmailConfigured, sendAdminEmail, sendPasswordResetEmail } from '@/lib/email';
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
@@ -17,8 +19,11 @@ export async function GET(request: NextRequest) {
         const search = searchParams.get('search') || '';
         const plan = searchParams.get('plan') || 'all';
         const status = searchParams.get('status') || 'all';
+        const exportFormat = searchParams.get('export') || '';
 
-        const skip = (page - 1) * limit;
+        const exportLimit = Math.min(parseInt(searchParams.get('limit') || '1000'), 10000);
+        const skip = exportFormat ? 0 : (page - 1) * limit;
+        const take = exportFormat ? exportLimit : limit;
 
         // Build where clause
         const where: any = {
@@ -50,7 +55,7 @@ export async function GET(request: NextRequest) {
                 where,
                 orderBy: { createdAt: 'desc' },
                 skip,
-                take: limit,
+                take,
                 include: {
                     subscription: {
                         select: { plan: true, status: true }
@@ -96,6 +101,38 @@ export async function GET(request: NextRequest) {
             lastActive: lastActiveMap.get(user.id) || user.updatedAt
         }));
 
+        if (exportFormat === 'csv') {
+            const header = [
+                'Name',
+                'Email',
+                'Role',
+                'Plan',
+                'Status',
+                'Resumes',
+                'Joined',
+                'Last Active',
+            ];
+            const escapeCsv = (value: string) => `"${value.replace(/"/g, '""')}"`;
+            const rows = formattedUsers.map((user) => [
+                escapeCsv(user.name),
+                escapeCsv(user.email),
+                escapeCsv(user.role),
+                escapeCsv(user.plan),
+                escapeCsv(user.status),
+                user.resumes.toString(),
+                new Date(user.createdAt).toISOString(),
+                new Date(user.lastActive).toISOString(),
+            ]);
+            const csv = [header, ...rows].map((row) => row.join(',')).join('\n');
+
+            return new NextResponse(csv, {
+                headers: {
+                    'Content-Type': 'text/csv; charset=utf-8',
+                    'Content-Disposition': 'attachment; filename="users-export.csv"',
+                },
+            });
+        }
+
         return NextResponse.json({
             users: formattedUsers,
             pagination: {
@@ -123,22 +160,48 @@ export async function PUT(request: NextRequest) {
         }
 
         const body = await request.json();
-        const { userId, action, data } = body;
+        const { userId, userIds, action, data } = body;
 
-        if (!userId || !action) {
+        if ((!userId && !userIds) || !action) {
             return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
         }
 
-        let result;
+        const targetIds = Array.isArray(userIds)
+            ? userIds
+            : userId
+                ? [userId]
+                : [];
+
+        let result: any;
 
         switch (action) {
             case 'update':
-                result = await prisma.user.update({
-                    where: { id: userId },
-                    data: {
-                        name: data.name,
-                        role: data.role,
+                if (data?.role === 'SUPER_ADMIN' && session.user.role !== 'SUPER_ADMIN') {
+                    return NextResponse.json({ error: 'Only super admins can grant SUPER_ADMIN' }, { status: 403 });
+                }
+
+                result = await prisma.$transaction(async (tx) => {
+                    const updatedUser = await tx.user.update({
+                        where: { id: userId },
+                        data: {
+                            name: data.name,
+                            role: data.role,
+                        }
+                    });
+
+                    if (data?.plan) {
+                        await tx.subscription.upsert({
+                            where: { userId },
+                            update: { plan: data.plan },
+                            create: {
+                                userId,
+                                plan: data.plan,
+                                status: 'ACTIVE'
+                            }
+                        });
                     }
+
+                    return updatedUser;
                 });
                 break;
 
@@ -176,6 +239,70 @@ export async function PUT(request: NextRequest) {
                 });
                 break;
 
+            case 'reset_password': {
+                const user = await prisma.user.findUnique({ where: { id: userId } });
+                if (!user) {
+                    return NextResponse.json({ error: 'User not found' }, { status: 404 });
+                }
+
+                const token = await generateVerificationToken(user.email, 'PASSWORD_RESET');
+                if (isEmailConfigured()) {
+                    const emailResult = await sendPasswordResetEmail(user.email, token, user.name || undefined);
+                    if (!emailResult.success) {
+                        return NextResponse.json({ error: emailResult.error || 'Failed to send reset email' }, { status: 500 });
+                    }
+                } else {
+                    return NextResponse.json({ error: 'Email service not configured' }, { status: 503 });
+                }
+
+                result = { email: user.email };
+                break;
+            }
+
+            case 'send_email': {
+                if (!isEmailConfigured()) {
+                    return NextResponse.json({ error: 'Email service not configured' }, { status: 503 });
+                }
+                if (!data?.subject || !data?.message) {
+                    return NextResponse.json({ error: 'Subject and message are required' }, { status: 400 });
+                }
+
+                const recipients = await prisma.user.findMany({
+                    where: { id: { in: targetIds } },
+                    select: { id: true, email: true, name: true }
+                });
+
+                const results = await Promise.allSettled(
+                    recipients.map((recipient) =>
+                        sendAdminEmail({
+                            to: recipient.email,
+                            subject: data.subject,
+                            heading: data.subject,
+                            message: data.message,
+                            name: recipient.name || undefined
+                        })
+                    )
+                );
+
+                const failures = results.filter((res) =>
+                    res.status === 'rejected' || (res.status === 'fulfilled' && !res.value.success)
+                );
+                result = { sent: recipients.length - failures.length, failed: failures.length };
+                break;
+            }
+
+            case 'bulk_suspend': {
+                const updated = await prisma.user.updateMany({
+                    where: {
+                        id: { in: targetIds },
+                        role: { not: 'SUPER_ADMIN' }
+                    },
+                    data: { deletedAt: new Date() }
+                });
+                result = { updated: updated.count };
+                break;
+            }
+
             default:
                 return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
         }
@@ -186,8 +313,8 @@ export async function PUT(request: NextRequest) {
                 userId: session.user.id,
                 action: `user.${action}`,
                 entity: 'User',
-                entityId: userId,
-                details: { action, data }
+                entityId: userId || targetIds[0],
+                details: { action, data, targetIds }
             }
         });
 

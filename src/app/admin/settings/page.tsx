@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { useLocale } from '@/components/providers/locale-provider';
 import { Button } from '@/components/ui/button';
@@ -11,10 +11,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Skeleton } from '@/components/ui/skeleton';
+import { defaultAdminSettings } from '@/lib/admin-settings';
 import {
-    Settings,
     Globe,
-    Bell,
     Shield,
     Mail,
     Palette,
@@ -25,30 +25,79 @@ import {
 export default function AdminSettingsPage() {
     const { locale } = useLocale();
     const [isSaving, setIsSaving] = useState(false);
+    const [loading, setLoading] = useState(true);
+    const [settings, setSettings] = useState(defaultAdminSettings);
 
-    const [settings, setSettings] = useState({
-        siteName: 'Seera AI',
-        siteDescription: 'Professional ATS-Friendly Resume Builder',
-        supportEmail: 'info@seera-sa.com',
-        maintenanceMode: false,
-        registrationEnabled: true,
-        emailVerification: true,
-        twoFactorAuth: false,
-        apiRateLimit: 100,
-        maxResumesPerUser: 5,
-        maxFileSize: 10,
-        smtpHost: 'smtp.mailgun.org',
-        smtpPort: 587,
-        primaryColor: '#2563eb',
-        allowDarkMode: true,
-    });
+    useEffect(() => {
+        const fetchSettings = async () => {
+            setLoading(true);
+            try {
+                const res = await fetch('/api/admin/settings');
+                if (!res.ok) throw new Error('Failed to load settings');
+                const json = await res.json();
+                setSettings(json.settings || defaultAdminSettings);
+            } catch (error) {
+                toast.error(locale === 'ar' ? 'فشل تحميل الإعدادات' : 'Failed to load settings');
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchSettings();
+    }, [locale]);
 
     const handleSave = async () => {
         setIsSaving(true);
-        await new Promise((r) => setTimeout(r, 1000));
-        toast.success(locale === 'ar' ? 'تم حفظ الإعدادات' : 'Settings saved successfully');
-        setIsSaving(false);
+        try {
+            const res = await fetch('/api/admin/settings', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ settings }),
+            });
+            if (!res.ok) {
+                const json = await res.json().catch(() => ({}));
+                throw new Error(json.error || 'Failed to save settings');
+            }
+            toast.success(locale === 'ar' ? 'تم حفظ الإعدادات' : 'Settings saved successfully');
+        } catch (error: any) {
+            toast.error(error.message || (locale === 'ar' ? 'فشل حفظ الإعدادات' : 'Failed to save settings'));
+        } finally {
+            setIsSaving(false);
+        }
     };
+
+    const handleTestEmail = async () => {
+        try {
+            const res = await fetch('/api/admin/settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: settings.supportEmail }),
+            });
+            if (!res.ok) {
+                const json = await res.json().catch(() => ({}));
+                throw new Error(json.error || 'Failed to send test email');
+            }
+            toast.success(locale === 'ar' ? 'تم إرسال رسالة اختبار' : 'Test email sent');
+        } catch (error: any) {
+            toast.error(error.message || (locale === 'ar' ? 'فشل إرسال رسالة الاختبار' : 'Failed to send test email'));
+        }
+    };
+
+    if (loading) {
+        return (
+            <div className="space-y-6">
+                <Skeleton className="h-10 w-48" />
+                <Skeleton className="h-4 w-64" />
+                <Card>
+                    <CardContent className="pt-6 space-y-4">
+                        <Skeleton className="h-10 w-full" />
+                        <Skeleton className="h-10 w-full" />
+                        <Skeleton className="h-24 w-full" />
+                    </CardContent>
+                </Card>
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-6">
@@ -224,7 +273,7 @@ export default function AdminSettingsPage() {
                                     />
                                 </div>
                             </div>
-                            <Button variant="outline">
+                            <Button variant="outline" onClick={handleTestEmail} disabled={isSaving}>
                                 {locale === 'ar' ? 'اختبار الاتصال' : 'Test Connection'}
                             </Button>
                         </CardContent>

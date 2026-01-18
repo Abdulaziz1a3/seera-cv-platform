@@ -29,7 +29,7 @@ export default function PrivacyPage() {
                             <li><strong>Account Information:</strong> Email address, name, password</li>
                             <li><strong>Profile Information:</strong> Phone number, location, professional details</li>
                             <li><strong>Resume Content:</strong> Work history, education, skills, and other resume data</li>
-                            <li><strong>Payment Information:</strong> Processed securely through Stripe; we don't store card details</li>
+                            <li><strong>Payment Information:</strong> Processed securely through TuwaiqPay; we don't store card details</li>
                             <li><strong>Communications:</strong> Support tickets, emails, and feedback</li>
                         </ul>
 
@@ -70,7 +70,7 @@ export default function PrivacyPage() {
                             We do <strong>not</strong> sell your personal information. We may share data with:
                         </p>
                         <ul>
-                            <li><strong>Service Providers:</strong> Stripe for payments, email providers for notifications</li>
+                            <li><strong>Service Providers:</strong> TuwaiqPay for payments, email providers for notifications</li>
                             <li><strong>AI Providers:</strong> Resume content may be processed by AI services to generate suggestions (data is not retained by providers)</li>
                             <li><strong>Legal Requirements:</strong> When required by law or to protect our rights</li>
                         </ul>
