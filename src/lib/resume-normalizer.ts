@@ -11,6 +11,7 @@ export interface ResumeAIProfile {
     contact: {
         fullName: string;
         email: string;
+        photo?: string;
         phone?: string;
         location?: string;
         linkedin?: string;
