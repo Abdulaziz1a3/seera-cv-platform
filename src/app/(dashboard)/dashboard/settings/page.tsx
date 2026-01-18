@@ -1,9 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 import {
     User,
@@ -55,7 +54,7 @@ type GiftListItem = {
 export default function SettingsPage() {
     const { data: session, update } = useSession();
     const { t, locale } = useLocale();
-    const searchParams = useSearchParams();
+    const giftParamHandled = useRef(false);
     const [isLoading, setIsLoading] = useState(false);
     const [name, setName] = useState(session?.user?.name || '');
     const [showPassword, setShowPassword] = useState(false);
@@ -121,14 +120,19 @@ export default function SettingsPage() {
     }, []);
 
     useEffect(() => {
-        if (searchParams.get('giftSuccess')) {
+        if (giftParamHandled.current || typeof window === 'undefined') {
+            return;
+        }
+        giftParamHandled.current = true;
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('giftSuccess')) {
             toast.success(locale === 'ar' ? 'تم شراء الهدية بنجاح!' : 'Gift purchase complete!');
             fetchGifts();
         }
-        if (searchParams.get('giftCanceled')) {
+        if (params.get('giftCanceled')) {
             toast.info(locale === 'ar' ? 'تم إلغاء عملية الشراء.' : 'Gift purchase canceled.');
         }
-    }, [searchParams, locale]);
+    }, [locale]);
 
     const handleSaveProfile = async () => {
         setIsLoading(true);
