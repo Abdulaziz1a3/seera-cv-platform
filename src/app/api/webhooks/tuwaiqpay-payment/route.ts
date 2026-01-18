@@ -70,12 +70,16 @@ export async function POST(request: Request) {
 
     if (!isPaymentSuccess(status)) {
         if (isPaymentFailure(status)) {
+            const existingMetadata =
+                payment.metadata && typeof payment.metadata === 'object'
+                    ? (payment.metadata as Record<string, unknown>)
+                    : {};
             await prisma.paymentTransaction.updateMany({
                 where: { id: payment.id, status: 'PENDING' },
                 data: {
                     status: status.toUpperCase() === 'EXPIRED' ? 'EXPIRED' : 'FAILED',
                     metadata: {
-                        ...(payment.metadata || {}),
+                        ...existingMetadata,
                         webhookStatus: status,
                     },
                 },
@@ -86,13 +90,17 @@ export async function POST(request: Request) {
 
     const now = new Date();
     await prisma.$transaction(async (tx) => {
+        const existingMetadata =
+            payment.metadata && typeof payment.metadata === 'object'
+                ? (payment.metadata as Record<string, unknown>)
+                : {};
         const updated = await tx.paymentTransaction.updateMany({
             where: { id: payment.id, status: 'PENDING' },
             data: {
                 status: 'PAID',
                 paidAt: now,
                 metadata: {
-                    ...(payment.metadata || {}),
+                    ...existingMetadata,
                     webhookStatus: status,
                     transactionId,
                     billId,
