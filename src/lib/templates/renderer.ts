@@ -5,7 +5,7 @@ import { jsPDF } from 'jspdf';
 import type { ResumeData, TemplateId, ThemeId, ThemePalette, TemplateConfig } from '../resume-types';
 import { getTheme, hexToRgb, getContrastColor } from './themes';
 import { getTemplateConfig, getSectionHeader, formatDate, getPresentText } from './index';
-import { hasArabicContent, formatTextForPDF } from './fonts';
+import { hasArabicContent, formatTextForPDF, containsArabic } from './fonts';
 import { ensureArabicFonts } from './pdf-fonts';
 
 // ============================================
@@ -22,6 +22,7 @@ class PDFRenderer {
   private y: number = 0;
   private fontFamily: string = 'helvetica';
   private isArabicMode: boolean = false;
+  private fontStyle: 'normal' | 'bold' | 'italic' | 'bolditalic' = 'normal';
 
   constructor(templateId: TemplateId, themeId: ThemeId, locale: 'en' | 'ar' = 'en') {
     this.doc = new jsPDF({
@@ -97,22 +98,41 @@ class PDFRenderer {
     return formatTextForPDF(text, this.isArabicMode);
   }
 
+  private getFontFamilyForText(text: string): string {
+    if (this.isArabicMode && containsArabic(text)) {
+      return 'NotoSansArabic';
+    }
+    return 'helvetica';
+  }
+
+  private getFontStyleForFamily(family: string): 'normal' | 'bold' | 'italic' | 'bolditalic' {
+    if (family === 'NotoSansArabic' && (this.fontStyle === 'italic' || this.fontStyle === 'bolditalic')) {
+      return 'normal';
+    }
+    return this.fontStyle;
+  }
+
   private text(text: string, x: number, y: number, options?: any) {
+    const family = this.getFontFamilyForText(text);
+    this.doc.setFont(family, this.getFontStyleForFamily(family));
     this.doc.text(this.formatText(text), x, y, options);
   }
 
   private splitText(text: string, maxWidth: number): string[] {
+    const family = this.getFontFamilyForText(text);
+    this.doc.setFont(family, this.getFontStyleForFamily(family));
     return this.doc.splitTextToSize(this.formatText(text), maxWidth);
   }
 
   private getTextWidth(text: string): number {
+    const family = this.getFontFamilyForText(text);
+    this.doc.setFont(family, this.getFontStyleForFamily(family));
     return this.doc.getTextWidth(this.formatText(text));
   }
 
   private setFont(style: 'normal' | 'bold' | 'italic' | 'bolditalic' = 'normal') {
-    const safeStyle = this.isArabicMode && (style === 'italic' || style === 'bolditalic')
-      ? 'normal'
-      : style;
+    this.fontStyle = style;
+    const safeStyle = this.getFontStyleForFamily(this.fontFamily);
     this.doc.setFont(this.fontFamily, safeStyle);
   }
 

@@ -242,8 +242,9 @@ export default function LiveInterviewPage() {
         }));
     }, [interviewLang, questionCount]);
 
-    const unlockAudio = useCallback(async () => {
-        if (!audioRef.current || audioUnlocked) return;
+    const unlockAudio = useCallback(async (): Promise<boolean> => {
+        if (!audioRef.current) return false;
+        if (audioUnlocked) return true;
         try {
             audioRef.current.src = SILENT_AUDIO_DATA_URL;
             audioRef.current.muted = true;
@@ -252,11 +253,13 @@ export default function LiveInterviewPage() {
             audioRef.current.currentTime = 0;
             audioRef.current.muted = false;
             setAudioUnlocked(true);
+            return true;
         } catch {
             if (!audioErrorShown) {
                 setAudioErrorShown(true);
                 toast.error(locale === 'ar' ? 'الرجاء النقر لتفعيل الصوت' : 'Please click once to enable audio');
             }
+            return false;
         }
     }, [audioUnlocked, audioErrorShown, locale]);
 
@@ -293,6 +296,14 @@ export default function LiveInterviewPage() {
             toast.success(interviewLang.startsWith('ar') ? 'تم تفعيل الميكروفون' : 'Microphone enabled');
         }
     }, [interviewLang, requestMicAccess]);
+
+    const handleEnableAudio = useCallback(async () => {
+        const ok = await unlockAudio();
+        if (ok) {
+            setAudioBlocked(false);
+            toast.success(interviewLang.startsWith('ar') ? 'تم تفعيل الصوت' : 'Sound enabled');
+        }
+    }, [interviewLang, unlockAudio]);
 
     const pickSpeechVoice = useCallback(() => {
         if (typeof window === 'undefined' || !('speechSynthesis' in window)) return undefined;
@@ -1192,6 +1203,38 @@ export default function LiveInterviewPage() {
                                             <SelectItem value="onyx">Onyx (Male - Deep)</SelectItem>
                                         </SelectContent>
                                     </Select>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium flex items-center gap-2">
+                                        <Volume2 className="h-4 w-4" />
+                                        {locale === 'ar' ? 'تشغيل الصوت' : 'Sound output'}
+                                    </label>
+                                    <div className="flex flex-wrap items-center gap-3">
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            onClick={handleEnableAudio}
+                                            disabled={audioUnlocked}
+                                        >
+                                            {audioUnlocked
+                                                ? (locale === 'ar' ? 'الصوت مفعّل' : 'Sound enabled')
+                                                : (locale === 'ar' ? 'تفعيل الصوت' : 'Enable sound')}
+                                        </Button>
+                                        <span className="text-xs text-muted-foreground">
+                                            {audioBlocked
+                                                ? (locale === 'ar'
+                                                    ? 'اضغط لتفعيل الصوت قبل بدء المقابلة'
+                                                    : 'Click to enable sound before starting')
+                                                : audioUnlocked
+                                                    ? (locale === 'ar'
+                                                        ? 'جاهز لتشغيل صوت الذكاء الاصطناعي'
+                                                        : 'Ready for AI voice playback')
+                                                    : (locale === 'ar'
+                                                        ? 'يتطلب نقرة واحدة لتفعيل الصوت'
+                                                        : 'Requires one click to enable audio')}
+                                        </span>
+                                    </div>
                                 </div>
 
                                 <div className="space-y-2">

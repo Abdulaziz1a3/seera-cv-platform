@@ -147,6 +147,191 @@ const GCC_SALARY_DATA: Record<string, Record<string, { min: number; max: number 
     },
 };
 
+const TRACK_SKILLS: Record<'en' | 'ar', Record<CareerPath['track'], string[]>> = {
+    en: {
+        technical: ['System design', 'Cloud platforms', 'APIs', 'Data analysis', 'Automation'],
+        management: ['Leadership', 'Stakeholder management', 'Strategic planning', 'OKRs', 'Budgeting'],
+        specialist: ['Domain expertise', 'Process optimization', 'Quality standards', 'Client management', 'Reporting'],
+        entrepreneurial: ['Go-to-market', 'Product strategy', 'Growth marketing', 'Fundraising', 'Operations'],
+    },
+    ar: {
+        technical: ['تصميم الأنظمة', 'منصات السحابة', 'واجهات برمجية', 'تحليل البيانات', 'الأتمتة'],
+        management: ['القيادة', 'إدارة أصحاب المصلحة', 'التخطيط الاستراتيجي', 'أهداف الأداء', 'إدارة الميزانية'],
+        specialist: ['خبرة تخصصية', 'تحسين العمليات', 'معايير الجودة', 'إدارة العملاء', 'التقارير'],
+        entrepreneurial: ['استراتيجية السوق', 'استراتيجية المنتج', 'نمو الأعمال', 'التمويل', 'العمليات'],
+    },
+};
+
+const FALLBACK_ACTIONS: Record<'en' | 'ar', Array<{ title: string; description: string; category: WeeklyAction['category'] }>> = {
+    en: [
+        {
+            title: 'Refine your resume summary',
+            description: 'Update the summary to match your target role and highlight impact.',
+            category: 'learning',
+        },
+        {
+            title: 'Build a measurable achievement',
+            description: 'Add 2 quantified achievements to your most recent role.',
+            category: 'project',
+        },
+        {
+            title: 'Grow your network',
+            description: 'Connect with 5 professionals in your target industry on LinkedIn.',
+            category: 'network',
+        },
+    ],
+    ar: [
+        {
+            title: 'تحديث ملخص السيرة',
+            description: 'حدّث الملخص ليتوافق مع الدور المستهدف ويبرز تأثيرك.',
+            category: 'learning',
+        },
+        {
+            title: 'إضافة إنجازات رقمية',
+            description: 'أضف إنجازين بأرقام واضحة في أحدث خبراتك.',
+            category: 'project',
+        },
+        {
+            title: 'توسيع شبكة العلاقات',
+            description: 'تواصل مع 5 محترفين في المجال المستهدف عبر لينكدإن.',
+            category: 'network',
+        },
+    ],
+};
+
+function normalizeSkill(skill: string): string {
+    return skill.trim().toLowerCase();
+}
+
+function inferTrack(role: string): CareerPath['track'] {
+    const normalized = role.toLowerCase();
+    if (/(manager|lead|director|head|chief)/.test(normalized)) return 'management';
+    if (/(founder|entrepreneur|startup|co-founder)/.test(normalized)) return 'entrepreneurial';
+    if (/(engineer|developer|software|data|analyst|devops|security)/.test(normalized)) return 'technical';
+    return 'specialist';
+}
+
+function buildFallbackPaths(
+    role: string,
+    locale: 'en' | 'ar',
+    track: CareerPath['track']
+): CareerPath[] {
+    const labelRole = role || (locale === 'ar' ? 'مختص' : 'Professional');
+    const trackSkills = TRACK_SKILLS[locale][track];
+    const mgmtSkills = TRACK_SKILLS[locale].management;
+
+    const primaryName = locale === 'ar' ? `مسار التخصص في ${labelRole}` : `Senior ${labelRole}`;
+    const primaryDescription = locale === 'ar'
+        ? 'تطوير التخصص مع أثر واضح وتحسين النتائج.'
+        : `Deepen expertise in ${labelRole} with measurable impact.`;
+
+    const leadershipName = locale === 'ar'
+        ? `مسار القيادة في ${labelRole}`
+        : `Team Lead / Manager (${labelRole})`;
+    const leadershipDescription = locale === 'ar'
+        ? 'الانتقال إلى القيادة عبر إدارة الفريق والاستراتيجية.'
+        : 'Move into leadership through team ownership and strategic delivery.';
+
+    return [
+        {
+            id: 'path-specialist',
+            name: primaryName,
+            description: primaryDescription,
+            track,
+            timeline: [
+                {
+                    title: locale === 'ar' ? `أخصائي أول ${labelRole}` : `Senior ${labelRole}`,
+                    yearsFromNow: 1,
+                    keySkills: trackSkills.slice(0, 3),
+                    description: locale === 'ar'
+                        ? 'تعميق الخبرة وتسليم نتائج أعلى تأثيراً.'
+                        : 'Increase scope, impact, and ownership of outcomes.',
+                },
+                {
+                    title: locale === 'ar' ? `قائد ${labelRole}` : `Lead ${labelRole}`,
+                    yearsFromNow: 3,
+                    keySkills: trackSkills.slice(0, 4),
+                    description: locale === 'ar'
+                        ? 'قيادة مبادرات أكبر وتوجيه الفريق فنياً.'
+                        : 'Lead larger initiatives and mentor peers.',
+                },
+            ],
+            salaryProgression: [],
+            probability: 70,
+            requirements: trackSkills,
+        },
+        {
+            id: 'path-leadership',
+            name: leadershipName,
+            description: leadershipDescription,
+            track: 'management',
+            timeline: [
+                {
+                    title: locale === 'ar' ? `مشرف ${labelRole}` : `Supervisor (${labelRole})`,
+                    yearsFromNow: 2,
+                    keySkills: mgmtSkills.slice(0, 3),
+                    description: locale === 'ar'
+                        ? 'إدارة مهام الفريق وتنسيق أصحاب المصلحة.'
+                        : 'Own team delivery and stakeholder alignment.',
+                },
+                {
+                    title: locale === 'ar' ? `مدير ${labelRole}` : `Manager (${labelRole})`,
+                    yearsFromNow: 4,
+                    keySkills: mgmtSkills.slice(0, 4),
+                    description: locale === 'ar'
+                        ? 'قيادة الفريق وتحقيق أهداف الأداء.'
+                        : 'Drive strategy, performance, and team growth.',
+                },
+            ],
+            salaryProgression: [],
+            probability: 55,
+            requirements: mgmtSkills,
+        },
+    ];
+}
+
+function buildFallbackSkillGaps(
+    resumeSkills: string[],
+    locale: 'en' | 'ar',
+    track: CareerPath['track']
+): SkillGap[] {
+    const normalizedSkills = resumeSkills.map(normalizeSkill);
+    const recommended = TRACK_SKILLS[locale][track];
+    const missing = recommended.filter((skill) => !normalizedSkills.includes(normalizeSkill(skill)));
+    const gaps = missing.slice(0, 3);
+    const estimate = locale === 'ar' ? '4-6 أسابيع' : '4-6 weeks';
+
+    return gaps.map((skill, index) => ({
+        skill,
+        currentLevel: 'beginner',
+        requiredLevel: 'advanced',
+        priority: index === 0 ? 'high' : 'medium',
+        resources: [],
+        estimatedTimeToAcquire: estimate,
+    }));
+}
+
+function buildFallbackStrengths(resumeSkills: string[], locale: 'en' | 'ar'): string[] {
+    if (resumeSkills.length >= 3) {
+        return resumeSkills.slice(0, 3);
+    }
+    return locale === 'ar'
+        ? ['التعلّم السريع', 'المرونة', 'الالتزام بالجودة']
+        : ['Fast learner', 'Adaptable', 'Quality-focused'];
+}
+
+function buildFallbackWeeklyActions(locale: 'en' | 'ar'): WeeklyAction[] {
+    return FALLBACK_ACTIONS[locale].map((action, index) => ({
+        id: `fallback-action-${index + 1}`,
+        title: action.title,
+        description: action.description,
+        category: action.category,
+        priority: index === 0 ? 'high' : 'medium',
+        estimatedHours: index === 0 ? 2 : 1,
+        completed: false,
+    }));
+}
+
 // Get salary range for role and level
 function getSalaryRange(role: string, level: string): { min: number; max: number } {
     const roleData = GCC_SALARY_DATA[role] || GCC_SALARY_DATA['default'];
@@ -287,25 +472,59 @@ Generate 1-2 realistic career paths with 2-3 milestones each. Include 2-3 skill 
         analysis = {};
     }
 
-    // Enrich career paths with salary data
-    const enrichedPaths = (analysis.careerPaths || []).map((path: any) => ({
-        ...path,
-        timeline: (path.timeline || []).map((milestone: any, index: number) => ({
-            ...milestone,
-            salaryRange: getSalaryRange(
-                milestone.title || currentRole,
-                ['mid', 'senior', 'lead', 'director', 'executive'][Math.min(index, 4)]
-            ),
-        })),
-        salaryProgression: (path.timeline || []).map((_: any, index: number) => {
-            const level = ['mid', 'senior', 'lead', 'director', 'executive'][Math.min(index, 4)];
-            const range = getSalaryRange(currentRole, level);
-            return (range.min + range.max) / 2;
-        }),
-    }));
+    const localeKey: 'en' | 'ar' = locale === 'ar' ? 'ar' : 'en';
+    const inferredTrack = inferTrack(currentRole);
+    const fallbackPaths = buildFallbackPaths(currentRole, localeKey, inferredTrack);
+
+    // Enrich career paths with salary data + fallback data
+    const basePaths = Array.isArray(analysis.careerPaths) && analysis.careerPaths.length > 0
+        ? analysis.careerPaths
+        : fallbackPaths;
+    const enrichedPaths = basePaths.map((path: any, index: number) => {
+        const fallbackPath = fallbackPaths[index] || fallbackPaths[0];
+        const timeline = Array.isArray(path.timeline) && path.timeline.length > 0
+            ? path.timeline
+            : fallbackPath.timeline;
+
+        return {
+            id: path.id || fallbackPath.id || `path-${index + 1}`,
+            name: path.name || fallbackPath.name,
+            description: path.description || fallbackPath.description,
+            track: path.track || fallbackPath.track || inferredTrack,
+            timeline: timeline.map((milestone: any, mIndex: number) => ({
+                ...milestone,
+                title: milestone.title || fallbackPath.timeline[mIndex]?.title || fallbackPath.timeline[0]?.title,
+                yearsFromNow: Number.isFinite(milestone.yearsFromNow)
+                    ? milestone.yearsFromNow
+                    : fallbackPath.timeline[mIndex]?.yearsFromNow || 1,
+                keySkills: Array.isArray(milestone.keySkills) && milestone.keySkills.length > 0
+                    ? milestone.keySkills
+                    : fallbackPath.timeline[mIndex]?.keySkills || fallbackPath.timeline[0]?.keySkills || [],
+                description: milestone.description || fallbackPath.timeline[mIndex]?.description || '',
+                salaryRange: getSalaryRange(
+                    milestone.title || currentRole,
+                    ['mid', 'senior', 'lead', 'director', 'executive'][Math.min(mIndex, 4)]
+                ),
+            })),
+            salaryProgression: timeline.map((_: any, mIndex: number) => {
+                const level = ['mid', 'senior', 'lead', 'director', 'executive'][Math.min(mIndex, 4)];
+                const range = getSalaryRange(currentRole, level);
+                return (range.min + range.max) / 2;
+            }),
+            probability: Number.isFinite(path.probability) ? path.probability : (fallbackPath.probability || 60),
+            requirements: Array.isArray(path.requirements) && path.requirements.length > 0
+                ? path.requirements
+                : fallbackPath.requirements || [],
+        };
+    });
+
+    const skillGapsFallback = buildFallbackSkillGaps(trimmedSkills, localeKey, inferredTrack);
+    const resolvedSkillGaps = Array.isArray(analysis.skillGaps) && analysis.skillGaps.length > 0
+        ? analysis.skillGaps
+        : skillGapsFallback;
 
     // Calculate career score
-    const careerScore = calculateCareerScore(resume, analysis.skillGaps || []);
+    const careerScore = calculateCareerScore(resume, resolvedSkillGaps);
 
     return {
         currentPosition: {
@@ -316,23 +535,46 @@ Generate 1-2 realistic career paths with 2-3 milestones each. Include 2-3 skill 
             marketDemand: 'high',
         },
         careerPaths: enrichedPaths,
-        skillGaps: (analysis.skillGaps || []).map((gap: any) => ({
+        skillGaps: resolvedSkillGaps.map((gap: any) => ({
             ...gap,
             currentLevel: gap.currentLevel || 'beginner',
             requiredLevel: gap.requiredLevel || 'advanced',
             resources: gap.resources || [],
         })),
-        strengths: analysis.strengths || [],
-        weeklyActions: (analysis.weeklyActions || []).map((action: any) => ({
+        strengths: Array.isArray(analysis.strengths) && analysis.strengths.length > 0
+            ? analysis.strengths
+            : buildFallbackStrengths(trimmedSkills, localeKey),
+        weeklyActions: (Array.isArray(analysis.weeklyActions) && analysis.weeklyActions.length > 0
+            ? analysis.weeklyActions
+            : buildFallbackWeeklyActions(localeKey)
+        ).map((action: any, index: number) => ({
+            id: action.id || `action-${index + 1}`,
             ...action,
             completed: false,
         })),
         careerScore,
-        industryInsights: analysis.industryInsights || {
-            trendingSkills: [],
-            hotIndustries: [],
-            saudizationOpportunities: [],
-            salaryTrends: '',
+        industryInsights: {
+            trendingSkills: analysis.industryInsights?.trendingSkills?.length
+                ? analysis.industryInsights.trendingSkills
+                : TRACK_SKILLS[localeKey][inferredTrack].slice(0, 4),
+            hotIndustries: analysis.industryInsights?.hotIndustries?.length
+                ? analysis.industryInsights.hotIndustries
+                : (localeKey === 'ar'
+                    ? ['التقنية المالية', 'الذكاء الاصطناعي', 'الصحة الرقمية']
+                    : ['Fintech', 'AI & Data', 'Digital Health']
+                ),
+            saudizationOpportunities: analysis.industryInsights?.saudizationOpportunities?.length
+                ? analysis.industryInsights.saudizationOpportunities
+                : (localeKey === 'ar'
+                    ? ['فرص متزايدة في القطاع الخاص', 'برامج تمكين المواهب الوطنية']
+                    : ['Growing private sector hiring', 'National talent enablement programs']
+                ),
+            salaryTrends: analysis.industryInsights?.salaryTrends
+                ? analysis.industryInsights.salaryTrends
+                : (localeKey === 'ar'
+                    ? 'الرواتب في اتجاه تصاعدي للمهارات الرقمية والقيادية.'
+                    : 'Salaries trend upward for digital and leadership skills.'
+                ),
         },
     };
 }
