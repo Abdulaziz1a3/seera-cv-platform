@@ -23,6 +23,12 @@ export async function POST(request: Request) {
 
         const body = await request.json();
         const { plan, interval, recipientEmail, message } = checkoutSchema.parse(body);
+        if (plan === 'enterprise') {
+            return NextResponse.json(
+                { error: 'Enterprise plan is currently unavailable' },
+                { status: 400 }
+            );
+        }
 
         const planConfig = PLANS[plan];
         const amountSar = interval === 'yearly' ? planConfig.priceYearly : planConfig.priceMonthly;

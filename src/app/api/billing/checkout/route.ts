@@ -25,6 +25,12 @@ export async function POST(request: Request) {
 
         const body = await request.json();
         const { plan, interval } = checkoutSchema.parse(body);
+        if (plan === 'enterprise') {
+            return NextResponse.json(
+                { error: 'Enterprise plan is currently unavailable' },
+                { status: 400 }
+            );
+        }
 
         // Validate plan exists
         const planConfig = PLANS[plan];

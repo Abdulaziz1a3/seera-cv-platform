@@ -52,6 +52,7 @@ export default function BillingGiftsPage() {
     const [gifts, setGifts] = useState<GiftListItem[]>([]);
     const [upgradeLoading, setUpgradeLoading] = useState(false);
     const [paymentProfileMissing, setPaymentProfileMissing] = useState(false);
+    const [billingInterval, setBillingInterval] = useState<'monthly' | 'yearly'>('monthly');
     const [billingStatus, setBillingStatus] = useState<{
         plan: 'FREE' | 'PRO' | 'ENTERPRISE';
         status: string;
@@ -278,14 +279,14 @@ export default function BillingGiftsPage() {
             ? 'سيرة ذاتية واحدة، 50 رصيد AI شهرياً'
             : '1 resume, 50 AI credits/month';
     })();
-    const upgradeTargetPlan = billingStatus?.plan === 'PRO' ? 'enterprise' : 'pro';
+    const upgradeTargetPlan = 'pro';
     const upgradeLabel = (() => {
         const plan = billingStatus?.plan || 'FREE';
-        if (plan === 'PRO') return locale === 'ar' ? 'الترقية إلى المؤسسات' : 'Upgrade to Enterprise';
-        if (plan === 'ENTERPRISE') return locale === 'ar' ? 'خطة المؤسسات مفعلة' : 'Enterprise Active';
+        if (plan === 'PRO') return locale === 'ar' ? 'تمديد الاشتراك' : 'Extend subscription';
+        if (plan === 'ENTERPRISE') return locale === 'ar' ? 'خطة المؤسسات موقوفة مؤقتاً' : 'Enterprise paused';
         return t.settings.billing.upgrade;
     })();
-    const upgradeDisabled = billingStatus?.plan === 'ENTERPRISE' && billingStatus?.isActive;
+    const upgradeDisabled = billingStatus?.plan === 'ENTERPRISE';
 
     return (
         <div className="max-w-4xl mx-auto space-y-6">
@@ -330,17 +331,36 @@ export default function BillingGiftsPage() {
                                 {currentPlanDescription}
                             </p>
                         </div>
-                        <Button
-                            size="lg"
-                            className="shadow-lg"
-                            onClick={() => handleUpgrade(upgradeTargetPlan as 'pro' | 'enterprise', 'monthly')}
-                            disabled={upgradeLoading || upgradeDisabled}
-                        >
-                            {upgradeLoading ? (
-                                <Loader2 className="h-4 w-4 me-2 animate-spin" />
-                            ) : null}
-                            {upgradeLabel}
-                        </Button>
+                        <div className="flex flex-col gap-3 sm:items-end">
+                            <Select
+                                value={billingInterval}
+                                onValueChange={(value) => setBillingInterval(value as 'monthly' | 'yearly')}
+                            >
+                                <SelectTrigger className="w-[170px]">
+                                    <SelectValue placeholder={locale === 'ar' ? 'المدة' : 'Billing period'} />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="monthly">{locale === 'ar' ? 'شهري' : 'Monthly'}</SelectItem>
+                                    <SelectItem value="yearly">{locale === 'ar' ? 'سنوي' : 'Yearly'}</SelectItem>
+                                </SelectContent>
+                            </Select>
+                            <Button
+                                size="lg"
+                                className="shadow-lg"
+                                onClick={() => handleUpgrade(upgradeTargetPlan as 'pro' | 'enterprise', billingInterval)}
+                                disabled={upgradeLoading || upgradeDisabled}
+                            >
+                                {upgradeLoading ? (
+                                    <Loader2 className="h-4 w-4 me-2 animate-spin" />
+                                ) : null}
+                                {upgradeLabel}
+                            </Button>
+                            <p className="text-xs text-muted-foreground">
+                                {locale === 'ar'
+                                    ? 'الاشتراكات غير متجددة تلقائياً. قم بالتمديد للحفاظ على الوصول.'
+                                    : 'Subscriptions are prepaid and do not auto-renew. Extend to keep access active.'}
+                            </p>
+                        </div>
                     </div>
 
                     <div className="mt-6 space-y-6">
@@ -403,7 +423,6 @@ export default function BillingGiftsPage() {
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="pro">Pro</SelectItem>
-                                    <SelectItem value="enterprise">Enterprise</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
