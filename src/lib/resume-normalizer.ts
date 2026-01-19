@@ -264,6 +264,8 @@ export function mapResumeRecordToResumeData(resume: ResumeRecord): ResumeData {
             linkedin: resume.contact?.linkedin || '',
             website: resume.contact?.website || '',
             photo: resume.contact?.photo || '',
+            seeraLinkSlug: (resume.contact as any)?.seeraLinkSlug || '',
+            showSeeraLinkQr: Boolean((resume.contact as any)?.showSeeraLinkQr),
         },
         summary: summaryText,
         experience: experienceItems,

@@ -33,6 +33,8 @@ export interface ContactInfo {
   linkedin: string;
   website: string;
   photo?: string; // Base64 or URL
+  seeraLinkSlug?: string;
+  showSeeraLinkQr?: boolean;
 }
 
 export interface ExperienceItem {
@@ -182,6 +184,8 @@ export const DEFAULT_CONTACT: ContactInfo = {
   linkedin: '',
   website: '',
   photo: '',
+  seeraLinkSlug: '',
+  showSeeraLinkQr: false,
 };
 
 // ============================================

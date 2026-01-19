@@ -2,6 +2,7 @@
 // Renders all 5 premium templates with theme support
 
 import { jsPDF } from 'jspdf';
+import QRCode from 'qrcode';
 import type { ResumeData, TemplateId, ThemeId, ThemePalette, TemplateConfig } from '../resume-types';
 import { getTheme, hexToRgb, getContrastColor } from './themes';
 import { getTemplateConfig, getSectionHeader, formatDate, getPresentText } from './index';
@@ -74,6 +75,28 @@ class PDFRenderer {
 
   private getContentWidth(): number {
     return this.pageWidth - this.config.margins.left - this.config.margins.right;
+  }
+
+  private async addSeeraLinkQr(resume: ResumeData): Promise<void> {
+    const slug = resume.contact?.seeraLinkSlug?.trim();
+    const shouldShow = Boolean(resume.contact?.showSeeraLinkQr && slug);
+    if (!shouldShow) return;
+
+    const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || 'https://seera-ai.com').replace(/\/$/, '');
+    const url = `${baseUrl}/p/${slug}`;
+    const size = 20;
+
+    try {
+      const dataUrl = await QRCode.toDataURL(url, { margin: 1, width: 256 });
+      const x = this.pageWidth - this.config.margins.right - size;
+      const y = this.pageHeight - this.config.margins.bottom - size;
+      this.doc.addImage(dataUrl, 'PNG', x, y, size, size);
+      this.setColor(this.theme.muted, 'text');
+      this.doc.setFontSize(7);
+      this.doc.text('Seera Link', x + size / 2, y + size + 3, { align: 'center' });
+    } catch (error) {
+      console.warn('Failed to render QR code:', error);
+    }
   }
 
   public async prepareFonts(resume: ResumeData): Promise<void> {
@@ -1305,7 +1328,7 @@ class PDFRenderer {
   // Main Render Method
   // ============================================
 
-  public render(resume: ResumeData, templateId: TemplateId): jsPDF {
+  public async render(resume: ResumeData, templateId: TemplateId): Promise<jsPDF> {
     switch (templateId) {
       case 'prestige-executive':
         this.renderPrestigeExecutive(resume);
@@ -1325,6 +1348,7 @@ class PDFRenderer {
       default:
         this.renderPrestigeExecutive(resume);
     }
+    await this.addSeeraLinkQr(resume);
     return this.doc;
   }
 
@@ -1348,7 +1372,7 @@ export async function generatePDF(
 
   const renderer = new PDFRenderer(template, theme, locale);
   await renderer.prepareFonts(resume);
-  renderer.render(resume, template);
+  await renderer.render(resume, template);
   return renderer.toBlob();
 }
 

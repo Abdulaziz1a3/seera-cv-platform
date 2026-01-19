@@ -101,6 +101,8 @@ export default function ResumeEditorPage() {
         linkedin: '',
         website: '',
         photo: '',
+        seeraLinkSlug: '',
+        showSeeraLinkQr: false,
     };
 
     // Keep resumeRef in sync
@@ -627,7 +629,11 @@ export default function ResumeEditorPage() {
                             </TabsList>
                             <TabsContent value="preview" className="flex-1 overflow-auto p-4">
                                 <div className="flex justify-center">
-                                    <LivePreview resume={previewResume as any} scale={0.52} />
+                                <LivePreview
+                                    resume={previewResume as any}
+                                    scale={0.52}
+                                    showWatermark={!isSubscriptionActive}
+                                />
                                 </div>
                             </TabsContent>
                             <TabsContent value="ats" className="flex-1 overflow-auto p-4">
@@ -661,7 +667,11 @@ export default function ResumeEditorPage() {
                         </TabsList>
                         <TabsContent value="preview" className="flex-1 overflow-auto p-4">
                             <div className="flex justify-center">
-                                <LivePreview resume={previewResume as any} scale={0.6} />
+                                <LivePreview
+                                    resume={previewResume as any}
+                                    scale={0.6}
+                                    showWatermark={!isSubscriptionActive}
+                                />
                             </div>
                         </TabsContent>
                         <TabsContent value="ats" className="flex-1 overflow-auto p-4">

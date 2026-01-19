@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
+import QRCode from 'react-qr-code';
 import type { ResumeData, TemplateId, ThemeId } from '@/lib/resume-types';
 import { THEMES, formatDate, getPresentText, getSectionHeader } from '@/lib/templates';
 import { cn } from '@/lib/utils';
@@ -8,6 +9,8 @@ import { cn } from '@/lib/utils';
 interface LivePreviewProps {
   resume: ResumeData;
   scale?: number;
+  showWatermark?: boolean;
+  watermarkText?: string;
 }
 
 // A4 dimensions in pixels at 96 DPI (approx)
@@ -15,11 +18,23 @@ const A4_WIDTH = 210; // mm
 const A4_HEIGHT = 297; // mm
 const PREVIEW_SCALE = 0.55; // Scale for sidebar preview
 
-export function LivePreview({ resume, scale = PREVIEW_SCALE }: LivePreviewProps) {
+export function LivePreview({
+  resume,
+  scale = PREVIEW_SCALE,
+  showWatermark = false,
+  watermarkText,
+}: LivePreviewProps) {
   const theme = THEMES[resume.theme || 'obsidian'];
   const locale = resume.locale || 'en';
+  const seeraLinkSlug = resume.contact?.seeraLinkSlug?.trim();
+  const showSeeraLinkQr = Boolean(resume.contact?.showSeeraLinkQr && seeraLinkSlug);
+  const appUrl = (process.env.NEXT_PUBLIC_APP_URL || 'https://seera-ai.com').replace(/\/$/, '');
+  const seeraLinkUrl = showSeeraLinkQr ? `${appUrl}/p/${seeraLinkSlug}` : '';
   const scaledWidth = `${A4_WIDTH * scale}mm`;
   const scaledHeight = `${A4_HEIGHT * scale}mm`;
+  const finalWatermarkText =
+    watermarkText ||
+    (locale === 'ar' ? 'Seera AI نسخة مجانية' : 'Seera AI Free Preview');
 
   // Render based on template
   const renderTemplate = useMemo(() => {
@@ -41,7 +56,7 @@ export function LivePreview({ resume, scale = PREVIEW_SCALE }: LivePreviewProps)
 
   return (
     <div
-      className="bg-white shadow-xl rounded-sm overflow-hidden"
+      className="relative bg-white shadow-xl rounded-sm overflow-hidden"
       style={{
         width: scaledWidth,
         minHeight: scaledHeight,
@@ -59,6 +74,20 @@ export function LivePreview({ resume, scale = PREVIEW_SCALE }: LivePreviewProps)
       >
         {renderTemplate}
       </div>
+
+      {showSeeraLinkQr && (
+        <div className="absolute bottom-3 end-3 rounded-lg bg-white/95 p-1 shadow-md border">
+          <QRCode value={seeraLinkUrl} size={64} />
+        </div>
+      )}
+
+      {showWatermark && (
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+          <div className="text-2xl font-semibold uppercase tracking-widest text-slate-300/70 rotate-[-20deg]">
+            {finalWatermarkText}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

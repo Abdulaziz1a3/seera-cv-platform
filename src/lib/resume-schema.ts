@@ -14,6 +14,8 @@ export const contactSchema = z.object({
     linkedin: z.string().url().optional().or(z.literal('')),
     github: z.string().url().optional().or(z.literal('')),
     portfolio: z.string().url().optional().or(z.literal('')),
+    seeraLinkSlug: z.string().optional().or(z.literal('')),
+    showSeeraLinkQr: z.boolean().optional(),
 });
 
 export type ContactSection = z.infer<typeof contactSchema>;

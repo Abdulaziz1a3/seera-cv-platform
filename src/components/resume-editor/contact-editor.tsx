@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
@@ -8,16 +8,27 @@ import { contactSchema, type Contact } from '@/lib/resume-schema';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { User, Mail, Phone, MapPin, Linkedin, Globe, Github } from 'lucide-react';
+import { User, Mail, Phone, MapPin, Linkedin, Globe, Github, QrCode } from 'lucide-react';
 
 interface ContactEditorProps {
     data: Contact;
     onChange: (data: Contact) => void;
 }
 
+interface SeeraProfileOption {
+    id: string;
+    slug: string;
+    displayName?: string | null;
+    title?: string | null;
+}
+
 export function ContactEditor({ data, onChange }: ContactEditorProps) {
     const fileInputRef = useRef<HTMLInputElement | null>(null);
+    const [seeraProfiles, setSeeraProfiles] = useState<SeeraProfileOption[]>([]);
+    const [seeraProfilesError, setSeeraProfilesError] = useState<string | null>(null);
     const {
         register,
         formState: { errors },
@@ -31,6 +42,10 @@ export function ContactEditor({ data, onChange }: ContactEditorProps) {
     const watchedFields = watch();
 
     const handleFieldChange = (field: keyof Contact, value: string) => {
+        onChange({ ...data, [field]: value });
+    };
+
+    const handleBooleanChange = (field: keyof Contact, value: boolean) => {
         onChange({ ...data, [field]: value });
     };
 
@@ -89,6 +104,40 @@ export function ContactEditor({ data, onChange }: ContactEditorProps) {
             toast.error(message);
         }
     };
+
+    const extractSeeraSlug = (value: string) => {
+        const trimmed = value.trim();
+        if (!trimmed) return '';
+        const match = trimmed.match(/\/p\/([^/?#]+)/i) || trimmed.match(/seera-ai\.com\/p\/([^/?#]+)/i);
+        if (match?.[1]) return match[1];
+        return trimmed.replace(/[^a-z0-9-]/gi, '');
+    };
+
+    useEffect(() => {
+        let mounted = true;
+        const fetchProfiles = async () => {
+            try {
+                const res = await fetch('/api/seera-link');
+                if (!res.ok) {
+                    if (res.status === 403) {
+                        setSeeraProfilesError('Upgrade to Pro to connect Seera Link QR.');
+                    }
+                    return;
+                }
+                const payload = await res.json();
+                const profiles = Array.isArray(payload?.data) ? payload.data : payload;
+                if (!mounted) return;
+                setSeeraProfiles(Array.isArray(profiles) ? profiles : []);
+            } catch {
+                if (!mounted) return;
+                setSeeraProfilesError('Unable to load Seera Link profiles.');
+            }
+        };
+        fetchProfiles();
+        return () => {
+            mounted = false;
+        };
+    }, []);
 
     return (
         <div className="space-y-6">
@@ -264,6 +313,66 @@ export function ContactEditor({ data, onChange }: ContactEditorProps) {
                             />
                         </div>
                     </div>
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                        <QrCode className="h-4 w-4 text-primary" />
+                        Seera Link QR
+                    </CardTitle>
+                    <CardDescription>Show a QR code on your CV that opens your Seera Link profile</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <Label>Enable QR code</Label>
+                            <p className="text-xs text-muted-foreground">Best for sharing your profile quickly.</p>
+                        </div>
+                        <Switch
+                            checked={Boolean(data.showSeeraLinkQr)}
+                            onCheckedChange={(checked) => handleBooleanChange('showSeeraLinkQr', checked)}
+                        />
+                    </div>
+
+                    {data.showSeeraLinkQr && (
+                        <div className="space-y-2">
+                            <Label>Choose your Seera Link</Label>
+                            {seeraProfiles.length > 0 ? (
+                                <Select
+                                    value={data.seeraLinkSlug || ''}
+                                    onValueChange={(value) => handleFieldChange('seeraLinkSlug', value)}
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Select a profile" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {seeraProfiles.map((profile) => (
+                                            <SelectItem key={profile.id} value={profile.slug}>
+                                                {profile.displayName || profile.slug}
+                                                {profile.title ? ` — ${profile.title}` : ''}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            ) : (
+                                <Input
+                                    placeholder="Paste your Seera Link URL or slug"
+                                    value={data.seeraLinkSlug || ''}
+                                    onChange={(e) => handleFieldChange('seeraLinkSlug', extractSeeraSlug(e.target.value))}
+                                />
+                            )}
+                            {seeraProfilesError && (
+                                <p className="text-xs text-muted-foreground">{seeraProfilesError}</p>
+                            )}
+                            {!seeraProfilesError && (
+                                <p className="text-xs text-muted-foreground">
+                                    Example: seera-ai.com/p/your-name
+                                </p>
+                            )}
+                        </div>
+                    )}
                 </CardContent>
             </Card>
         </div>
