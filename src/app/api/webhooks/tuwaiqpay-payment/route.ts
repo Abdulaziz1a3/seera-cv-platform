@@ -287,7 +287,7 @@ export async function POST(request: Request) {
 
     if (receiptPayload) {
         sendPaymentReceiptEmail(receiptPayload).catch((error) => {
-            logger.error('Failed to send payment receipt email', { error, userId: payment.userId });
+            logger.error('Failed to send payment receipt email', { error, userId: payment.userId || undefined });
         });
     }
 
