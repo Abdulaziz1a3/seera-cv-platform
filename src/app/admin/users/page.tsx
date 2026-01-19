@@ -553,6 +553,13 @@ function AdminUsersContent() {
                                                         <Shield className="h-4 w-4 me-2" />
                                                         {locale === 'ar' ? 'إعادة كلمة المرور' : 'Reset Password'}
                                                     </DropdownMenuItem>
+                                                    <DropdownMenuItem
+                                                        onClick={() => handleAction(user.id, 'resend_verification')}
+                                                        disabled={user.status === 'active'}
+                                                    >
+                                                        <RefreshCw className="h-4 w-4 me-2" />
+                                                        {locale === 'ar' ? 'إعادة إرسال التحقق' : 'Resend Verification'}
+                                                    </DropdownMenuItem>
                                                     <DropdownMenuSeparator />
                                                     {user.status === 'suspended' ? (
                                                         <DropdownMenuItem

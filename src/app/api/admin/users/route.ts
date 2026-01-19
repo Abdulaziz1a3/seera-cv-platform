@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { generateVerificationToken } from '@/lib/auth';
-import { isEmailConfigured, sendAdminEmail, sendPasswordResetEmail } from '@/lib/email';
+import { isEmailConfigured, sendAdminEmail, sendPasswordResetEmail, sendVerificationEmail } from '@/lib/email';
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
@@ -253,6 +253,28 @@ export async function PUT(request: NextRequest) {
                     }
                 } else {
                     return NextResponse.json({ error: 'Email service not configured' }, { status: 503 });
+                }
+
+                result = { email: user.email };
+                break;
+            }
+
+            case 'resend_verification': {
+                const user = await prisma.user.findUnique({ where: { id: userId } });
+                if (!user) {
+                    return NextResponse.json({ error: 'User not found' }, { status: 404 });
+                }
+                if (user.emailVerified) {
+                    return NextResponse.json({ error: 'User already verified' }, { status: 400 });
+                }
+                if (!isEmailConfigured()) {
+                    return NextResponse.json({ error: 'Email service not configured' }, { status: 503 });
+                }
+
+                const token = await generateVerificationToken(user.email, 'EMAIL_VERIFICATION');
+                const emailResult = await sendVerificationEmail(user.email, token, user.name || undefined);
+                if (!emailResult.success) {
+                    return NextResponse.json({ error: emailResult.error || 'Failed to send verification email' }, { status: 500 });
                 }
 
                 result = { email: user.email };
