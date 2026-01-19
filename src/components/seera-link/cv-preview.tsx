@@ -44,7 +44,7 @@ export function CvPreview({
         if (!data) return;
         const resumeData = mapResumeRecordToResumeData(data);
         if (hidePhoneNumber && resumeData?.contact) {
-          resumeData.contact.phone = undefined;
+          resumeData.contact.phone = '';
         }
         setResume(resumeData);
       } catch (error) {
