@@ -86,6 +86,11 @@ function formatPlainTextMessage(message: string): string {
     return escapeHtml(message).replace(/\n/g, '<br>');
 }
 
+function formatSar(amount: number): string {
+    const safeAmount = Number.isFinite(amount) ? amount : 0;
+    return `${safeAmount.toFixed(2)} SAR`;
+}
+
 // Email sending functions
 interface EmailResult {
     success: boolean;
@@ -370,6 +375,87 @@ export async function sendSubscriptionConfirmation(
         return { success: true, messageId: data?.id };
     } catch (error) {
         logger.error('Email sending failed', { email, error: error as Error });
+        return { success: false, error: 'Failed to send email' };
+    }
+}
+
+export async function sendPaymentReceiptEmail(params: {
+    to: string;
+    name?: string;
+    planLabel: string;
+    intervalLabel?: string;
+    amountSar: number;
+    paidAt?: Date;
+    receiptId?: string;
+}): Promise<EmailResult> {
+    if (!resend) {
+        logger.warn('Email service not configured - skipping receipt email', { email: params.to });
+        return { success: false, error: 'Email service not configured' };
+    }
+
+    const greeting = params.name ? `Hi ${params.name.split(' ')[0]},` : 'Hi there,';
+    const billingUrl = `${APP_URL}/dashboard/billing`;
+    const paidAtLabel = params.paidAt
+        ? params.paidAt.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+        : 'Today';
+    const receiptId = params.receiptId ? escapeHtml(params.receiptId) : 'Pending';
+    const intervalLabel = params.intervalLabel || 'Monthly';
+
+    const content = `
+        <h1 style="margin: 0 0 16px 0; font-size: 24px; font-weight: 700; color: #18181b;">Payment receipt</h1>
+        <p style="margin: 0 0 24px 0; font-size: 16px; color: #3f3f46; line-height: 1.6;">
+            ${greeting}<br><br>
+            Thanks for your payment. Your subscription is now active.
+        </p>
+        <div style="border: 1px solid #e4e4e7; border-radius: 10px; padding: 16px; margin: 16px 0;">
+            <table role="presentation" style="width: 100%; border-collapse: collapse; font-size: 14px; color: #3f3f46;">
+                <tr>
+                    <td style="padding: 6px 0; font-weight: 600;">Plan</td>
+                    <td style="padding: 6px 0; text-align: right;">${escapeHtml(params.planLabel)}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 6px 0; font-weight: 600;">Billing</td>
+                    <td style="padding: 6px 0; text-align: right;">${escapeHtml(intervalLabel)}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 6px 0; font-weight: 600;">Amount paid</td>
+                    <td style="padding: 6px 0; text-align: right;">${formatSar(params.amountSar)}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 6px 0; font-weight: 600;">Paid on</td>
+                    <td style="padding: 6px 0; text-align: right;">${escapeHtml(paidAtLabel)}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 6px 0; font-weight: 600;">Receipt ID</td>
+                    <td style="padding: 6px 0; text-align: right;">${receiptId}</td>
+                </tr>
+            </table>
+        </div>
+        <div style="text-align: center; margin: 24px 0;">
+            <a href="${billingUrl}" style="${getButtonStyle()}">View subscription</a>
+        </div>
+        <p style="margin: 16px 0 0 0; font-size: 12px; color: #71717a;">
+            Need help? Reply to this email and we'll assist you.
+        </p>
+    `;
+
+    try {
+        const { data, error } = await resend.emails.send({
+            from: FROM_EMAIL,
+            to: params.to,
+            subject: `Payment receipt - ${APP_NAME}`,
+            html: getBaseTemplate(content),
+        });
+
+        if (error) {
+            logger.error('Failed to send receipt email', { email: params.to, error });
+            return { success: false, error: error.message };
+        }
+
+        logger.info('Payment receipt email sent', { email: params.to, messageId: data?.id });
+        return { success: true, messageId: data?.id };
+    } catch (error) {
+        logger.error('Receipt email sending failed', { email: params.to, error: error as Error });
         return { success: false, error: 'Failed to send email' };
     }
 }
@@ -668,6 +754,7 @@ export default {
     sendPasswordResetEmail,
     sendWelcomeEmail,
     sendSubscriptionConfirmation,
+    sendPaymentReceiptEmail,
     sendBillingPortalEmail,
     sendGiftSubscriptionEmail,
     sendResumeReminderEmail,

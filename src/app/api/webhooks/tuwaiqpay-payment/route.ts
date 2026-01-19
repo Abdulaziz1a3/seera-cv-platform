@@ -4,7 +4,7 @@ import { prisma } from '@/lib/db';
 import { logger } from '@/lib/logger';
 import { getWebhookVerificationConfig } from '@/lib/tuwaiqpay';
 import { recordAICreditTopup } from '@/lib/ai-credits';
-import { sendGiftSubscriptionEmail } from '@/lib/email';
+import { sendGiftSubscriptionEmail, sendPaymentReceiptEmail } from '@/lib/email';
 
 export const dynamic = 'force-dynamic';
 
@@ -89,6 +89,16 @@ export async function POST(request: Request) {
     }
 
     const now = new Date();
+    let receiptPayload: {
+        to: string;
+        name?: string;
+        planLabel: string;
+        intervalLabel: string;
+        amountSar: number;
+        paidAt: Date;
+        receiptId?: string;
+    } | null = null;
+
     await prisma.$transaction(async (tx) => {
         const existingMetadata =
             payment.metadata && typeof payment.metadata === 'object'
@@ -165,6 +175,23 @@ export async function POST(request: Request) {
                     },
                 });
             }
+
+            const user = await tx.user.findUnique({
+                where: { id: payment.userId },
+                select: { email: true, name: true },
+            });
+
+            if (user?.email) {
+                receiptPayload = {
+                    to: user.email,
+                    name: user.name || undefined,
+                    planLabel: plan === 'ENTERPRISE' ? 'Enterprise' : 'Pro',
+                    intervalLabel: payment.interval === 'YEARLY' ? 'Yearly' : 'Monthly',
+                    amountSar: payment.amountSar,
+                    paidAt: now,
+                    receiptId: billId || transactionId || payment.id,
+                };
+            }
             return;
         }
 
@@ -217,6 +244,12 @@ export async function POST(request: Request) {
             }
         }
     });
+
+    if (receiptPayload) {
+        sendPaymentReceiptEmail(receiptPayload).catch((error) => {
+            logger.error('Failed to send payment receipt email', { error, userId: payment.userId });
+        });
+    }
 
     logger.paymentEvent('tuwaiqpay_payment_received', payment.userId || 'unknown', payment.amountSar, {
         purpose: payment.purpose,
