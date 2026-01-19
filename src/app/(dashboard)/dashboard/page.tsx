@@ -181,11 +181,6 @@ export default function DashboardPage() {
                                             {locale === 'ar' ? 'إنشاء سيرة ذاتية' : 'Create Resume'}
                                         </Link>
                                     </Button>
-                                    <Button variant="outline" asChild>
-                                        <Link href="/help">
-                                            {locale === 'ar' ? 'شاهد الدليل' : 'Watch Guide'}
-                                        </Link>
-                                    </Button>
                                 </div>
                             </div>
                         </div>
