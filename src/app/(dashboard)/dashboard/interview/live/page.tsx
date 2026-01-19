@@ -501,7 +501,7 @@ export default function LiveInterviewPage() {
 
             micSourceRef.current?.disconnect();
             micSourceRef.current = context.createMediaStreamSource(stream);
-            micSourceRef.current.connect(destination);
+            micSourceRef.current?.connect(destination);
 
             if (audioRef.current && !aiSourceRef.current) {
                 aiSourceRef.current = context.createMediaElementSource(audioRef.current);
