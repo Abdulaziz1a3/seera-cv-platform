@@ -1,13 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useLocale } from '@/components/providers/locale-provider';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card, CardContent } from '@/components/ui/card';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -30,65 +29,46 @@ import {
     CheckCircle2,
     XCircle,
     AlertCircle,
-    ArrowRight,
-    Filter,
 } from 'lucide-react';
 
-type ApplicationStatus = 'applied' | 'screening' | 'interview' | 'offer' | 'rejected' | 'withdrawn';
+type ApplicationStatus =
+    | 'saved'
+    | 'applied'
+    | 'screening'
+    | 'interview'
+    | 'offer'
+    | 'accepted'
+    | 'rejected'
+    | 'withdrawn';
 
-const mockApplications = [
-    {
-        id: '1',
-        company: 'Tech Corp',
-        position: 'Senior Software Engineer',
-        location: 'Riyadh',
-        salary: '$120k - $150k',
-        status: 'interview' as ApplicationStatus,
-        appliedDate: new Date('2024-01-10'),
-        resume: 'Software Engineer Resume',
-        notes: 'HR call scheduled for next week',
-    },
-    {
-        id: '2',
-        company: 'Startup Inc',
-        position: 'Full Stack Developer',
-        location: 'Dubai',
-        salary: '$100k - $130k',
-        status: 'applied' as ApplicationStatus,
-        appliedDate: new Date('2024-01-08'),
-        resume: 'Software Engineer Resume',
-        notes: '',
-    },
-    {
-        id: '3',
-        company: 'Big Enterprise',
-        position: 'Tech Lead',
-        location: 'Jeddah',
-        salary: '$140k - $170k',
-        status: 'screening' as ApplicationStatus,
-        appliedDate: new Date('2024-01-05'),
-        resume: 'Tech Lead Resume',
-        notes: 'Waiting for recruiter response',
-    },
-    {
-        id: '4',
-        company: 'Innovation Labs',
-        position: 'Backend Developer',
-        location: 'Remote',
-        salary: '$90k - $110k',
-        status: 'rejected' as ApplicationStatus,
-        appliedDate: new Date('2024-01-02'),
-        resume: 'Software Engineer Resume',
-        notes: 'Not enough experience',
-    },
-];
+type ApplicationRecord = {
+    id: string;
+    company: string;
+    position: string;
+    location?: string | null;
+    salary?: string | null;
+    status: ApplicationStatus;
+    appliedDate?: string | null;
+    resumeId?: string | null;
+    resumeTitle?: string | null;
+    notes?: string | null;
+    url?: string | null;
+};
 
 export default function ApplicationsPage() {
     const { locale, t } = useLocale();
     const [searchQuery, setSearchQuery] = useState('');
     const [statusFilter, setStatusFilter] = useState<ApplicationStatus | 'all'>('all');
+    const [applications, setApplications] = useState<ApplicationRecord[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [loadError, setLoadError] = useState('');
 
     const statusConfig: Record<ApplicationStatus, { label: { en: string; ar: string }; color: string; icon: typeof CheckCircle2 }> = {
+        saved: {
+            label: { en: 'Saved', ar: 'محفوظ' },
+            color: 'bg-slate-500/10 text-slate-600 dark:text-slate-400',
+            icon: FileText,
+        },
         applied: {
             label: { en: 'Applied', ar: 'تم التقديم' },
             color: 'bg-blue-500/10 text-blue-600 dark:text-blue-400',
@@ -109,6 +89,11 @@ export default function ApplicationsPage() {
             color: 'bg-green-500/10 text-green-600 dark:text-green-400',
             icon: CheckCircle2,
         },
+        accepted: {
+            label: { en: 'Accepted', ar: 'تم القبول' },
+            color: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
+            icon: CheckCircle2,
+        },
         rejected: {
             label: { en: 'Rejected', ar: 'مرفوض' },
             color: 'bg-red-500/10 text-red-600 dark:text-red-400',
@@ -121,7 +106,37 @@ export default function ApplicationsPage() {
         },
     };
 
-    const filteredApplications = mockApplications.filter((app) => {
+    useEffect(() => {
+        let active = true;
+
+        const loadApplications = async () => {
+            setIsLoading(true);
+            setLoadError('');
+            try {
+                const res = await fetch('/api/applications');
+                if (!res.ok) {
+                    const data = await res.json().catch(() => ({}));
+                    throw new Error(data?.error || 'Failed to load applications');
+                }
+                const data = await res.json();
+                if (!active) return;
+                setApplications(data.applications || []);
+            } catch (error) {
+                if (!active) return;
+                const message = error instanceof Error ? error.message : 'Failed to load applications';
+                setLoadError(message);
+            } finally {
+                if (active) setIsLoading(false);
+            }
+        };
+
+        loadApplications();
+        return () => {
+            active = false;
+        };
+    }, []);
+
+    const filteredApplications = applications.filter((app) => {
         const matchesSearch =
             app.company.toLowerCase().includes(searchQuery.toLowerCase()) ||
             app.position.toLowerCase().includes(searchQuery.toLowerCase());
@@ -129,7 +144,10 @@ export default function ApplicationsPage() {
         return matchesSearch && matchesStatus;
     });
 
-    const formatDate = (date: Date) => {
+    const formatDate = (value?: string | null) => {
+        if (!value) return locale === 'ar' ? 'غير محدد' : 'Not set';
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) return value;
         return date.toLocaleDateString(locale === 'ar' ? 'ar-SA' : 'en-US', {
             month: 'short',
             day: 'numeric',
@@ -139,10 +157,10 @@ export default function ApplicationsPage() {
 
     // Stats
     const stats = {
-        total: mockApplications.length,
-        active: mockApplications.filter((a) => !['rejected', 'withdrawn'].includes(a.status)).length,
-        interviews: mockApplications.filter((a) => a.status === 'interview').length,
-        offers: mockApplications.filter((a) => a.status === 'offer').length,
+        total: applications.length,
+        active: applications.filter((a) => !['rejected', 'withdrawn', 'accepted'].includes(a.status)).length,
+        interviews: applications.filter((a) => a.status === 'interview').length,
+        offers: applications.filter((a) => a.status === 'offer' || a.status === 'accepted').length,
     };
 
     return (
@@ -155,9 +173,11 @@ export default function ApplicationsPage() {
                         {locale === 'ar' ? 'تتبع طلباتك الوظيفية' : 'Track your job applications'}
                     </p>
                 </div>
-                <Button size="lg" className="shadow-lg">
-                    <Plus className="h-5 w-5 me-2" />
-                    {locale === 'ar' ? 'إضافة طلب' : 'Add Application'}
+                <Button size="lg" className="shadow-lg" asChild>
+                    <Link href="/dashboard/job-targets/new">
+                        <Plus className="h-5 w-5 me-2" />
+                        {locale === 'ar' ? 'إنشاء هدف وظيفي' : 'Create Job Target'}
+                    </Link>
                 </Button>
             </div>
 
@@ -239,7 +259,29 @@ export default function ApplicationsPage() {
             </div>
 
             {/* Applications List */}
-            {filteredApplications.length === 0 ? (
+            {isLoading ? (
+                <Card>
+                    <CardContent className="py-16 text-center">
+                        <Briefcase className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                        <h3 className="text-lg font-medium mb-2">
+                            {locale === 'ar' ? 'جار تحميل الطلبات' : 'Loading applications'}
+                        </h3>
+                        <p className="text-sm text-muted-foreground">
+                            {locale === 'ar' ? 'يرجى الانتظار قليلاً' : 'Please wait a moment'}
+                        </p>
+                    </CardContent>
+                </Card>
+            ) : loadError ? (
+                <Card>
+                    <CardContent className="py-16 text-center">
+                        <AlertCircle className="h-16 w-16 text-destructive mx-auto mb-4" />
+                        <h3 className="text-lg font-medium mb-2">
+                            {locale === 'ar' ? 'تعذر تحميل الطلبات' : 'Failed to load applications'}
+                        </h3>
+                        <p className="text-sm text-muted-foreground">{loadError}</p>
+                    </CardContent>
+                </Card>
+            ) : filteredApplications.length === 0 ? (
                 <Card>
                     <CardContent className="py-16 text-center">
                         <Briefcase className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
@@ -252,13 +294,15 @@ export default function ApplicationsPage() {
                                     ? 'جرب تغيير معايير البحث'
                                     : 'Try changing your search criteria'
                                 : locale === 'ar'
-                                    ? 'ابدأ بإضافة طلبك الأول'
-                                    : 'Start by adding your first application'}
+                                    ? 'ابدأ بإنشاء هدف وظيفي وربطه بطلباتك'
+                                    : 'Start by creating a job target to track applications'}
                         </p>
                         {!searchQuery && statusFilter === 'all' && (
-                            <Button>
-                                <Plus className="h-4 w-4 me-2" />
-                                {locale === 'ar' ? 'إضافة طلب' : 'Add Application'}
+                            <Button asChild>
+                                <Link href="/dashboard/job-targets/new">
+                                    <Plus className="h-4 w-4 me-2" />
+                                    {locale === 'ar' ? 'إنشاء هدف وظيفي' : 'Create Job Target'}
+                                </Link>
                             </Button>
                         )}
                     </CardContent>
@@ -284,7 +328,7 @@ export default function ApplicationsPage() {
                                                     <span>•</span>
                                                     <span className="flex items-center gap-1">
                                                         <MapPin className="h-3 w-3" />
-                                                        {app.location}
+                                                        {app.location || (locale === 'ar' ? 'غير محدد' : 'Not specified')}
                                                     </span>
                                                 </div>
                                             </div>
@@ -312,14 +356,32 @@ export default function ApplicationsPage() {
                                                         <Edit className="h-4 w-4 me-2" />
                                                         {t.common.edit}
                                                     </DropdownMenuItem>
-                                                    <DropdownMenuItem>
-                                                        <FileText className="h-4 w-4 me-2" />
-                                                        {locale === 'ar' ? 'عرض السيرة' : 'View Resume'}
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuItem>
-                                                        <ExternalLink className="h-4 w-4 me-2" />
-                                                        {locale === 'ar' ? 'فتح إعلان الوظيفة' : 'Open Job Posting'}
-                                                    </DropdownMenuItem>
+                                                    {app.resumeId ? (
+                                                        <DropdownMenuItem asChild>
+                                                            <Link href={`/dashboard/resumes/${app.resumeId}/edit`}>
+                                                                <FileText className="h-4 w-4 me-2" />
+                                                                {app.resumeTitle || (locale === 'ar' ? 'عرض السيرة' : 'View Resume')}
+                                                            </Link>
+                                                        </DropdownMenuItem>
+                                                    ) : (
+                                                        <DropdownMenuItem disabled>
+                                                            <FileText className="h-4 w-4 me-2" />
+                                                            {locale === 'ar' ? 'عرض السيرة' : 'View Resume'}
+                                                        </DropdownMenuItem>
+                                                    )}
+                                                    {app.url ? (
+                                                        <DropdownMenuItem asChild>
+                                                            <a href={app.url} target="_blank" rel="noreferrer">
+                                                                <ExternalLink className="h-4 w-4 me-2" />
+                                                                {locale === 'ar' ? 'فتح إعلان الوظيفة' : 'Open Job Posting'}
+                                                            </a>
+                                                        </DropdownMenuItem>
+                                                    ) : (
+                                                        <DropdownMenuItem disabled>
+                                                            <ExternalLink className="h-4 w-4 me-2" />
+                                                            {locale === 'ar' ? 'فتح إعلان الوظيفة' : 'Open Job Posting'}
+                                                        </DropdownMenuItem>
+                                                    )}
                                                     <DropdownMenuItem className="text-destructive">
                                                         <Trash2 className="h-4 w-4 me-2" />
                                                         {t.common.delete}

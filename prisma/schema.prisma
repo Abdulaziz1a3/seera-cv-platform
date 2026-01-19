@@ -46,6 +46,7 @@ model User {
   giftSubscriptionsSent GiftSubscription[] @relation("GiftSubscriptionsSent")
   giftSubscriptionsRedeemed GiftSubscription[] @relation("GiftSubscriptionsRedeemed")
   paymentTransactions PaymentTransaction[]
+  interviewSessions InterviewSession[]
 
   // Two-factor authentication
   twoFactorEnabled Boolean @default(false)
@@ -530,6 +531,39 @@ model Subscription {
   @@index([status])
   @@index([plan])
   @@index([currentPeriodEnd])
+}
+
+// ==========================================
+// INTERVIEW SESSIONS
+// ==========================================
+
+model InterviewSession {
+  id                 String   @id @default(cuid())
+  userId             String
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  resumeId           String?
+  resume             Resume?  @relation(fields: [resumeId], references: [id], onDelete: SetNull)
+
+  targetRole         String
+  experienceLevel    String
+  interviewLang      String
+  overallScore       Float
+  summary            Json?
+  results            Json?
+  transcript         Json?
+
+  recordingUrl       String?
+  recordingProvider  String?
+  recordingBucket    String?
+  recordingPath      String?
+  recordingMimeType  String?
+  recordingDuration  Int?
+
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([userId])
+  @@index([createdAt])
 }
 
 model GiftSubscription {

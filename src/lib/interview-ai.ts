@@ -15,6 +15,8 @@ export interface InterviewContext {
     skills?: string[];
     locale?: InterviewLocale;
     dialect?: 'saudi_casual' | 'formal' | 'gulf' | string;
+    resumeId?: string;
+    resumeTitle?: string;
 }
 
 export interface InterviewQuestion {

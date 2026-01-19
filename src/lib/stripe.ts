@@ -1,5 +1,5 @@
-// Production-Ready Stripe Payment Integration for Seera AI
-// Handles subscriptions, payments, usage tracking, and webhook processing
+// Billing plans and legacy Stripe integration for Seera AI
+// TuwaiqPay is the primary gateway; Stripe functions remain for fallback/legacy use.
 
 import Stripe from 'stripe';
 import crypto from 'crypto';

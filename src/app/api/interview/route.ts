@@ -3,6 +3,7 @@ import { auth } from '@/lib/auth';
 import { errors } from '@/lib/api-response';
 import { buildCreditErrorPayload, getCreditSummary } from '@/lib/ai-credits';
 import { hasActiveSubscription } from '@/lib/subscription';
+import { prisma } from '@/lib/db';
 import {
     generateInterviewQuestions,
     conductInterview,
@@ -10,6 +11,75 @@ import {
     generateInterviewerVoice,
     generateInterviewSummary,
 } from '@/lib/interview-ai';
+
+async function enrichContextWithResume(
+    userId: string,
+    context: Record<string, any>
+): Promise<Record<string, any>> {
+    const resumeId = context?.resumeId;
+    if (!resumeId) return context;
+
+    const resume = await prisma.resume.findFirst({
+        where: { id: resumeId, userId, deletedAt: null },
+        include: {
+            versions: { orderBy: { version: 'desc' }, take: 1 },
+        },
+    });
+
+    if (!resume || resume.versions.length === 0) return context;
+
+    const snapshot = resume.versions[0].snapshot as any;
+    const summaryText = snapshot?.summary?.content || snapshot?.summary || '';
+    const skillSet = new Set<string>();
+
+    const addSkill = (skill?: string) => {
+        if (!skill) return;
+        const cleaned = String(skill).trim();
+        if (cleaned) skillSet.add(cleaned);
+    };
+
+    const simpleSkills = snapshot?.skills?.simpleList || snapshot?.skills || [];
+    if (Array.isArray(simpleSkills)) {
+        simpleSkills.forEach((skill: string) => addSkill(skill));
+    }
+
+    const categories = snapshot?.skills?.categories;
+    if (Array.isArray(categories)) {
+        categories.forEach((category: any) => {
+            const list = category?.skills || [];
+            if (Array.isArray(list)) {
+                list.forEach((skill: string) => addSkill(skill));
+            }
+        });
+    }
+
+    const experienceItems = snapshot?.experience?.items || [];
+    if (Array.isArray(experienceItems)) {
+        experienceItems.forEach((item: any) => {
+            const list = item?.skills || [];
+            if (Array.isArray(list)) {
+                list.forEach((skill: string) => addSkill(skill));
+            }
+        });
+    }
+
+    const projectItems = snapshot?.projects?.items || [];
+    if (Array.isArray(projectItems)) {
+        projectItems.forEach((item: any) => {
+            const list = item?.technologies || [];
+            if (Array.isArray(list)) {
+                list.forEach((skill: string) => addSkill(skill));
+            }
+        });
+    }
+
+    return {
+        ...context,
+        resumeSummary: summaryText,
+        skills: Array.from(skillSet).slice(0, 30),
+        resumeTitle: resume.title,
+    };
+}
 
 export async function POST(request: NextRequest) {
     const session = await auth();
@@ -38,7 +108,8 @@ export async function POST(request: NextRequest) {
         }
 
         let result;
-        const context = params.context ? { ...params.context, userId: session.user.id } : { userId: session.user.id };
+        const contextBase = params.context ? { ...params.context, userId: session.user.id } : { userId: session.user.id };
+        const context = await enrichContextWithResume(session.user.id, contextBase);
 
         switch (action) {
             case 'generate-questions':

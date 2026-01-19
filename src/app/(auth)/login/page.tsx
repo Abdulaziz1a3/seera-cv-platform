@@ -33,8 +33,6 @@ function LoginForm() {
                 redirect: false,
             });
 
-            console.log('Sign in result:', result);
-
             if (result?.error) {
                 // Show friendly error message based on error type
                 if (result.error === 'CredentialsSignin') {

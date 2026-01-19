@@ -30,10 +30,7 @@ providers.push(
             },
             async authorize(credentials) {
                 try {
-                    console.log('[AUTH] Authorize called with email:', credentials?.email);
-
                     if (!credentials?.email || !credentials?.password) {
-                        console.log('[AUTH] Missing credentials');
                         return null;
                     }
 
@@ -82,25 +79,18 @@ providers.push(
                     }
 
                     if (!user || !user.passwordHash) {
-                        console.log('[AUTH] User not found or no password hash');
                         return null;
                     }
 
-                    console.log('[AUTH] User found:', user.email, 'emailVerified:', !!user.emailVerified);
-
                     const isValid = await bcrypt.compare(password, user.passwordHash);
                     if (!isValid) {
-                        console.log('[AUTH] Invalid password');
                         return null;
                     }
 
                     // Super admin bypasses email verification
                     if (!user.emailVerified && !isSuperAdmin) {
-                        console.log('[AUTH] Email not verified');
                         return null;
                     }
-
-                    console.log('[AUTH] Login successful for:', user.email);
 
                     // Ensure super admin always has SUPER_ADMIN role
                     const role = isSuperAdmin ? 'SUPER_ADMIN' : user.role;

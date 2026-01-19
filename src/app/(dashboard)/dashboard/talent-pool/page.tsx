@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { useLocale } from '@/components/providers/locale-provider';
 import { useResumes } from '@/components/providers/resume-provider';
 import { Button } from '@/components/ui/button';
@@ -44,6 +45,8 @@ export default function TalentPoolPage() {
     // Pool membership state
   const [isJoined, setIsJoined] = useState(false);
   const [selectedResumeId, setSelectedResumeId] = useState<string>('');
+  const [hasAccess, setHasAccess] = useState(true);
+  const [isLoadingProfile, setIsLoadingProfile] = useState(true);
 
     // Settings
   const [isVisible, setIsVisible] = useState(true);
@@ -62,15 +65,60 @@ export default function TalentPoolPage() {
   const [noticePeriod, setNoticePeriod] = useState<string>('2_weeks');
   const [preferredIndustries, setPreferredIndustries] = useState<string[]>([]);
 
-    // Stats (mock)
     const stats = {
-        profileViews: 47,
-        unlocks: 3,
-        messages: 2,
-        searchAppearances: 156,
+        profileViews: 0,
+        unlocks: 0,
+        messages: 0,
+        searchAppearances: 0,
     };
 
     const selectedResume = resumes.find(r => r.id === selectedResumeId);
+
+    useEffect(() => {
+        let active = true;
+
+        const loadProfile = async () => {
+            setIsLoadingProfile(true);
+            try {
+                const res = await fetch('/api/talent-pool/profile');
+                if (!res.ok) {
+                    if (res.status === 403) {
+                        if (active) setHasAccess(false);
+                        return;
+                    }
+                    return;
+                }
+                const data = await res.json();
+                if (!active) return;
+                if (data?.profile) {
+                    const profile = data.profile;
+                    setIsJoined(true);
+                    setSelectedResumeId(profile.resumeId || '');
+                    setIsVisible(Boolean(profile.isVisible));
+                    setAvailabilityStatus(profile.availabilityStatus || 'open_to_offers');
+                    setHideCurrentEmployer(Boolean(profile.hideCurrentEmployer));
+                    setHideSalaryHistory(Boolean(profile.hideSalaryHistory));
+                    setVerifiedCompaniesOnly(Boolean(profile.verifiedCompaniesOnly));
+                    setDesiredRoles((profile.desiredRoles || []).join(', '));
+                    setDesiredSalaryMin(profile.desiredSalaryMin ? String(profile.desiredSalaryMin) : '');
+                    setDesiredSalaryMax(profile.desiredSalaryMax ? String(profile.desiredSalaryMax) : '');
+                    setNoticePeriod(profile.noticePeriod || '2_weeks');
+                    setPreferredLocations(profile.preferredLocations || []);
+                    setPreferredIndustries(profile.preferredIndustries || []);
+                }
+            } catch (error) {
+                if (!active) return;
+                toast.error(locale === 'ar' ? 'تعذر تحميل بيانات الملف' : 'Failed to load profile');
+            } finally {
+                if (active) setIsLoadingProfile(false);
+            }
+        };
+
+        loadProfile();
+        return () => {
+            active = false;
+        };
+    }, [locale]);
 
     const handleJoinPool = async () => {
         if (!selectedResumeId) {
@@ -151,6 +199,35 @@ export default function TalentPoolPage() {
         }
     };
 
+    if (!hasAccess) {
+        return (
+            <div className="min-h-[calc(100vh-4rem)] flex flex-col p-6">
+                <Card className="max-w-2xl mx-auto w-full">
+                    <CardHeader>
+                        <CardTitle>{locale === 'ar' ? 'ميزة مجموعة المواهب' : 'Talent Pool Access'}</CardTitle>
+                        <CardDescription>
+                            {locale === 'ar'
+                                ? 'تتطلب هذه الميزة اشتراكاً فعالاً لعرض ملفك للشركات.'
+                                : 'This feature requires an active subscription to make your profile visible.'}
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <p className="text-sm text-muted-foreground">
+                            {locale === 'ar'
+                                ? 'قم بالترقية للوصول إلى الباحثين وإتاحة ملفك على الفور.'
+                                : 'Upgrade to reach recruiters and publish your profile instantly.'}
+                        </p>
+                        <Button asChild>
+                            <Link href="/dashboard/billing">
+                                {locale === 'ar' ? 'الترقية الآن' : 'Upgrade Now'}
+                            </Link>
+                        </Button>
+                    </CardContent>
+                </Card>
+            </div>
+        );
+    }
+
     return (
         <div className="min-h-[calc(100vh-4rem)] flex flex-col">
             {/* Header */}
@@ -170,7 +247,7 @@ export default function TalentPoolPage() {
                         </p>
                     </div>
 
-                    {isJoined && (
+                    {isJoined && !isLoadingProfile && (
                         <Badge className="bg-green-500 text-white px-4 py-2 text-sm">
                             <CheckCircle2 className="h-4 w-4 me-2" />
                             {locale === 'ar' ? 'عضو نشط' : 'Active Member'}
@@ -296,6 +373,11 @@ export default function TalentPoolPage() {
                                 </Card>
                             ))}
                         </div>
+                        <p className="text-xs text-muted-foreground">
+                            {locale === 'ar'
+                                ? 'ستظهر الإحصاءات بمجرد تفاعل الشركات مع ملفك.'
+                                : 'Stats will appear once recruiters interact with your profile.'}
+                        </p>
 
                         {/* Settings Tabs */}
                         <Tabs defaultValue="visibility">

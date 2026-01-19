@@ -44,6 +44,12 @@ const envSchema = z.object({
     // Redis
     REDIS_URL: z.string().url().optional(),
 
+    // Supabase Storage
+    SUPABASE_URL: z.string().url().optional(),
+    SUPABASE_SERVICE_ROLE_KEY: z.string().optional(),
+    SUPABASE_STORAGE_BUCKET_INTERVIEWS: z.string().optional(),
+    SUPABASE_STORAGE_SIGNED_TTL: z.string().transform(Number).optional(),
+
     // Security
     ENCRYPTION_KEY: z.string().length(64, 'ENCRYPTION_KEY must be 64 hex characters (32 bytes)').optional(),
 
@@ -171,6 +177,17 @@ export const env = {
     get redis() {
         return {
             url: process.env.REDIS_URL,
+        };
+    },
+
+    get supabase() {
+        return {
+            url: process.env.SUPABASE_URL,
+            serviceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY,
+            interviewsBucket: process.env.SUPABASE_STORAGE_BUCKET_INTERVIEWS || 'interview-recordings',
+            signedTtl: process.env.SUPABASE_STORAGE_SIGNED_TTL
+                ? Number(process.env.SUPABASE_STORAGE_SIGNED_TTL)
+                : 60 * 60 * 24 * 7,
         };
     },
 

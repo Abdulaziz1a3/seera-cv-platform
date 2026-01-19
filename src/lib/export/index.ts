@@ -3,9 +3,11 @@
 
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, BorderStyle } from 'docx';
 import type { Resume } from '@/lib/resume-schema';
+import { DEFAULT_TEMPLATE, type TemplateId } from '@/lib/resume-types';
+import { getAllTemplateIds, getTemplate, getTemplateConfig } from '@/lib/templates';
 
 // ATS-Safe Template Configuration
-export interface TemplateConfig {
+export interface ExportTemplateConfig {
     id: string;
     name: string;
     fontFamily: string;
@@ -25,50 +27,40 @@ export interface TemplateConfig {
     sectionSpacing: number;
 }
 
-export const TEMPLATES: Record<string, TemplateConfig> = {
-    classic: {
-        id: 'classic',
-        name: 'Classic',
-        fontFamily: 'Arial',
-        fontSize: {
-            name: 24,
-            sectionTitle: 14,
-            body: 11,
-            small: 10,
-        },
-        margins: { top: 0.75, right: 0.75, bottom: 0.75, left: 0.75 },
-        lineSpacing: 1.15,
-        sectionSpacing: 12,
-    },
-    modern: {
-        id: 'modern',
-        name: 'Modern',
-        fontFamily: 'Calibri',
-        fontSize: {
-            name: 22,
-            sectionTitle: 13,
-            body: 11,
-            small: 9,
-        },
-        margins: { top: 0.5, right: 0.5, bottom: 0.5, left: 0.5 },
-        lineSpacing: 1.1,
-        sectionSpacing: 10,
-    },
-    executive: {
-        id: 'executive',
-        name: 'Executive',
-        fontFamily: 'Times New Roman',
-        fontSize: {
-            name: 26,
-            sectionTitle: 14,
-            body: 12,
-            small: 10,
-        },
-        margins: { top: 1, right: 1, bottom: 1, left: 1 },
-        lineSpacing: 1.2,
-        sectionSpacing: 14,
-    },
+const DEFAULT_DOCX_FONT = 'Calibri';
+
+const mmToInches = (mm: number) => Number((mm / 25.4).toFixed(3));
+
+const isTemplateId = (value: string): value is TemplateId => {
+    const templateIds = getAllTemplateIds();
+    return templateIds.includes(value as TemplateId);
 };
+
+export function resolveDocxTemplateConfig(templateId: string): ExportTemplateConfig {
+    const resolvedId = isTemplateId(templateId) ? (templateId as TemplateId) : DEFAULT_TEMPLATE;
+    const templateConfig = getTemplateConfig(resolvedId);
+    const templateMeta = getTemplate(resolvedId);
+
+    return {
+        id: resolvedId,
+        name: templateMeta.name.en,
+        fontFamily: DEFAULT_DOCX_FONT,
+        fontSize: {
+            name: templateConfig.typography.nameSize,
+            sectionTitle: templateConfig.typography.sectionHeaderSize,
+            body: templateConfig.typography.bodySize,
+            small: templateConfig.typography.smallSize,
+        },
+        margins: {
+            top: mmToInches(templateConfig.margins.top),
+            right: mmToInches(templateConfig.margins.right),
+            bottom: mmToInches(templateConfig.margins.bottom),
+            left: mmToInches(templateConfig.margins.left),
+        },
+        lineSpacing: 1.15,
+        sectionSpacing: Math.max(8, Math.round(templateConfig.spacing.section)),
+    };
+}
 
 // Generate filename following ATS rules: Firstname_Lastname_Role_YYYY
 export function generateFileName(
@@ -227,10 +219,10 @@ export function generatePlainText(resume: Resume, language: 'en' | 'ar' = 'en'):
 
 export async function generateDocx(
     resume: Resume,
-    templateId: string = 'classic',
+    templateId: string = DEFAULT_TEMPLATE,
     language: 'en' | 'ar' = 'en'
 ): Promise<Buffer> {
-    const template = TEMPLATES[templateId] || TEMPLATES.classic;
+    const template = resolveDocxTemplateConfig(templateId);
     const sections: Paragraph[] = [];
 
     // Helper to create section heading
@@ -447,10 +439,10 @@ export async function generateDocx(
 
 export function generatePdfHtml(
     resume: Resume,
-    templateId: string = 'classic',
+    templateId: string = DEFAULT_TEMPLATE,
     language: 'en' | 'ar' = 'en'
 ): string {
-    const template = TEMPLATES[templateId] || TEMPLATES.classic;
+    const template = resolveDocxTemplateConfig(templateId);
     const isRtl = language === 'ar';
     const dir = isRtl ? 'rtl' : 'ltr';
 

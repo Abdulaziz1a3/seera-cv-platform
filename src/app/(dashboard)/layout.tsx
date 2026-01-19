@@ -60,6 +60,7 @@ export default function DashboardLayout({
     const [subscriptionState, setSubscriptionState] = useState<{
         isActive: boolean;
         status: string;
+        plan: string;
     } | null>(null);
     const [creditsModalOpen, setCreditsModalOpen] = useState(false);
     const [creditsModalDetail, setCreditsModalDetail] = useState<any>(null);
@@ -73,11 +74,12 @@ export default function DashboardLayout({
                 setSubscriptionState({
                     isActive: Boolean(data.isActive),
                     status: data.status || 'UNPAID',
+                    plan: data.plan || 'FREE',
                 });
             })
             .catch(() => {
                 if (!mounted) return;
-                setSubscriptionState({ isActive: true, status: 'ACTIVE' });
+                setSubscriptionState({ isActive: false, status: 'UNKNOWN', plan: 'FREE' });
             });
         return () => {
             mounted = false;
@@ -96,7 +98,7 @@ export default function DashboardLayout({
         };
     }, []);
 
-    const isSubscriptionActive = subscriptionState?.isActive ?? true;
+    const isSubscriptionActive = Boolean(subscriptionState?.isActive && subscriptionState?.plan !== 'FREE');
 
     const billingHref = '/dashboard/billing';
 
@@ -163,10 +165,10 @@ export default function DashboardLayout({
                                 key={item.href}
                                 href={href}
                                 aria-disabled={isLocked}
-                                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${isActive(item.href)
+                            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${isActive(item.href)
                                     ? 'bg-primary text-primary-foreground'
                                     : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-                                    } ${isLocked ? 'opacity-70' : ''}`}
+                                    } ${isLocked ? 'opacity-70 cursor-not-allowed' : ''}`}
                             >
                                 <item.icon className="h-5 w-5 flex-shrink-0" />
                                 {!sidebarCollapsed && (
