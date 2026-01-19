@@ -4,7 +4,7 @@ import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 
 const claimSchema = z.object({
-    token: z.string().min(20),
+    token: z.string().min(1),
 });
 
 function addMonths(date: Date, months: number): Date {
@@ -114,6 +114,7 @@ export async function POST(request: Request) {
                 { status: 400 }
             );
         }
+        console.error('Gift claim error:', error);
         return NextResponse.json({ error: 'Failed to claim gift' }, { status: 500 });
     }
 }
