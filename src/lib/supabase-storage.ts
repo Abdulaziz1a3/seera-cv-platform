@@ -46,7 +46,7 @@ export async function uploadInterviewRecording(params: {
             'content-type': params.contentType,
             'x-upsert': 'true',
         },
-        body: params.data,
+        body: params.data as unknown as BodyInit,
     });
 
     if (!res.ok) {
