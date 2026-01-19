@@ -33,6 +33,10 @@ export default function SettingsPage() {
     const [phone, setPhone] = useState('');
     const [image, setImage] = useState(session?.user?.image || '');
     const [showPassword, setShowPassword] = useState(false);
+    const [currentPassword, setCurrentPassword] = useState('');
+    const [newPassword, setNewPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
+    const [isPasswordLoading, setIsPasswordLoading] = useState(false);
     const [notifications, setNotifications] = useState({
         resumeTips: true,
         jobAlerts: true,
@@ -119,6 +123,42 @@ export default function SettingsPage() {
 
     const handleRemovePhoto = () => {
         setImage('');
+    };
+
+    const handleUpdatePassword = async () => {
+        if (!currentPassword || !newPassword || !confirmPassword) {
+            toast.error(locale === 'ar' ? 'يرجى تعبئة جميع حقول كلمة المرور.' : 'Please fill in all password fields.');
+            return;
+        }
+        if (newPassword !== confirmPassword) {
+            toast.error(locale === 'ar' ? 'كلمتا المرور غير متطابقتين.' : 'Passwords do not match.');
+            return;
+        }
+
+        setIsPasswordLoading(true);
+        try {
+            const res = await fetch('/api/profile/password', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    currentPassword,
+                    newPassword,
+                }),
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) {
+                throw new Error(data?.error || 'Failed to update password');
+            }
+            setCurrentPassword('');
+            setNewPassword('');
+            setConfirmPassword('');
+            toast.success(locale === 'ar' ? 'تم تحديث كلمة المرور.' : 'Password updated successfully.');
+        } catch (error) {
+            const message = error instanceof Error ? error.message : 'Failed to update password';
+            toast.error(locale === 'ar' ? `تعذر تحديث كلمة المرور: ${message}` : `Failed to update password: ${message}`);
+        } finally {
+            setIsPasswordLoading(false);
+        }
     };
 
 
@@ -279,6 +319,8 @@ export default function SettingsPage() {
                                         id="current-password"
                                         type={showPassword ? 'text' : 'password'}
                                         placeholder="••••••••"
+                                        value={currentPassword}
+                                        onChange={(e) => setCurrentPassword(e.target.value)}
                                     />
                                     <button
                                         type="button"
@@ -292,14 +334,31 @@ export default function SettingsPage() {
                             <div className="grid gap-4 sm:grid-cols-2">
                                 <div className="space-y-2">
                                     <Label htmlFor="new-password">{t.settings.security.newPassword}</Label>
-                                    <Input id="new-password" type="password" placeholder="••••••••" />
+                                    <Input
+                                        id="new-password"
+                                        type="password"
+                                        placeholder="••••••••"
+                                        value={newPassword}
+                                        onChange={(e) => setNewPassword(e.target.value)}
+                                    />
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="confirm-password">{t.settings.security.confirmPassword}</Label>
-                                    <Input id="confirm-password" type="password" placeholder="••••••••" />
+                                    <Input
+                                        id="confirm-password"
+                                        type="password"
+                                        placeholder="••••••••"
+                                        value={confirmPassword}
+                                        onChange={(e) => setConfirmPassword(e.target.value)}
+                                    />
                                 </div>
                             </div>
-                            <Button>{t.settings.security.updatePassword}</Button>
+                            <Button onClick={handleUpdatePassword} disabled={isPasswordLoading}>
+                                {isPasswordLoading ? (
+                                    <Loader2 className="h-4 w-4 me-2 animate-spin" />
+                                ) : null}
+                                {t.settings.security.updatePassword}
+                            </Button>
                         </CardContent>
                     </Card>
 
