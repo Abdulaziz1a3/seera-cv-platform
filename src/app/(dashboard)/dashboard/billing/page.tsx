@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { CreditCard, Copy, Gift, Loader2 } from 'lucide-react';
+import { CreditCard, Copy, Gift, Loader2, Sparkles, CheckCircle2, PartyPopper } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -28,6 +28,18 @@ type GiftListItem = {
     createdAt?: string | null;
     redeemedAt?: string | null;
     redeemedBy?: { email?: string | null; name?: string | null } | null;
+};
+
+type PendingGift = {
+    id: string;
+    token: string;
+    plan: 'PRO' | 'ENTERPRISE';
+    interval: 'MONTHLY' | 'YEARLY';
+    message?: string | null;
+    expiresAt?: string | null;
+    createdAt?: string | null;
+    fromName?: string | null;
+    fromEmail?: string | null;
 };
 
 export default function BillingGiftsPage() {
@@ -58,6 +70,10 @@ export default function BillingGiftsPage() {
         status: string;
         isActive: boolean;
     } | null>(null);
+    const [pendingGifts, setPendingGifts] = useState<PendingGift[]>([]);
+    const [pendingGiftsLoading, setPendingGiftsLoading] = useState(false);
+    const [claimingGiftId, setClaimingGiftId] = useState<string | null>(null);
+    const [claimSuccess, setClaimSuccess] = useState(false);
 
     useEffect(() => {
         let mounted = true;
@@ -239,6 +255,82 @@ export default function BillingGiftsPage() {
         }
     };
 
+    const fetchPendingGifts = async () => {
+        setPendingGiftsLoading(true);
+        try {
+            const res = await fetch('/api/gifts/pending');
+            if (!res.ok) throw new Error('Failed to fetch pending gifts');
+            const data = await res.json();
+            setPendingGifts(Array.isArray(data.pendingGifts) ? data.pendingGifts : []);
+        } catch {
+            setPendingGifts([]);
+        } finally {
+            setPendingGiftsLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchPendingGifts();
+    }, []);
+
+    const handleClaimGift = async (token: string, giftId: string) => {
+        setClaimingGiftId(giftId);
+        try {
+            const res = await fetch('/api/gifts/claim', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ token }),
+            });
+
+            const data = await res.json().catch(() => ({}));
+
+            if (!res.ok) {
+                const errorMessages: Record<string, string> = {
+                    'Gift not found': locale === 'ar' ? 'الهدية غير موجودة' : 'Gift not found',
+                    'Gift already claimed or inactive': locale === 'ar' ? 'تم استخدام هذه الهدية مسبقاً' : 'This gift has already been claimed',
+                    'Gift expired': locale === 'ar' ? 'انتهت صلاحية الهدية' : 'This gift has expired',
+                };
+                throw new Error(errorMessages[data.error] || data.error || (locale === 'ar' ? 'فشل تفعيل الهدية' : 'Failed to claim gift'));
+            }
+
+            setClaimSuccess(true);
+
+            // Trigger confetti
+            if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('confetti-trigger'));
+            }
+
+            // Refresh billing status
+            fetch('/api/billing/status')
+                .then((res) => (res.ok ? res.json() : null))
+                .then((data) => {
+                    if (data) {
+                        setBillingStatus({
+                            plan: data.plan || 'FREE',
+                            status: data.status || 'UNPAID',
+                            isActive: Boolean(data.isActive),
+                        });
+                    }
+                });
+
+            // Remove claimed gift from list
+            setPendingGifts(prev => prev.filter(g => g.id !== giftId));
+
+            toast.success(
+                locale === 'ar'
+                    ? '🎉 تم تفعيل الهدية بنجاح! استمتع باشتراكك الجديد'
+                    : '🎉 Gift activated successfully! Enjoy your subscription'
+            );
+
+            // Reset success state after animation
+            setTimeout(() => setClaimSuccess(false), 5000);
+        } catch (error: any) {
+            toast.error(error?.message || (locale === 'ar' ? 'فشل تفعيل الهدية' : 'Failed to claim gift'));
+        } finally {
+            setClaimingGiftId(null);
+        }
+    };
+
     const formatGiftPlan = (plan: GiftListItem['plan']) => (plan === 'ENTERPRISE' ? 'Enterprise' : 'Pro');
     const formatGiftInterval = (interval: GiftListItem['interval']) =>
         interval === 'YEARLY' ? (locale === 'ar' ? 'سنوي' : 'Yearly') : (locale === 'ar' ? 'شهري' : 'Monthly');
@@ -401,6 +493,118 @@ export default function BillingGiftsPage() {
                     </div>
                 </CardContent>
             </Card>
+
+            {/* Gift Redemption Section - Shows Pending Gifts */}
+            {(pendingGifts.length > 0 || pendingGiftsLoading || claimSuccess) && (
+                <Card className="overflow-hidden border-2 border-amber-500/30">
+                    <div className="bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-pink-500/10 px-6 py-4 border-b">
+                        <div className="flex items-center gap-3">
+                            <div className="h-12 w-12 rounded-full bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center shadow-lg">
+                                <PartyPopper className="h-6 w-6 text-white" />
+                            </div>
+                            <div>
+                                <h3 className="font-bold text-lg">
+                                    {locale === 'ar' ? '🎁 لديك هدايا في انتظارك!' : '🎁 You Have Gifts Waiting!'}
+                                </h3>
+                                <p className="text-sm text-muted-foreground">
+                                    {locale === 'ar'
+                                        ? 'قم بقبول الهدايا أدناه لتفعيل اشتراكك'
+                                        : 'Accept the gifts below to activate your subscription'}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    <CardContent className="pt-6">
+                        {claimSuccess ? (
+                            <div className="text-center py-8 space-y-4">
+                                <div className="inline-flex items-center justify-center h-16 w-16 rounded-full bg-green-500/10 mx-auto">
+                                    <CheckCircle2 className="h-8 w-8 text-green-500" />
+                                </div>
+                                <div>
+                                    <h4 className="text-xl font-bold text-green-600">
+                                        {locale === 'ar' ? '🎉 تم التفعيل بنجاح!' : '🎉 Successfully Activated!'}
+                                    </h4>
+                                    <p className="text-muted-foreground mt-1">
+                                        {locale === 'ar'
+                                            ? 'استمتع بجميع ميزات اشتراكك الجديد'
+                                            : 'Enjoy all the features of your new subscription'}
+                                    </p>
+                                </div>
+                                <Button onClick={() => window.location.reload()} variant="outline" size="sm">
+                                    <Sparkles className="h-4 w-4 me-2" />
+                                    {locale === 'ar' ? 'تحديث الصفحة' : 'Refresh Page'}
+                                </Button>
+                            </div>
+                        ) : pendingGiftsLoading ? (
+                            <div className="flex items-center justify-center py-8 gap-2 text-muted-foreground">
+                                <Loader2 className="h-5 w-5 animate-spin" />
+                                {locale === 'ar' ? 'جاري التحميل...' : 'Loading gifts...'}
+                            </div>
+                        ) : (
+                            <div className="space-y-4">
+                                {pendingGifts.map((gift) => (
+                                    <div
+                                        key={gift.id}
+                                        className="p-4 rounded-xl border-2 border-dashed border-amber-500/30 bg-gradient-to-r from-amber-500/5 to-orange-500/5 hover:border-amber-500/50 transition-all"
+                                    >
+                                        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                                            <div className="space-y-2">
+                                                <div className="flex items-center gap-2">
+                                                    <Badge className="bg-gradient-to-r from-amber-500 to-orange-600 text-white border-0">
+                                                        {gift.plan}
+                                                    </Badge>
+                                                    <Badge variant="outline">
+                                                        {gift.interval === 'YEARLY'
+                                                            ? (locale === 'ar' ? 'سنوي' : 'Yearly')
+                                                            : (locale === 'ar' ? 'شهري' : 'Monthly')}
+                                                    </Badge>
+                                                </div>
+                                                {gift.fromName && (
+                                                    <p className="text-sm">
+                                                        <span className="text-muted-foreground">
+                                                            {locale === 'ar' ? 'من: ' : 'From: '}
+                                                        </span>
+                                                        <span className="font-medium">{gift.fromName}</span>
+                                                    </p>
+                                                )}
+                                                {gift.message && (
+                                                    <p className="text-sm text-muted-foreground italic">
+                                                        "{gift.message}"
+                                                    </p>
+                                                )}
+                                                {gift.expiresAt && (
+                                                    <p className="text-xs text-muted-foreground">
+                                                        {locale === 'ar' ? 'تنتهي في: ' : 'Expires: '}
+                                                        {new Date(gift.expiresAt).toLocaleDateString(locale === 'ar' ? 'ar-SA' : 'en-US')}
+                                                    </p>
+                                                )}
+                                            </div>
+                                            <Button
+                                                size="lg"
+                                                className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 shadow-lg"
+                                                onClick={() => handleClaimGift(gift.token, gift.id)}
+                                                disabled={claimingGiftId === gift.id}
+                                            >
+                                                {claimingGiftId === gift.id ? (
+                                                    <>
+                                                        <Loader2 className="h-4 w-4 me-2 animate-spin" />
+                                                        {locale === 'ar' ? 'جاري التفعيل...' : 'Activating...'}
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <CheckCircle2 className="h-4 w-4 me-2" />
+                                                        {locale === 'ar' ? 'قبول الهدية' : 'Accept Gift'}
+                                                    </>
+                                                )}
+                                            </Button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+            )}
 
             <Card>
                 <CardHeader>

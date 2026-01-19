@@ -8,7 +8,8 @@ import { improveContent } from '@/lib/openai';
 const requestSchema = z.object({
     content: z.string().min(1, "Content cannot be empty").max(2000, "Content too long"),
     instruction: z.enum(['fix_grammar', 'professional', 'concise', 'make_concise', 'expand', 'active_voice']).default('professional'),
-    type: z.enum(['summary', 'bullet', 'description']).default('description')
+    type: z.enum(['summary', 'bullet', 'description']).default('description'),
+    locale: z.enum(['en', 'ar']).default('en'),
 });
 
 export async function POST(request: Request) {
@@ -35,7 +36,7 @@ export async function POST(request: Request) {
             );
         }
 
-        const { content, instruction, type } = validation.data;
+        const { content, instruction, type, locale } = validation.data;
 
         // 3. Call OpenAI Service
         // We'll map our specific instructions to the generic 'improveContent' or enhance it here
@@ -57,7 +58,7 @@ export async function POST(request: Request) {
         const promptType = instructionMap[instruction] || type;
 
         let polishedText = await improveContent(content, promptType as any, {
-            locale: 'en', // Default to EN for now, can be passed from body later
+            locale,
             tracking: {
                 userId: session.user.id,
                 operation: 'polish',

@@ -195,6 +195,87 @@ export async function PUT(request: NextRequest) {
                 });
                 break;
 
+            case 'activate_full': {
+                // Admin-initiated full subscription activation
+                const { plan: activatePlan, duration, note } = data || {};
+                
+                if (!activatePlan || !['PRO', 'ENTERPRISE'].includes(activatePlan)) {
+                    return NextResponse.json({ error: 'Invalid plan specified' }, { status: 400 });
+                }
+                
+                if (!duration || !['1_month', '3_months', '6_months', '1_year', 'lifetime'].includes(duration)) {
+                    return NextResponse.json({ error: 'Invalid duration specified' }, { status: 400 });
+                }
+                
+                const now = new Date();
+                let periodEnd: Date;
+                
+                switch (duration) {
+                    case '1_month':
+                        periodEnd = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+                        break;
+                    case '3_months':
+                        periodEnd = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000);
+                        break;
+                    case '6_months':
+                        periodEnd = new Date(now.getTime() + 180 * 24 * 60 * 60 * 1000);
+                        break;
+                    case '1_year':
+                        periodEnd = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000);
+                        break;
+                    case 'lifetime':
+                        // 100 years = effectively lifetime
+                        periodEnd = new Date(now.getTime() + 100 * 365 * 24 * 60 * 60 * 1000);
+                        break;
+                    default:
+                        periodEnd = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+                }
+                
+                result = await prisma.subscription.update({
+                    where: { id: subscriptionId },
+                    data: {
+                        status: 'ACTIVE',
+                        plan: activatePlan,
+                        currentPeriodStart: now,
+                        currentPeriodEnd: periodEnd,
+                        cancelAtPeriodEnd: false,
+                    },
+                    include: {
+                        user: { select: { email: true, name: true } }
+                    }
+                });
+                
+                // Enhanced audit log with activation details
+                await prisma.auditLog.create({
+                    data: {
+                        userId: session.user.id,
+                        action: 'subscription.admin_activate',
+                        entity: 'Subscription',
+                        entityId: subscriptionId,
+                        details: {
+                            action: 'activate_full',
+                            plan: activatePlan,
+                            duration,
+                            periodStart: now.toISOString(),
+                            periodEnd: periodEnd.toISOString(),
+                            activatedUserEmail: (result as any).user?.email,
+                            adminNote: note || null,
+                            activatedBy: session.user.email,
+                        }
+                    }
+                });
+                
+                // Return early to avoid duplicate audit log
+                return NextResponse.json({ 
+                    success: true, 
+                    result: {
+                        plan: activatePlan,
+                        status: 'ACTIVE',
+                        periodEnd: periodEnd.toISOString(),
+                    }
+                });
+            }
+
             case 'send_invoice': {
                 const subscription = await prisma.subscription.findUnique({
                     where: { id: subscriptionId },

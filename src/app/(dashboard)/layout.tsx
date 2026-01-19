@@ -110,12 +110,12 @@ export default function DashboardLayout({
     const navigation = [
         { name: t.nav.dashboard, href: '/dashboard', icon: LayoutDashboard, isPro: false },
         { name: t.nav.myResumes, href: '/dashboard/resumes', icon: FileText, isPro: false },
-        { name: locale === 'ar' ? 'GPS المهني' : 'Career GPS', href: '/dashboard/career', icon: Compass, isPro: true },
-        { name: locale === 'ar' ? 'تحضير المقابلة' : 'Interview Prep', href: '/dashboard/interview', icon: Brain, isPro: true },
-        { name: locale === 'ar' ? 'مجموعة المواهب' : 'Talent Pool', href: '/dashboard/talent-pool', icon: Users, isPro: true },
         { name: t.nav.seeraLink, href: '/dashboard/seera-link', icon: PenTool, isPro: true },
-        { name: locale === 'ar' ? 'وضع التخفي' : 'Stealth Mode', href: '/dashboard/stealth', icon: Shield, isPro: true },
+        { name: locale === 'ar' ? 'تحضير المقابلة' : 'Interview Prep', href: '/dashboard/interview', icon: Brain, isPro: true },
+        { name: locale === 'ar' ? 'GPS المهني' : 'Career GPS', href: '/dashboard/career', icon: Compass, isPro: true },
         { name: 'LinkedIn', href: '/dashboard/linkedin', icon: User, isPro: true },
+        { name: locale === 'ar' ? 'مجموعة المواهب' : 'Talent Pool', href: '/dashboard/talent-pool', icon: Users, isPro: true },
+        { name: locale === 'ar' ? 'وضع التخفي' : 'Stealth Mode', href: '/dashboard/stealth', icon: Shield, isPro: true },
         { name: t.nav.billing, href: billingHref, icon: CreditCard, isPro: false },
     ];
 
@@ -171,8 +171,8 @@ export default function DashboardLayout({
                             href={href}
                             aria-disabled={isLocked}
                             className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${isActive(item.href)
-                                    ? 'bg-primary text-primary-foreground'
-                                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                                ? 'bg-primary text-primary-foreground'
+                                : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                                 } ${isLocked ? 'opacity-70 cursor-not-allowed' : ''}`}
                         >
                             <item.icon className="h-5 w-5 flex-shrink-0" />
@@ -198,8 +198,8 @@ export default function DashboardLayout({
                         key={item.href}
                         href={item.href}
                         className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${isActive(item.href)
-                                ? 'bg-primary text-primary-foreground'
-                                : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                            ? 'bg-primary text-primary-foreground'
+                            : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                             }`}
                     >
                         <item.icon className="h-5 w-5 flex-shrink-0" />

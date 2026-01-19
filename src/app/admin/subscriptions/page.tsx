@@ -30,6 +30,8 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import {
     CreditCard,
     Search,
@@ -44,6 +46,10 @@ import {
     RefreshCw,
     Loader2,
     CheckCircle,
+    Zap,
+    Crown,
+    Calendar,
+    Sparkles,
 } from 'lucide-react';
 import {
     DropdownMenu,
@@ -105,6 +111,19 @@ function AdminSubscriptionsContent() {
     const [detailsDialog, setDetailsDialog] = useState<{ open: boolean; subscription: Subscription | null }>({
         open: false,
         subscription: null,
+    });
+    const [activateDialog, setActivateDialog] = useState<{
+        open: boolean;
+        subscription: Subscription | null;
+        plan: 'PRO' | 'ENTERPRISE';
+        duration: string;
+        note: string;
+    }>({
+        open: false,
+        subscription: null,
+        plan: 'PRO',
+        duration: '1_month',
+        note: '',
     });
 
     const fetchSubscriptions = useCallback(async () => {
@@ -396,6 +415,21 @@ function AdminSubscriptionsContent() {
                                                         <Eye className="h-4 w-4 me-2" />
                                                         {locale === 'ar' ? 'عرض التفاصيل' : 'View Details'}
                                                     </DropdownMenuItem>
+                                                    {sub.status !== 'ACTIVE' && (
+                                                        <DropdownMenuItem
+                                                            className="text-green-600"
+                                                            onClick={() => setActivateDialog({
+                                                                open: true,
+                                                                subscription: sub,
+                                                                plan: sub.plan === 'ENTERPRISE' ? 'ENTERPRISE' : 'PRO',
+                                                                duration: '1_month',
+                                                                note: '',
+                                                            })}
+                                                        >
+                                                            <Sparkles className="h-4 w-4 me-2" />
+                                                            {locale === 'ar' ? 'تفعيل الوصول الكامل' : 'Activate Full Access'}
+                                                        </DropdownMenuItem>
+                                                    )}
                                                     <DropdownMenuItem
                                                         onClick={() => handleAction(sub.id, 'send_invoice')}
                                                     >
@@ -496,6 +530,174 @@ function AdminSubscriptionsContent() {
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setDetailsDialog({ open: false, subscription: null })}>
                             {locale === 'ar' ? 'إغلاق' : 'Close'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Activate Subscription Dialog */}
+            <Dialog
+                open={activateDialog.open}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setActivateDialog(prev => ({ ...prev, open: false }));
+                    }
+                }}
+            >
+                <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <div className="h-10 w-10 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center">
+                                <Sparkles className="h-5 w-5 text-white" />
+                            </div>
+                            <div>
+                                <span>{locale === 'ar' ? 'تفعيل الاشتراك' : 'Activate Subscription'}</span>
+                                <p className="text-sm font-normal text-muted-foreground mt-0.5">
+                                    {activateDialog.subscription?.user.email}
+                                </p>
+                            </div>
+                        </DialogTitle>
+                        <DialogDescription>
+                            {locale === 'ar'
+                                ? 'سيتم تفعيل وصول المستخدم الكامل فوراً'
+                                : 'This will instantly grant the user full access to all features'}
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="space-y-4 py-4">
+                        {/* Plan Selection */}
+                        <div className="space-y-2">
+                            <Label>{locale === 'ar' ? 'الخطة' : 'Plan'}</Label>
+                            <div className="grid grid-cols-2 gap-3">
+                                <button
+                                    type="button"
+                                    onClick={() => setActivateDialog(prev => ({ ...prev, plan: 'PRO' }))}
+                                    className={`relative p-4 rounded-xl border-2 transition-all ${activateDialog.plan === 'PRO'
+                                            ? 'border-primary bg-primary/5 ring-2 ring-primary/20'
+                                            : 'border-border hover:border-primary/50'
+                                        }`}
+                                >
+                                    <div className="flex items-center gap-2">
+                                        <Zap className="h-5 w-5 text-primary" />
+                                        <span className="font-semibold">PRO</span>
+                                    </div>
+                                    <p className="text-sm text-muted-foreground mt-1">39 SAR/mo</p>
+                                    {activateDialog.plan === 'PRO' && (
+                                        <CheckCircle className="absolute top-2 right-2 h-4 w-4 text-primary" />
+                                    )}
+                                </button>
+
+                                <button
+                                    type="button"
+                                    onClick={() => setActivateDialog(prev => ({ ...prev, plan: 'ENTERPRISE' }))}
+                                    className={`relative p-4 rounded-xl border-2 transition-all ${activateDialog.plan === 'ENTERPRISE'
+                                            ? 'border-amber-500 bg-amber-500/5 ring-2 ring-amber-500/20'
+                                            : 'border-border hover:border-amber-500/50'
+                                        }`}
+                                >
+                                    <div className="flex items-center gap-2">
+                                        <Crown className="h-5 w-5 text-amber-500" />
+                                        <span className="font-semibold">ENTERPRISE</span>
+                                    </div>
+                                    <p className="text-sm text-muted-foreground mt-1">249 SAR/mo</p>
+                                    {activateDialog.plan === 'ENTERPRISE' && (
+                                        <CheckCircle className="absolute top-2 right-2 h-4 w-4 text-amber-500" />
+                                    )}
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Duration Selection */}
+                        <div className="space-y-2">
+                            <Label className="flex items-center gap-2">
+                                <Calendar className="h-4 w-4" />
+                                {locale === 'ar' ? 'المدة' : 'Duration'}
+                            </Label>
+                            <Select
+                                value={activateDialog.duration}
+                                onValueChange={(v) => setActivateDialog(prev => ({ ...prev, duration: v }))}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="1_month">{locale === 'ar' ? 'شهر واحد' : '1 Month'}</SelectItem>
+                                    <SelectItem value="3_months">{locale === 'ar' ? '3 أشهر' : '3 Months'}</SelectItem>
+                                    <SelectItem value="6_months">{locale === 'ar' ? '6 أشهر' : '6 Months'}</SelectItem>
+                                    <SelectItem value="1_year">{locale === 'ar' ? 'سنة واحدة' : '1 Year'}</SelectItem>
+                                    <SelectItem value="lifetime">
+                                        <span className="flex items-center gap-2">
+                                            <span className="text-amber-500">★</span>
+                                            {locale === 'ar' ? 'مدى الحياة' : 'Lifetime'}
+                                        </span>
+                                    </SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        {/* Admin Note */}
+                        <div className="space-y-2">
+                            <Label>{locale === 'ar' ? 'ملاحظة (اختياري)' : 'Note (optional)'}</Label>
+                            <Textarea
+                                placeholder={locale === 'ar' ? 'سبب التفعيل...' : 'Reason for activation...'}
+                                value={activateDialog.note}
+                                onChange={(e) => setActivateDialog(prev => ({ ...prev, note: e.target.value }))}
+                                className="resize-none"
+                                rows={2}
+                            />
+                        </div>
+
+                        {/* Summary */}
+                        <div className="p-3 rounded-lg bg-muted/50 border">
+                            <p className="text-sm">
+                                <span className="text-muted-foreground">
+                                    {locale === 'ar' ? 'سيتم تفعيل' : 'Will activate'}:
+                                </span>{' '}
+                                <span className="font-semibold">{activateDialog.plan}</span>
+                                {' '}
+                                <span className="text-muted-foreground">
+                                    {locale === 'ar' ? 'لمدة' : 'for'}
+                                </span>{' '}
+                                <span className="font-semibold">
+                                    {activateDialog.duration === 'lifetime'
+                                        ? (locale === 'ar' ? 'مدى الحياة' : 'Lifetime')
+                                        : activateDialog.duration.replace('_', ' ')}
+                                </span>
+                            </p>
+                        </div>
+                    </div>
+
+                    <DialogFooter className="gap-2">
+                        <Button
+                            variant="outline"
+                            onClick={() => setActivateDialog(prev => ({ ...prev, open: false }))}
+                        >
+                            {locale === 'ar' ? 'إلغاء' : 'Cancel'}
+                        </Button>
+                        <Button
+                            className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700"
+                            onClick={async () => {
+                                if (!activateDialog.subscription) return;
+                                await handleAction(activateDialog.subscription.id, 'activate_full', {
+                                    plan: activateDialog.plan,
+                                    duration: activateDialog.duration,
+                                    note: activateDialog.note,
+                                });
+                                setActivateDialog(prev => ({ ...prev, open: false }));
+                            }}
+                            disabled={actionLoading === activateDialog.subscription?.id}
+                        >
+                            {actionLoading === activateDialog.subscription?.id ? (
+                                <>
+                                    <Loader2 className="h-4 w-4 me-2 animate-spin" />
+                                    {locale === 'ar' ? 'جاري التفعيل...' : 'Activating...'}
+                                </>
+                            ) : (
+                                <>
+                                    <Sparkles className="h-4 w-4 me-2" />
+                                    {locale === 'ar' ? 'تفعيل الاشتراك' : 'Activate Subscription'}
+                                </>
+                            )}
                         </Button>
                     </DialogFooter>
                 </DialogContent>
