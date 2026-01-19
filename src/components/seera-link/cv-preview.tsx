@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { LivePreview } from '@/components/resume-editor/live-preview';
 import { mapResumeRecordToResumeData } from '@/lib/resume-normalizer';
 import type { ResumeData } from '@/lib/resume-types';
@@ -25,6 +25,12 @@ export function CvPreview({
   const [resume, setResume] = useState<ResumeData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [previewScale, setPreviewScale] = useState(0.8);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+
+  const mmToPx = 96 / 25.4;
+  const a4WidthMm = 210;
+  const maxScale = 0.85;
+  const minScale = 0.45;
 
   const shouldShow =
     enableDownloadCv && enabledCtas.includes('VIEW_CV') && !!cvResumeId;
@@ -59,21 +65,23 @@ export function CvPreview({
   }, [shouldShow, cvResumeId, slug, isPreview, hidePhoneNumber]);
 
   useEffect(() => {
+    const container = containerRef.current;
+    if (!container || typeof ResizeObserver === 'undefined') return;
+
     const updateScale = () => {
-      if (typeof window === 'undefined') return;
-      const width = window.innerWidth;
-      if (width < 480) {
-        setPreviewScale(0.48);
-      } else if (width < 768) {
-        setPreviewScale(0.6);
-      } else {
-        setPreviewScale(0.8);
-      }
+      const width = container.clientWidth;
+      if (!width) return;
+      const nextScale = Math.min(
+        maxScale,
+        Math.max(minScale, (width / (a4WidthMm * mmToPx)) * 0.98)
+      );
+      setPreviewScale(nextScale);
     };
 
+    const observer = new ResizeObserver(updateScale);
+    observer.observe(container);
     updateScale();
-    window.addEventListener('resize', updateScale);
-    return () => window.removeEventListener('resize', updateScale);
+    return () => observer.disconnect();
   }, []);
 
   if (!shouldShow) return null;
@@ -84,9 +92,9 @@ export function CvPreview({
         <div className="text-sm text-muted-foreground">Loading CV preview...</div>
       )}
       {!isLoading && resume && (
-        <div className="rounded-xl border bg-white/80 p-3 overflow-x-auto">
+        <div ref={containerRef} className="rounded-xl border bg-white/80 p-3 overflow-hidden">
           <div className="flex justify-center">
-            <LivePreview resume={resume} scale={previewScale} />
+            <LivePreview resume={resume} scale={previewScale} compact />
           </div>
         </div>
       )}

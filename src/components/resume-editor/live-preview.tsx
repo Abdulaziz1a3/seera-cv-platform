@@ -11,6 +11,7 @@ interface LivePreviewProps {
   scale?: number;
   showWatermark?: boolean;
   watermarkText?: string;
+  compact?: boolean;
 }
 
 // A4 dimensions in pixels at 96 DPI (approx)
@@ -23,6 +24,7 @@ export function LivePreview({
   scale = PREVIEW_SCALE,
   showWatermark = false,
   watermarkText,
+  compact = false,
 }: LivePreviewProps) {
   const theme = THEMES[resume.theme || 'obsidian'];
   const locale = resume.locale || 'en';
@@ -31,7 +33,8 @@ export function LivePreview({
   const appUrl = (process.env.NEXT_PUBLIC_APP_URL || 'https://seera-ai.com').replace(/\/$/, '');
   const seeraLinkUrl = showSeeraLinkQr ? `${appUrl}/p/${seeraLinkSlug}` : '';
   const scaledWidth = `${A4_WIDTH * scale}mm`;
-  const scaledHeight = `${A4_HEIGHT * scale}mm`;
+  const scaledHeight = compact ? 'auto' : `${A4_HEIGHT * scale}mm`;
+  const contentMinHeight = compact ? 'auto' : `${A4_HEIGHT}mm`;
   const finalWatermarkText =
     watermarkText ||
     (locale === 'ar' ? 'Seera AI نسخة مجانية' : 'Seera AI Free Preview');
@@ -67,7 +70,7 @@ export function LivePreview({
         dir={locale === 'ar' ? 'rtl' : 'ltr'}
         style={{
           width: `${A4_WIDTH}mm`,
-          minHeight: `${A4_HEIGHT}mm`,
+          minHeight: contentMinHeight,
           transform: `scale(${scale})`,
           transformOrigin: 'top left',
         }}
