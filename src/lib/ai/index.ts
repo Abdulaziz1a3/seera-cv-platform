@@ -575,5 +575,3 @@ export async function extractSkillsFromJobDescription(
         .filter((line) => line.length > 0);
 }
 
-// Re-export usage tracking functions from stripe module
-export { recordAIUsage, getRemainingAIGenerations } from '@/lib/stripe';
