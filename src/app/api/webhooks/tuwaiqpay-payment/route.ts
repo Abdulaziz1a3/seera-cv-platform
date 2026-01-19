@@ -97,6 +97,8 @@ export async function POST(request: Request) {
         amountSar: number;
         paidAt: Date;
         receiptId?: string;
+        description?: string;
+        recipientEmail?: string;
     } | null = null;
 
     await prisma.$transaction(async (tx) => {
