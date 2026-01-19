@@ -6,7 +6,6 @@ import { toast } from 'sonner';
 import {
     User,
     Lock,
-    Bell,
     Shield,
     Loader2,
     Save,
@@ -21,7 +20,6 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { Switch } from '@/components/ui/switch';
 import { useLocale } from '@/components/providers/locale-provider';
 
 export default function SettingsPage() {
@@ -37,12 +35,6 @@ export default function SettingsPage() {
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [isPasswordLoading, setIsPasswordLoading] = useState(false);
-    const [notifications, setNotifications] = useState({
-        resumeTips: true,
-        jobAlerts: true,
-        productUpdates: false,
-        marketing: false,
-    });
 
     useEffect(() => {
         let mounted = true;
@@ -170,7 +162,7 @@ export default function SettingsPage() {
             </div>
 
             <Tabs defaultValue="profile" className="space-y-6">
-                <TabsList className="grid w-full grid-cols-3 lg:w-[420px]">
+                <TabsList className="grid w-full grid-cols-2 lg:w-[300px]">
                     <TabsTrigger value="profile" className="gap-2">
                         <User className="h-4 w-4" />
                         <span className="hidden sm:inline">{t.settings.tabs.profile}</span>
@@ -178,10 +170,6 @@ export default function SettingsPage() {
                     <TabsTrigger value="security" className="gap-2">
                         <Lock className="h-4 w-4" />
                         <span className="hidden sm:inline">{t.settings.tabs.security}</span>
-                    </TabsTrigger>
-                    <TabsTrigger value="notifications" className="gap-2">
-                        <Bell className="h-4 w-4" />
-                        <span className="hidden sm:inline">{t.settings.tabs.notifications}</span>
                     </TabsTrigger>
                 </TabsList>
 
@@ -389,59 +377,6 @@ export default function SettingsPage() {
                                 </div>
                                 <Button variant="outline">{t.settings.security.enable2fa}</Button>
                             </div>
-                        </CardContent>
-                    </Card>
-                </TabsContent>
-
-                {/* Notifications Tab */}
-                <TabsContent value="notifications" className="space-y-6">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <Bell className="h-5 w-5 text-primary" />
-                                {t.settings.notifications.emailNotifications}
-                            </CardTitle>
-                            <CardDescription>{t.settings.notifications.emailNotificationsDesc}</CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-6">
-                            {[
-                                {
-                                    id: 'resumeTips',
-                                    label: t.settings.notifications.resumeTips,
-                                    description: t.settings.notifications.resumeTipsDesc,
-                                },
-                                {
-                                    id: 'jobAlerts',
-                                    label: t.settings.notifications.jobAlerts,
-                                    description: t.settings.notifications.jobAlertsDesc,
-                                },
-                                {
-                                    id: 'productUpdates',
-                                    label: t.settings.notifications.productUpdates,
-                                    description: t.settings.notifications.productUpdatesDesc,
-                                },
-                                {
-                                    id: 'marketing',
-                                    label: t.settings.notifications.marketing,
-                                    description: t.settings.notifications.marketingDesc,
-                                },
-                            ].map((notification) => (
-                                <div
-                                    key={notification.id}
-                                    className="flex items-center justify-between p-4 rounded-lg border"
-                                >
-                                    <div>
-                                        <h4 className="font-medium">{notification.label}</h4>
-                                        <p className="text-sm text-muted-foreground">{notification.description}</p>
-                                    </div>
-                                    <Switch
-                                        checked={notifications[notification.id as keyof typeof notifications]}
-                                        onCheckedChange={(checked) =>
-                                            setNotifications({ ...notifications, [notification.id]: checked })
-                                        }
-                                    />
-                                </div>
-                            ))}
                         </CardContent>
                     </Card>
                 </TabsContent>
