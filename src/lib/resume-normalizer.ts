@@ -245,7 +245,7 @@ export function mapResumeRecordToResumeData(resume: ResumeRecord): ResumeData {
     const languages = Array.isArray((resume.languages as any)?.items)
         ? (resume.languages as any).items.map((item: any) => ({
             id: crypto.randomUUID(),
-            name: item.name || '',
+            name: item.name || item.language || '',
             proficiency: item.proficiency || 'Intermediate',
         }))
         : [];
