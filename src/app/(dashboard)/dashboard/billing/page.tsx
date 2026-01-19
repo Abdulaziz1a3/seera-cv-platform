@@ -300,20 +300,7 @@ export default function BillingGiftsPage() {
                 window.dispatchEvent(new CustomEvent('confetti-trigger'));
             }
 
-            // Refresh billing status
-            fetch('/api/billing/status')
-                .then((res) => (res.ok ? res.json() : null))
-                .then((data) => {
-                    if (data) {
-                        setBillingStatus({
-                            plan: data.plan || 'FREE',
-                            status: data.status || 'UNPAID',
-                            isActive: Boolean(data.isActive),
-                        });
-                    }
-                });
-
-            // Remove claimed gift from list
+            // Remove claimed gift from list immediately
             setPendingGifts(prev => prev.filter(g => g.id !== giftId));
 
             toast.success(
@@ -321,6 +308,21 @@ export default function BillingGiftsPage() {
                     ? '🎉 تم تفعيل الهدية بنجاح! استمتع باشتراكك الجديد'
                     : '🎉 Gift activated successfully! Enjoy your subscription'
             );
+
+            // Wait a moment for database to fully commit, then refresh billing status
+            setTimeout(async () => {
+                const res = await fetch('/api/billing/status');
+                if (res.ok) {
+                    const data = await res.json();
+                    setBillingStatus({
+                        plan: data.plan || 'FREE',
+                        status: data.status || 'UNPAID',
+                        isActive: Boolean(data.isActive),
+                    });
+                }
+                // Force page reload after 2 seconds to ensure all components update
+                setTimeout(() => window.location.reload(), 2000);
+            }, 500);
 
             // Reset success state after animation
             setTimeout(() => setClaimSuccess(false), 5000);
