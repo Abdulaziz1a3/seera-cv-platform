@@ -131,12 +131,9 @@ export default function TermsPage() {
 
                         <h2>14. Contact Us</h2>
                         <p>
-                            If you have any questions about these Terms, please contact us at:
+                            If you have any questions about these Terms, please contact us through the support form
+                            in the app.
                         </p>
-                        <ul>
-                            <li>Email: info@seera-sa.com</li>
-                            <li>Support: info@seera-sa.com</li>
-                        </ul>
                     </div>
                 </div>
             </div>

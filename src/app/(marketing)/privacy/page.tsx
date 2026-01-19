@@ -130,10 +130,9 @@ export default function PrivacyPage() {
                         <p>
                             For privacy-related questions or to exercise your rights:
                         </p>
-                        <ul>
-                            <li>Email: info@seera-sa.com</li>
-                            <li>Support: info@seera-sa.com</li>
-                        </ul>
+                        <p>
+                            Please use the support form in the app and choose "Privacy" as the category.
+                        </p>
 
                         <h2>13. GDPR Compliance (EU Users)</h2>
                         <p>

@@ -215,6 +215,7 @@ export default function LiveInterviewPage() {
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const messagesRef = useRef<Message[]>([]);
     const pendingAnswerRef = useRef<string>('');
+    const lastTranscriptRef = useRef<string>('');
     const silenceTimerRef = useRef<NodeJS.Timeout | null>(null);
     const phaseRef = useRef(phase);
     const autoListenRef = useRef(true);
@@ -643,6 +644,8 @@ export default function LiveInterviewPage() {
             silenceTimerRef.current = null;
         }
         pendingAnswerRef.current = '';
+        lastTranscriptRef.current = '';
+        setLiveTranscript('');
         if (suppress) {
             suppressListenRef.current = true;
         }
@@ -672,6 +675,7 @@ export default function LiveInterviewPage() {
         try {
             suppressListenRef.current = false;
             pendingAnswerRef.current = '';
+            lastTranscriptRef.current = '';
             setLiveTranscript('');
             recognitionRef.current.start();
             setIsListening(true);
@@ -840,6 +844,10 @@ export default function LiveInterviewPage() {
                 playbackFailed = true;
                 setAudioBlocked(true);
                 pendingAudioUrlRef.current = audioUrl;
+                if (!audioErrorShown) {
+                    setAudioErrorShown(true);
+                    toast.error(locale === 'ar' ? 'تعذر تشغيل الصوت - اضغط لتفعيل صوت الذكاء الاصطناعي' : 'Audio blocked - click to enable AI voice');
+                }
                 return;
             }
 
@@ -867,8 +875,8 @@ export default function LiveInterviewPage() {
             setIsSpeaking(false);
             suppressListenRef.current = false;
             lastSpeakEndedAtRef.current = Date.now();
-            if (shouldResume && !playbackFailed) {
-                setTimeout(() => startListening(), 500);
+            if (shouldResume) {
+                setTimeout(() => startListening(), playbackFailed ? 700 : 500);
             }
         }
     }, [audioErrorShown, interviewLang, isMuted, locale, selectedVoice, speakWithBrowser, startListening, stopListening, ttsErrorShown, unlockAudio, useTextInput]);
@@ -1115,16 +1123,19 @@ export default function LiveInterviewPage() {
             }
 
             if (final) pendingAnswerRef.current += final;
-            setLiveTranscript((pendingAnswerRef.current + interim).trim());
+            const combinedTranscript = (pendingAnswerRef.current + interim).trim();
+            lastTranscriptRef.current = combinedTranscript;
+            setLiveTranscript(combinedTranscript);
 
             if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
 
-            if (pendingAnswerRef.current.trim()) {
+            if (combinedTranscript) {
                 silenceTimerRef.current = setTimeout(() => {
-                    const answer = pendingAnswerRef.current.trim();
+                    const answer = pendingAnswerRef.current.trim() || lastTranscriptRef.current.trim();
                     if (answer) {
                         processUserResponse(answer);
                         pendingAnswerRef.current = '';
+                        lastTranscriptRef.current = '';
                     }
                 }, 2500);
             }
