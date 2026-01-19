@@ -194,8 +194,8 @@ export function generateSlugSuggestions(name: string): string[] {
  * Generate profile URL
  */
 export function getProfileUrl(slug: string): string {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://seera-ai.com';
-  return `${baseUrl}/p/${slug}`;
+  const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || 'https://seera-ai.com').trim();
+  return `${baseUrl}/p/${slug.trim()}`;
 }
 
 /**
