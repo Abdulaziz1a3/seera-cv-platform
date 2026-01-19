@@ -495,7 +495,21 @@ export async function analyzeJobMatch(
     await recordAIUsage(tracking, response.usage, aiClient.getProvider());
 
     try {
-        return JSON.parse(response.content);
+        // Extract JSON - strip markdown code blocks if present
+        let jsonStr = response.content.trim();
+        if (jsonStr.includes('```')) {
+            const m = jsonStr.match(/```(?:json)?\s*([\s\S]*?)```/);
+            if (m) jsonStr = m[1].trim();
+        }
+        const objM = jsonStr.match(/\{[\s\S]*\}/);
+        if (objM) jsonStr = objM[0];
+        const p = JSON.parse(jsonStr);
+        return {
+            matchScore: typeof p.matchScore === 'number' ? p.matchScore : 50,
+            matchingKeywords: Array.isArray(p.matchingKeywords) ? p.matchingKeywords : [],
+            missingKeywords: Array.isArray(p.missingKeywords) ? p.missingKeywords : [],
+            suggestions: Array.isArray(p.suggestions) ? p.suggestions : [],
+        };
     } catch {
         return {
             matchScore: 50,
