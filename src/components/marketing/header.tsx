@@ -43,7 +43,7 @@ export function MarketingHeader() {
 
     return (
         <header
-            className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isScrolled
+            className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isScrolled || isMobileMenuOpen
                 ? 'bg-background/95 backdrop-blur-md shadow-sm border-b'
                 : 'bg-transparent'
                 }`}
@@ -207,7 +207,7 @@ export function MarketingHeader() {
                     className={`md:hidden overflow-hidden transition-all duration-300 ${isMobileMenuOpen ? 'max-h-[500px] pb-6' : 'max-h-0'
                         }`}
                 >
-                    <div className="flex flex-col gap-2 pt-4">
+                    <div className="flex flex-col gap-2 pt-4 bg-background/95 backdrop-blur-md rounded-2xl p-4 shadow-lg border">
                         {navLinks.map((link) => (
                             <Link
                                 key={link.href}
