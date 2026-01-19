@@ -6,6 +6,7 @@ const baseSettings = {
   showWebsite: true,
   dateFormat: 'MMM YYYY' as const,
   sectionOrder: ['summary', 'experience', 'education', 'skills', 'projects', 'certifications', 'languages'],
+  fontFamily: 'jakarta' as const,
 };
 
 const baseMeta = {
