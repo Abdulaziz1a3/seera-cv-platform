@@ -69,8 +69,11 @@ export async function POST(request: Request) {
             : now;
         const periodEnd = addMonths(baseEnd, durationMonths);
 
+        console.log('Gift claim started:', { token, giftPlan: gift.plan, giftInterval: gift.interval });
+
         await prisma.$transaction(async (tx) => {
             if (subscription) {
+                console.log('Updating existing subscription:', { userId: session.user.id, fromPlan: subscription.plan, toPlan: gift.plan });
                 await tx.subscription.update({
                     where: { userId: session.user.id },
                     data: {
@@ -83,7 +86,9 @@ export async function POST(request: Request) {
                         stripePriceId: null,
                     },
                 });
+                console.log('Subscription updated successfully');
             } else {
+                console.log('Creating new subscription:', { userId: session.user.id, plan: gift.plan });
                 await tx.subscription.create({
                     data: {
                         userId: session.user.id,
@@ -94,6 +99,7 @@ export async function POST(request: Request) {
                         cancelAtPeriodEnd: false,
                     },
                 });
+                console.log('Subscription created successfully');
             }
 
             await tx.giftSubscription.update({
@@ -104,8 +110,10 @@ export async function POST(request: Request) {
                     redeemedByUserId: session.user.id,
                 },
             });
+            console.log('Gift marked as REDEEMED');
         });
 
+        console.log('Gift claim completed successfully');
         return NextResponse.json({ success: true });
     } catch (error) {
         if (error instanceof z.ZodError) {
