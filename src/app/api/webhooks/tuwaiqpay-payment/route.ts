@@ -130,6 +130,25 @@ export async function POST(request: Request) {
                     source: 'tuwaiqpay',
                     reference: transactionId || billId || payment.id,
                 });
+
+                const user = await tx.user.findUnique({
+                    where: { id: payment.userId },
+                    select: { email: true, name: true },
+                });
+
+                if (user?.email) {
+                    const creditsLabel = payment.credits ? ` (${payment.credits} credits)` : '';
+                    receiptPayload = {
+                        to: user.email,
+                        name: user.name || undefined,
+                        planLabel: 'AI Credits',
+                        intervalLabel: 'One-time',
+                        amountSar: payment.amountSar,
+                        paidAt: now,
+                        receiptId: billId || transactionId || payment.id,
+                        description: `AI credits top-up${creditsLabel}`,
+                    };
+                }
             }
             return;
         }
@@ -241,6 +260,25 @@ export async function POST(request: Request) {
                 }).catch((error) => {
                     logger.error('Failed to send gift email', { error, giftId: gift.id });
                 });
+            }
+
+            const buyer = await tx.user.findUnique({
+                where: { id: payment.userId },
+                select: { email: true, name: true },
+            });
+
+            if (buyer?.email) {
+                receiptPayload = {
+                    to: buyer.email,
+                    name: buyer.name || undefined,
+                    planLabel: `Gift ${plan === 'ENTERPRISE' ? 'Enterprise' : 'Pro'}`,
+                    intervalLabel: interval === 'YEARLY' ? 'Yearly' : 'Monthly',
+                    amountSar: payment.amountSar,
+                    paidAt: now,
+                    receiptId: billId || transactionId || payment.id,
+                    recipientEmail: gift.recipientEmail || undefined,
+                    description: 'Gift subscription purchase',
+                };
             }
         }
     });

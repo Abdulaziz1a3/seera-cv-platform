@@ -387,6 +387,8 @@ export async function sendPaymentReceiptEmail(params: {
     amountSar: number;
     paidAt?: Date;
     receiptId?: string;
+    description?: string;
+    recipientEmail?: string;
 }): Promise<EmailResult> {
     if (!resend) {
         logger.warn('Email service not configured - skipping receipt email', { email: params.to });
@@ -400,15 +402,22 @@ export async function sendPaymentReceiptEmail(params: {
         : 'Today';
     const receiptId = params.receiptId ? escapeHtml(params.receiptId) : 'Pending';
     const intervalLabel = params.intervalLabel || 'Monthly';
+    const description = params.description ? escapeHtml(params.description) : null;
+    const recipientEmail = params.recipientEmail ? escapeHtml(params.recipientEmail) : null;
 
     const content = `
         <h1 style="margin: 0 0 16px 0; font-size: 24px; font-weight: 700; color: #18181b;">Payment receipt</h1>
         <p style="margin: 0 0 24px 0; font-size: 16px; color: #3f3f46; line-height: 1.6;">
             ${greeting}<br><br>
-            Thanks for your payment. Your subscription is now active.
+            Thanks for your payment. Your purchase is confirmed.
         </p>
         <div style="border: 1px solid #e4e4e7; border-radius: 10px; padding: 16px; margin: 16px 0;">
             <table role="presentation" style="width: 100%; border-collapse: collapse; font-size: 14px; color: #3f3f46;">
+                ${description ? `
+                <tr>
+                    <td style="padding: 6px 0; font-weight: 600;">Description</td>
+                    <td style="padding: 6px 0; text-align: right;">${description}</td>
+                </tr>` : ''}
                 <tr>
                     <td style="padding: 6px 0; font-weight: 600;">Plan</td>
                     <td style="padding: 6px 0; text-align: right;">${escapeHtml(params.planLabel)}</td>
@@ -421,6 +430,11 @@ export async function sendPaymentReceiptEmail(params: {
                     <td style="padding: 6px 0; font-weight: 600;">Amount paid</td>
                     <td style="padding: 6px 0; text-align: right;">${formatSar(params.amountSar)}</td>
                 </tr>
+                ${recipientEmail ? `
+                <tr>
+                    <td style="padding: 6px 0; font-weight: 600;">Recipient</td>
+                    <td style="padding: 6px 0; text-align: right;">${recipientEmail}</td>
+                </tr>` : ''}
                 <tr>
                     <td style="padding: 6px 0; font-weight: 600;">Paid on</td>
                     <td style="padding: 6px 0; text-align: right;">${escapeHtml(paidAtLabel)}</td>
