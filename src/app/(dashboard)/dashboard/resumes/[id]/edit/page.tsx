@@ -92,6 +92,10 @@ export default function ResumeEditorPage() {
 
     const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
     const resumeRef = useRef<ResumeRecord | null>(null);
+    const desktopPreviewRef = useRef<HTMLDivElement | null>(null);
+    const mobilePreviewRef = useRef<HTMLDivElement | null>(null);
+    const [desktopPreviewScale, setDesktopPreviewScale] = useState(0.52);
+    const [mobilePreviewScale, setMobilePreviewScale] = useState(0.6);
 
     const defaultContact = {
         fullName: '',
@@ -174,6 +178,37 @@ export default function ResumeEditorPage() {
         window.addEventListener('resize', checkScreenSize);
         return () => window.removeEventListener('resize', checkScreenSize);
     }, []);
+
+    useEffect(() => {
+        if (typeof window === 'undefined' || typeof ResizeObserver === 'undefined') return;
+        const mmToPx = 96 / 25.4;
+        const a4WidthMm = 210;
+        const updateScale = (element: HTMLDivElement | null, setter: (scale: number) => void, maxScale: number) => {
+            if (!element) return;
+            const width = element.clientWidth;
+            if (!width) return;
+            const scale = Math.min(maxScale, Math.max(0.4, (width / (a4WidthMm * mmToPx)) * 0.98));
+            setter(scale);
+        };
+
+        const desktopObserver = new ResizeObserver(() => updateScale(desktopPreviewRef.current, setDesktopPreviewScale, 0.62));
+        const mobileObserver = new ResizeObserver(() => updateScale(mobilePreviewRef.current, setMobilePreviewScale, 0.75));
+
+        if (desktopPreviewRef.current) {
+            desktopObserver.observe(desktopPreviewRef.current);
+            updateScale(desktopPreviewRef.current, setDesktopPreviewScale, 0.62);
+        }
+
+        if (mobilePreviewRef.current) {
+            mobileObserver.observe(mobilePreviewRef.current);
+            updateScale(mobilePreviewRef.current, setMobilePreviewScale, 0.75);
+        }
+
+        return () => {
+            desktopObserver.disconnect();
+            mobileObserver.disconnect();
+        };
+    }, [showPreview, showMobilePreview]);
 
     // Unsaved changes warning before navigation
     useEffect(() => {
@@ -628,12 +663,12 @@ export default function ResumeEditorPage() {
                                 <TabsTrigger value="ats">ATS Score</TabsTrigger>
                             </TabsList>
                             <TabsContent value="preview" className="flex-1 overflow-auto p-4">
-                                <div className="flex justify-center">
-                                <LivePreview
-                                    resume={previewResume as any}
-                                    scale={0.52}
-                                    showWatermark={!isSubscriptionActive}
-                                />
+                                <div ref={desktopPreviewRef} className="flex justify-center">
+                                    <LivePreview
+                                        resume={previewResume as any}
+                                        scale={desktopPreviewScale}
+                                        showWatermark={!isSubscriptionActive}
+                                    />
                                 </div>
                             </TabsContent>
                             <TabsContent value="ats" className="flex-1 overflow-auto p-4">
@@ -666,10 +701,10 @@ export default function ResumeEditorPage() {
                             <TabsTrigger value="ats">{locale === 'ar' ? 'درجة ATS' : 'ATS Score'}</TabsTrigger>
                         </TabsList>
                         <TabsContent value="preview" className="flex-1 overflow-auto p-4">
-                            <div className="flex justify-center">
+                            <div ref={mobilePreviewRef} className="flex justify-center">
                                 <LivePreview
                                     resume={previewResume as any}
-                                    scale={0.6}
+                                    scale={mobilePreviewScale}
                                     showWatermark={!isSubscriptionActive}
                                 />
                             </div>
