@@ -116,10 +116,10 @@ class PDFRenderer {
       await ensureArabicFonts(this.doc);
       this.isArabicMode = true;
       const docAny = this.doc as any;
-      this.rtlEnabled = typeof docAny.setR2L === 'function';
-      if (this.rtlEnabled) {
-        docAny.setR2L(true);
+      if (typeof docAny.setR2L === 'function') {
+        docAny.setR2L(false);
       }
+      this.rtlEnabled = false;
       this.fontFamily = 'NotoSansArabic';
     } catch (error) {
       console.warn('Arabic font load failed, falling back to default font.', error);
