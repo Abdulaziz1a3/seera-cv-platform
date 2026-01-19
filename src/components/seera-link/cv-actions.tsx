@@ -1,11 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import { FileDown, ExternalLink } from 'lucide-react';
+import { FileDown, Share2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { downloadPDF } from '@/lib/templates/renderer';
 import { mapResumeRecordToResumeData } from '@/lib/resume-normalizer';
 import { useAnalyticsTracker } from './analytics-beacon';
+import { toast } from 'sonner';
 
 interface CvActionsProps {
   profileId: string;
@@ -39,7 +40,7 @@ export function CvActions({
   previewAnchorId = 'cv-preview',
 }: CvActionsProps) {
   const { trackCTA } = useAnalyticsTracker(profileId);
-  const [loading, setLoading] = useState<'view' | 'download' | null>(null);
+  const [loading, setLoading] = useState<'share' | 'download' | null>(null);
 
   const hasView = enabledCtas.includes('VIEW_CV') && enableDownloadCv && !!cvResumeId;
   const hasDownload = enabledCtas.includes('DOWNLOAD_CV') && enableDownloadCv && (cvFileUrl || cvResumeId);
@@ -64,13 +65,30 @@ export function CvActions({
     return payload.data || payload;
   };
 
-  const handleView = async () => {
-    if (!cvResumeId) return;
-    const target = document.getElementById(previewAnchorId);
-    if (target) {
-      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  const handleShare = async () => {
+    const shareUrl = typeof window !== 'undefined'
+      ? `${window.location.origin}/${slug}`
+      : '';
+    if (!shareUrl) return;
+    setLoading('share');
+    try {
+      trackCTA('VIEW_CV');
+      if (navigator.share) {
+        await navigator.share({
+          title: 'Seera AI Profile',
+          url: shareUrl,
+        });
+      } else if (navigator.clipboard) {
+        await navigator.clipboard.writeText(shareUrl);
+        toast.success('Profile link copied');
+      } else {
+        window.prompt('Copy this link', shareUrl);
+      }
+    } catch {
+      toast.error('Unable to share right now');
+    } finally {
+      setLoading(null);
     }
-    trackCTA('VIEW_CV');
   };
 
   const handleDownload = async () => {
@@ -106,11 +124,11 @@ export function CvActions({
         <Button
           variant="outline"
           className={buttonClassName}
-          onClick={handleView}
+          onClick={handleShare}
           disabled={loading !== null}
         >
-          <ExternalLink className="w-4 h-4 mr-2" />
-          {loading === 'view' ? labels.preparing : labels.view}
+          <Share2 className="w-4 h-4 mr-2" />
+          {loading === 'share' ? labels.preparing : labels.view}
         </Button>
       )}
       {hasDownload && (

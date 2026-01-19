@@ -1,8 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { ResumePreview } from '@/components/resume-editor/resume-preview';
-import type { Resume } from '@/lib/resume-schema';
+import { LivePreview } from '@/components/resume-editor/live-preview';
+import { mapResumeRecordToResumeData } from '@/lib/resume-normalizer';
+import type { ResumeData } from '@/lib/resume-types';
 
 interface CvPreviewProps {
   slug: string;
@@ -21,7 +22,7 @@ export function CvPreview({
   hidePhoneNumber,
   isPreview = false,
 }: CvPreviewProps) {
-  const [resume, setResume] = useState<Resume | null>(null);
+  const [resume, setResume] = useState<ResumeData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   const shouldShow =
@@ -39,11 +40,13 @@ export function CvPreview({
         const response = await fetch(endpoint);
         if (!response.ok) return;
         const payload = await response.json();
-        const data = (payload?.data || payload) as Resume;
-        if (hidePhoneNumber && data?.contact) {
-          data.contact.phone = undefined;
+        const data = payload?.data || payload;
+        if (!data) return;
+        const resumeData = mapResumeRecordToResumeData(data);
+        if (hidePhoneNumber && resumeData?.contact) {
+          resumeData.contact.phone = undefined;
         }
-        setResume(data);
+        setResume(resumeData);
       } catch (error) {
         console.error('Failed to load CV preview:', error);
       } finally {
@@ -57,11 +60,17 @@ export function CvPreview({
   if (!shouldShow) return null;
 
   return (
-    <div id="cv-preview" className="mt-6">
+    <div id="cv-preview" className="mt-6 space-y-3">
       {isLoading && (
         <div className="text-sm text-muted-foreground">Loading CV preview...</div>
       )}
-      {!isLoading && resume && <ResumePreview resume={resume} />}
+      {!isLoading && resume && (
+        <div className="rounded-xl border bg-white/80 p-3 overflow-x-auto">
+          <div className="min-w-[720px]">
+            <LivePreview resume={resume} scale={0.8} />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

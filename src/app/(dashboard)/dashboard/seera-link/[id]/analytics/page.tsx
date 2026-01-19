@@ -52,7 +52,7 @@ const ctaLabels: Record<string, string> = {
   EMAIL: 'Email',
   LINKEDIN: 'LinkedIn',
   DOWNLOAD_CV: 'Download CV',
-  VIEW_CV: 'View CV',
+  VIEW_CV: 'Share Page',
 };
 
 export default function AnalyticsPage() {

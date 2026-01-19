@@ -722,7 +722,7 @@ export function ProfileEditor({ mode, initialData, profileId, onCancel }: Profil
 
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <Label>View CV</Label>
+                    <Label>Share Page</Label>
                     <Switch
                       checked={formData.enabledCtas.includes('VIEW_CV')}
                       onCheckedChange={(checked) => {
@@ -863,7 +863,7 @@ export function ProfileEditor({ mode, initialData, profileId, onCancel }: Profil
                   <div className="flex items-center justify-between">
                     <div>
                       <Label>Enable CV buttons</Label>
-                      <p className="text-xs text-muted-foreground">Show View/Download CV on your profile</p>
+                      <p className="text-xs text-muted-foreground">Show Share/Download buttons on your profile</p>
                     </div>
                     <Switch
                       checked={formData.enableDownloadCv}
