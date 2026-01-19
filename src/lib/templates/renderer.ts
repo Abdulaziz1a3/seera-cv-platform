@@ -363,6 +363,47 @@ class PDFRenderer {
       });
     }
 
+    // Projects
+    if (resume.projects.length > 0) {
+      addSection('projects', () => {
+        resume.projects.forEach((project, idx) => {
+          if (idx > 0) this.y += 3;
+          this.checkPageBreak(12);
+
+          this.setFont('bold');
+          this.doc.setFontSize(10);
+          this.setColor(this.theme.text);
+          this.text(project.name || 'Project', margin, this.y);
+          this.y += 4;
+
+          if (project.description) {
+            this.setFont('normal');
+            this.doc.setFontSize(this.config.typography.bodySize);
+            this.setColor(this.theme.muted);
+            this.addWrappedText(project.description, margin, contentWidth, 4.5);
+          }
+
+          if (project.technologies && project.technologies.length > 0) {
+            this.setFont('normal');
+            this.doc.setFontSize(this.config.typography.smallSize);
+            this.setColor(this.theme.muted);
+            this.text(`Tech: ${project.technologies.join(', ')}`, margin, this.y);
+            this.y += 4;
+          }
+
+          if (project.url) {
+            this.setFont('normal');
+            this.doc.setFontSize(this.config.typography.smallSize);
+            this.setColor(this.theme.accent);
+            this.text(project.url, margin, this.y);
+            this.y += 4;
+          }
+
+          this.y += 2;
+        });
+      });
+    }
+
     // Certifications
     if (resume.certifications.length > 0) {
       addSection('certifications', () => {
@@ -522,6 +563,47 @@ class PDFRenderer {
         this.setColor(this.theme.text);
         this.text(resume.skills.join(', '), margin, this.y);
         this.y += 5;
+      });
+    }
+
+    // Projects
+    if (resume.projects.length > 0) {
+      addSection('projects', () => {
+        resume.projects.forEach((project, idx) => {
+          if (idx > 0) this.y += 3;
+          this.checkPageBreak(12);
+
+          this.setFont('bold');
+          this.doc.setFontSize(10);
+          this.setColor(this.theme.text);
+          this.text(project.name || 'Project', margin, this.y);
+          this.y += 4;
+
+          if (project.description) {
+            this.setFont('normal');
+            this.doc.setFontSize(this.config.typography.bodySize);
+            this.setColor(this.theme.muted);
+            this.addWrappedText(project.description, margin, contentWidth, 4.5);
+          }
+
+          if (project.technologies && project.technologies.length > 0) {
+            this.setFont('normal');
+            this.doc.setFontSize(this.config.typography.smallSize);
+            this.setColor(this.theme.muted);
+            this.text(`Tech: ${project.technologies.join(', ')}`, margin, this.y);
+            this.y += 4;
+          }
+
+          if (project.url) {
+            this.setFont('normal');
+            this.doc.setFontSize(this.config.typography.smallSize);
+            this.setColor(this.theme.accent);
+            this.text(project.url, margin, this.y);
+            this.y += 4;
+          }
+
+          this.y += 2;
+        });
       });
     }
   }
@@ -768,6 +850,57 @@ class PDFRenderer {
         return y;
       });
     }
+
+    // Projects
+    if (resume.projects.length > 0) {
+      addMainSection('projects', (y) => {
+        resume.projects.forEach((project, idx) => {
+          if (idx > 0) y += 3;
+          if (y > this.pageHeight - 30) {
+            this.doc.addPage();
+            this.setColor(this.theme.secondary, 'fill');
+            this.doc.rect(0, 0, sidebarWidth, this.pageHeight, 'F');
+            y = 20;
+          }
+
+          this.doc.setFontSize(10.5);
+          this.setFont('bold');
+          this.setColor(this.theme.text);
+          this.text(project.name || 'Project', mainX, y);
+          y += 4;
+
+          if (project.description) {
+            this.setFont('normal');
+            this.doc.setFontSize(9);
+            this.setColor(this.theme.muted);
+            const descLines = this.splitText(project.description, mainWidth);
+            descLines.forEach((line: string) => {
+              this.text(line, mainX, y);
+              y += 4;
+            });
+          }
+
+          if (project.technologies && project.technologies.length > 0) {
+            this.setFont('normal');
+            this.doc.setFontSize(8.5);
+            this.setColor(this.theme.muted);
+            this.text(`Tech: ${project.technologies.join(', ')}`, mainX, y);
+            y += 4.5;
+          }
+
+          if (project.url) {
+            this.setFont('normal');
+            this.doc.setFontSize(8.5);
+            this.setColor(this.theme.accent);
+            this.text(project.url, mainX, y);
+            y += 4.5;
+          }
+
+          y += 2;
+        });
+        return y;
+      });
+    }
   }
 
   // ============================================
@@ -907,6 +1040,47 @@ class PDFRenderer {
           this.setColor(this.theme.muted);
           this.text(edu.institution, margin, this.y);
           this.y += 6;
+        });
+      });
+    }
+
+    // Projects
+    if (resume.projects.length > 0) {
+      addSection('projects', () => {
+        resume.projects.forEach((project, idx) => {
+          if (idx > 0) this.y += 3;
+          this.checkPageBreak(12);
+
+          this.setFont('bold');
+          this.doc.setFontSize(10.5);
+          this.setColor(this.theme.text);
+          this.text(project.name || 'Project', margin, this.y);
+          this.y += 4;
+
+          if (project.description) {
+            this.setFont('normal');
+            this.doc.setFontSize(this.config.typography.bodySize);
+            this.setColor(this.theme.muted);
+            this.addWrappedText(project.description, margin, contentWidth, 4.5);
+          }
+
+          if (project.technologies && project.technologies.length > 0) {
+            this.setFont('normal');
+            this.doc.setFontSize(this.config.typography.smallSize);
+            this.setColor(this.theme.muted);
+            this.text(`Tech: ${project.technologies.join(', ')}`, margin, this.y);
+            this.y += 4;
+          }
+
+          if (project.url) {
+            this.setFont('normal');
+            this.doc.setFontSize(this.config.typography.smallSize);
+            this.setColor(this.theme.accent);
+            this.text(project.url, margin, this.y);
+            this.y += 4;
+          }
+
+          this.y += 2;
         });
       });
     }
@@ -1081,6 +1255,47 @@ class PDFRenderer {
           this.setColor(this.theme.muted);
           this.text(`${edu.institution}${edu.graduationDate ? ' | ' + formatDate(edu.graduationDate, this.locale) : ''}`, margin, this.y);
           this.y += 8;
+        });
+      });
+    }
+
+    // Projects
+    if (resume.projects.length > 0) {
+      addSection('projects', () => {
+        resume.projects.forEach((project, idx) => {
+          if (idx > 0) this.y += 3;
+          this.checkPageBreak(12);
+
+          this.setFont('bold');
+          this.doc.setFontSize(10.5);
+          this.setColor(this.theme.text);
+          this.text(project.name || 'Project', margin, this.y);
+          this.y += 4;
+
+          if (project.description) {
+            this.setFont('normal');
+            this.doc.setFontSize(this.config.typography.bodySize);
+            this.setColor(this.theme.muted);
+            this.addWrappedText(project.description, margin, contentWidth, 4.5);
+          }
+
+          if (project.technologies && project.technologies.length > 0) {
+            this.setFont('normal');
+            this.doc.setFontSize(this.config.typography.smallSize);
+            this.setColor(this.theme.muted);
+            this.text(`Tech: ${project.technologies.join(', ')}`, margin, this.y);
+            this.y += 4;
+          }
+
+          if (project.url) {
+            this.setFont('normal');
+            this.doc.setFontSize(this.config.typography.smallSize);
+            this.setColor(this.theme.accent);
+            this.text(project.url, margin, this.y);
+            this.y += 4;
+          }
+
+          this.y += 2;
         });
       });
     }

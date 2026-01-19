@@ -160,6 +160,34 @@ function PrestigeExecutivePreview({
         </Section>
       )}
 
+      {/* Projects */}
+      {resume.projects.length > 0 && (
+        <Section title="projects" theme={theme} locale={locale} style="underline">
+          {resume.projects.map((project) => (
+            <div key={project.id} className="mb-3">
+              <div className="flex items-center justify-between gap-2">
+                <h3 className="font-medium text-xs">{project.name || 'Project'}</h3>
+                {project.url && (
+                  <span className="text-[10px]" style={{ color: theme.accent }}>
+                    {project.url.replace(/^https?:\/\//, '')}
+                  </span>
+                )}
+              </div>
+              {project.description && (
+                <p className="text-xs mt-1" style={{ color: theme.muted }}>
+                  {project.description}
+                </p>
+              )}
+              {project.technologies && project.technologies.length > 0 && (
+                <p className="text-[10px]" style={{ color: theme.muted }}>
+                  Tech: {project.technologies.join(', ')}
+                </p>
+              )}
+            </div>
+          ))}
+        </Section>
+      )}
+
       {/* Certifications */}
       {resume.certifications.length > 0 && (
         <Section title="certifications" theme={theme} locale={locale} style="underline">
@@ -267,6 +295,37 @@ function NordicMinimalPreview({
             {getSectionHeader('skills', locale)}
           </h2>
           <p className="text-xs">{resume.skills.join(', ')}</p>
+        </div>
+      )}
+
+      {/* Projects */}
+      {resume.projects.length > 0 && (
+        <div className="mt-10">
+          <h2 className="text-xs font-normal uppercase tracking-widest mb-4" style={{ color: theme.muted }}>
+            {getSectionHeader('projects', locale)}
+          </h2>
+          {resume.projects.map((project) => (
+            <div key={project.id} className="mb-3">
+              <div className="flex items-center justify-between gap-2">
+                <span className="font-bold text-sm">{project.name || 'Project'}</span>
+                {project.url && (
+                  <span className="text-[10px]" style={{ color: theme.accent }}>
+                    {project.url.replace(/^https?:\/\//, '')}
+                  </span>
+                )}
+              </div>
+              {project.description && (
+                <p className="text-xs mt-1" style={{ color: theme.muted }}>
+                  {project.description}
+                </p>
+              )}
+              {project.technologies && project.technologies.length > 0 && (
+                <p className="text-[10px]" style={{ color: theme.muted }}>
+                  Tech: {project.technologies.join(', ')}
+                </p>
+              )}
+            </div>
+          ))}
         </div>
       )}
     </div>
@@ -426,6 +485,35 @@ function MetropolitanSplitPreview({
             ))}
           </div>
         )}
+
+        {/* Projects */}
+        {resume.projects.length > 0 && (
+          <div className="mt-6">
+            <h2 className="font-bold text-sm mb-2">{getSectionHeader('projects', locale)}</h2>
+            {resume.projects.map((project) => (
+              <div key={project.id} className="mb-3">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-bold text-[11px]">{project.name || 'Project'}</span>
+                  {project.url && (
+                    <span className="text-[9px]" style={{ color: theme.accent }}>
+                      {project.url.replace(/^https?:\/\//, '')}
+                    </span>
+                  )}
+                </div>
+                {project.description && (
+                  <p className="text-[10px]" style={{ color: theme.muted }}>
+                    {project.description}
+                  </p>
+                )}
+                {project.technologies && project.technologies.length > 0 && (
+                  <p className="text-[9px]" style={{ color: theme.muted }}>
+                    Tech: {project.technologies.join(', ')}
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -511,6 +599,39 @@ function ClassicProfessionalPreview({
                   </div>
                   {edu.graduationDate && (
                     <span style={{ color: theme.muted }}>{formatDate(edu.graduationDate, locale)}</span>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Projects */}
+        {resume.projects.length > 0 && (
+          <div className="mb-4">
+            <div className="px-2 py-1 text-xs font-bold text-white" style={{ backgroundColor: theme.primary }}>
+              {getSectionHeader('projects', locale)}
+            </div>
+            <div className="mt-2">
+              {resume.projects.map((project) => (
+                <div key={project.id} className="mb-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-bold text-xs">{project.name || 'Project'}</span>
+                    {project.url && (
+                      <span className="text-[10px]" style={{ color: theme.muted }}>
+                        {project.url.replace(/^https?:\/\//, '')}
+                      </span>
+                    )}
+                  </div>
+                  {project.description && (
+                    <p className="text-[10px] mt-1" style={{ color: theme.muted }}>
+                      {project.description}
+                    </p>
+                  )}
+                  {project.technologies && project.technologies.length > 0 && (
+                    <p className="text-[10px]" style={{ color: theme.muted }}>
+                      Tech: {project.technologies.join(', ')}
+                    </p>
                   )}
                 </div>
               ))}
@@ -641,6 +762,38 @@ function ImpactModernPreview({
                 <p className="text-[9px]" style={{ color: theme.muted }}>
                   {edu.institution}{edu.graduationDate && ` | ${formatDate(edu.graduationDate, locale)}`}
                 </p>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Projects */}
+        {resume.projects.length > 0 && (
+          <div className="mt-5">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-2 h-2 rounded-full" style={{ backgroundColor: theme.accent }} />
+              <h2 className="font-bold text-xs uppercase">{getSectionHeader('projects', locale)}</h2>
+            </div>
+            {resume.projects.map((project) => (
+              <div key={project.id} className="mb-2">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-bold text-[11px]">{project.name || 'Project'}</span>
+                  {project.url && (
+                    <span className="text-[9px]" style={{ color: theme.accent }}>
+                      {project.url.replace(/^https?:\/\//, '')}
+                    </span>
+                  )}
+                </div>
+                {project.description && (
+                  <p className="text-[9px]" style={{ color: theme.muted }}>
+                    {project.description}
+                  </p>
+                )}
+                {project.technologies && project.technologies.length > 0 && (
+                  <p className="text-[9px]" style={{ color: theme.muted }}>
+                    Tech: {project.technologies.join(', ')}
+                  </p>
+                )}
               </div>
             ))}
           </div>
