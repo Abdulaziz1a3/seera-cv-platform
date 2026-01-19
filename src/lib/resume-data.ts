@@ -17,6 +17,7 @@ export interface ResumeRecord {
     atsScore?: number | null;
     template?: string | null;
     theme?: string | null;
+    fontFamily?: string | null;
     contact?: ContactSection;
     summary?: SummarySection;
     experience?: ExperienceSection;

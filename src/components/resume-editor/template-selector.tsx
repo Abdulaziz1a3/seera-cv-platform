@@ -24,8 +24,10 @@ import { TemplateThumbnail } from '@/components/resume-editor/template-thumbnail
 interface TemplateSelectorProps {
   selectedTemplate: TemplateId;
   selectedTheme: ThemeId;
+  selectedFont: ResumeData['settings']['fontFamily'];
   onTemplateChange: (templateId: TemplateId) => void;
   onThemeChange: (themeId: ThemeId) => void;
+  onFontChange: (fontFamily: ResumeData['settings']['fontFamily']) => void;
   previewResume?: ResumeData;
 }
 
@@ -64,8 +66,10 @@ function ThemeSwatch({ themeId, selected, onClick }: { themeId: ThemeId; selecte
 export function TemplateSelector({
   selectedTemplate,
   selectedTheme,
+  selectedFont,
   onTemplateChange,
   onThemeChange,
+  onFontChange,
   previewResume,
 }: TemplateSelectorProps) {
   const { locale } = useLocale();
@@ -81,8 +85,12 @@ export function TemplateSelector({
       locale,
       template: selectedTemplate,
       theme: selectedTheme,
+      settings: {
+        ...base.settings,
+        fontFamily: selectedFont,
+      },
     };
-  }, [locale, previewResume, selectedTemplate, selectedTheme]);
+  }, [locale, previewResume, selectedTemplate, selectedTheme, selectedFont]);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -105,12 +113,15 @@ export function TemplateSelector({
         </DialogHeader>
 
         <Tabs defaultValue="templates" className="flex-1 overflow-hidden flex flex-col">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="templates">
               {locale === 'ar' ? 'القوالب' : 'Templates'}
             </TabsTrigger>
             <TabsTrigger value="colors">
               {locale === 'ar' ? 'الألوان' : 'Colors'}
+            </TabsTrigger>
+            <TabsTrigger value="fonts">
+              {locale === 'ar' ? 'الخطوط' : 'Fonts'}
             </TabsTrigger>
           </TabsList>
 
@@ -204,6 +215,47 @@ export function TemplateSelector({
                     </div>
                   </CardContent>
                 </Card>
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="fonts" className="flex-1 overflow-auto mt-4">
+            <div className="space-y-4">
+              <div className="text-sm font-medium">
+                {locale === 'ar' ? 'اختر خط السيرة الذاتية' : 'Choose Resume Font'}
+              </div>
+              <div className="grid gap-3 sm:grid-cols-3">
+                {[
+                  {
+                    id: 'jakarta',
+                    label: locale === 'ar' ? 'جاكرتا العصري' : 'Plus Jakarta Sans',
+                    className: 'font-[var(--font-jakarta)]',
+                  },
+                  {
+                    id: 'merriweather',
+                    label: locale === 'ar' ? 'ميريويذر الكلاسيكي' : 'Merriweather Serif',
+                    className: 'font-[var(--font-merriweather)]',
+                  },
+                  {
+                    id: 'playfair',
+                    label: locale === 'ar' ? 'بلايفير الفاخر' : 'Playfair Display',
+                    className: 'font-[var(--font-playfair)]',
+                  },
+                ].map((font) => (
+                  <button
+                    key={font.id}
+                    onClick={() => onFontChange(font.id as ResumeData['settings']['fontFamily'])}
+                    className={cn(
+                      'w-full rounded-lg border px-4 py-3 text-left transition-all',
+                      selectedFont === font.id
+                        ? 'border-primary ring-2 ring-primary/20'
+                        : 'border-muted hover:border-muted-foreground/30'
+                    )}
+                  >
+                    <p className={cn('text-sm font-semibold', font.className)}>{font.label}</p>
+                    <p className="text-xs text-muted-foreground">Aa Bb Cc 123</p>
+                  </button>
+                ))}
               </div>
             </div>
           </TabsContent>

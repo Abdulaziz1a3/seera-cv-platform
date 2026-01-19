@@ -46,6 +46,7 @@ export async function GET(
         atsScore: resume.atsScore,
         template: resume.template,
         theme: resume.theme,
+        fontFamily: resume.fontFamily,
     };
 
     resume.sections.forEach((section) => {

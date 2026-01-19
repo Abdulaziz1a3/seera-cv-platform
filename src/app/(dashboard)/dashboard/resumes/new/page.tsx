@@ -42,6 +42,7 @@ interface BasicInfo {
     targetRole: string;
     language: 'en' | 'ar';
     template: string;
+    fontFamily: 'jakarta' | 'merriweather' | 'playfair';
 }
 
 const templates = [
@@ -72,6 +73,7 @@ export default function NewResumePage() {
         targetRole: '',
         language: 'en',
         template: 'prestige-executive',
+        fontFamily: 'jakarta',
     });
     const previewBase = useMemo(() => getTemplatePreviewData(locale), [locale]);
 
@@ -165,12 +167,14 @@ export default function NewResumePage() {
                 targetRole: basicInfo.targetRole || undefined,
                 language: basicInfo.language,
                 template: basicInfo.template,
+                fontFamily: basicInfo.fontFamily,
             });
 
             const updateData: any = {
                 title: basicInfo.title,
                 targetRole: basicInfo.targetRole || undefined,
                 template: basicInfo.template,
+                fontFamily: basicInfo.fontFamily,
             };
 
             if (parsedData) {
@@ -514,36 +518,85 @@ export default function NewResumePage() {
             {/* Step 3: Select Template */}
             {step === 3 && (
                 <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,480px)] items-start">
-                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                        {templates.map((template) => (
-                            <Card
-                                key={template.id}
-                                className={`cursor-pointer transition-all ${basicInfo.template === template.id
-                                    ? 'ring-2 ring-primary'
-                                    : 'hover:border-primary/50'
-                                    }`}
-                                onClick={() =>
-                                    setBasicInfo({ ...basicInfo, template: template.id })
-                                }
-                            >
-                                <CardContent className="p-0">
-                                    <div className="h-40 bg-muted/50 flex items-center justify-center border-b">
-                                        <div className="h-full w-full p-3">
-                                            <TemplateThumbnail
-                                                templateId={template.id as TemplateId}
-                                                themeId="obsidian"
-                                            />
+                    <div className="space-y-6">
+                        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                            {templates.map((template) => (
+                                <Card
+                                    key={template.id}
+                                    className={`cursor-pointer transition-all ${basicInfo.template === template.id
+                                        ? 'ring-2 ring-primary'
+                                        : 'hover:border-primary/50'
+                                        }`}
+                                    onClick={() =>
+                                        setBasicInfo({ ...basicInfo, template: template.id })
+                                    }
+                                >
+                                    <CardContent className="p-0">
+                                        <div className="h-40 bg-muted/50 flex items-center justify-center border-b">
+                                            <div className="h-full w-full p-3">
+                                                <TemplateThumbnail
+                                                    templateId={template.id as TemplateId}
+                                                    themeId="obsidian"
+                                                />
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div className="p-4">
-                                        <h3 className="font-semibold">{locale === 'ar' ? template.nameAr : template.name}</h3>
-                                        <p className="text-sm text-muted-foreground">
-                                            {locale === 'ar' ? template.descriptionAr : template.description}
-                                        </p>
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        ))}
+                                        <div className="p-4">
+                                            <h3 className="font-semibold">{locale === 'ar' ? template.nameAr : template.name}</h3>
+                                            <p className="text-sm text-muted-foreground">
+                                                {locale === 'ar' ? template.descriptionAr : template.description}
+                                            </p>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            ))}
+                        </div>
+
+                        <Card>
+                            <CardContent className="pt-6 space-y-3">
+                                <div>
+                                    <h3 className="text-lg font-semibold">
+                                        {locale === 'ar' ? 'اختر الخط' : 'Choose Font'}
+                                    </h3>
+                                    <p className="text-sm text-muted-foreground">
+                                        {locale === 'ar'
+                                            ? 'ثلاثة خطوط مميزة متاحة لنسخة برو'
+                                            : 'Three premium fonts available for Pro resumes'}
+                                    </p>
+                                </div>
+                                <div className="grid gap-3 sm:grid-cols-3">
+                                    {[
+                                        {
+                                            id: 'jakarta',
+                                            label: locale === 'ar' ? 'جاكرتا العصري' : 'Plus Jakarta Sans',
+                                            className: 'font-[var(--font-jakarta)]',
+                                        },
+                                        {
+                                            id: 'merriweather',
+                                            label: locale === 'ar' ? 'ميريويذر الكلاسيكي' : 'Merriweather Serif',
+                                            className: 'font-[var(--font-merriweather)]',
+                                        },
+                                        {
+                                            id: 'playfair',
+                                            label: locale === 'ar' ? 'بلايفير الفاخر' : 'Playfair Display',
+                                            className: 'font-[var(--font-playfair)]',
+                                        },
+                                    ].map((font) => (
+                                        <button
+                                            key={font.id}
+                                            type="button"
+                                            onClick={() => setBasicInfo({ ...basicInfo, fontFamily: font.id as BasicInfo['fontFamily'] })}
+                                            className={`w-full rounded-lg border px-4 py-3 text-left transition-all ${basicInfo.fontFamily === font.id
+                                                ? 'border-primary ring-2 ring-primary/20'
+                                                : 'border-muted hover:border-muted-foreground/40'
+                                                }`}
+                                        >
+                                            <p className={`text-sm font-semibold ${font.className}`}>{font.label}</p>
+                                            <p className="text-xs text-muted-foreground">Aa Bb Cc 123</p>
+                                        </button>
+                                    ))}
+                                </div>
+                            </CardContent>
+                        </Card>
                     </div>
                     <Card className="hidden lg:block lg:sticky lg:top-6">
                         <CardContent className="p-4">
@@ -556,6 +609,10 @@ export default function NewResumePage() {
                                         ...previewBase,
                                         template: basicInfo.template as TemplateId,
                                         theme: 'obsidian',
+                                        settings: {
+                                            ...previewBase.settings,
+                                            fontFamily: basicInfo.fontFamily,
+                                        },
                                         locale,
                                     }}
                                     scale={0.42}

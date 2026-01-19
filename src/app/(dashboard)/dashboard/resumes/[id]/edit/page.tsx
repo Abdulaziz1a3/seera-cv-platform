@@ -119,6 +119,7 @@ export default function ResumeEditorPage() {
         contact: { ...defaultContact, ...data.contact },
         template: data.template || 'prestige-executive',
         theme: data.theme || 'obsidian',
+        fontFamily: data.fontFamily || 'jakarta',
         summary: data.summary || { content: '' },
         experience: data.experience || { items: [] },
         education: data.education || { items: [] },
@@ -249,6 +250,7 @@ export default function ResumeEditorPage() {
                     languages: currentResume.languages,
                     template: currentResume.template,
                     theme: currentResume.theme,
+                    fontFamily: currentResume.fontFamily,
                 }),
             });
 
@@ -314,6 +316,12 @@ export default function ResumeEditorPage() {
     const handleThemeChange = (themeId: ThemeId) => {
         if (!resume) return;
         handleChange('theme', themeId);
+    };
+
+    const handleFontChange = (fontFamily: 'jakarta' | 'merriweather' | 'playfair') => {
+        if (!resume) return;
+        setResume(prev => prev ? { ...prev, fontFamily } : prev);
+        setHasUnsavedChanges(true);
     };
 
     const getFileNameFromDisposition = (disposition: string | null) => {
@@ -504,8 +512,10 @@ export default function ResumeEditorPage() {
                         <TemplateSelector
                             selectedTemplate={(resume.template as TemplateId) || 'prestige-executive'}
                             selectedTheme={(resume.theme as ThemeId) || 'obsidian'}
+                            selectedFont={(resume.fontFamily as any) || 'jakarta'}
                             onTemplateChange={handleTemplateChange}
                             onThemeChange={handleThemeChange}
+                            onFontChange={handleFontChange}
                             previewResume={previewResume as any}
                         />
                     </div>

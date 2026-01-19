@@ -19,6 +19,28 @@ const A4_WIDTH = 210; // mm
 const A4_HEIGHT = 297; // mm
 const PREVIEW_SCALE = 0.55; // Scale for sidebar preview
 
+function getPreviewFontFamily(
+  fontFamily: ResumeData['settings']['fontFamily'] | undefined,
+  locale: ResumeData['locale']
+) {
+  const base = (() => {
+    switch (fontFamily) {
+      case 'merriweather':
+        return 'var(--font-merriweather), serif';
+      case 'playfair':
+        return 'var(--font-playfair), serif';
+      case 'jakarta':
+      default:
+        return 'var(--font-jakarta), sans-serif';
+    }
+  })();
+
+  if (locale === 'ar') {
+    return `var(--font-noto-arabic), ${base}`;
+  }
+  return base;
+}
+
 export function LivePreview({
   resume,
   scale = PREVIEW_SCALE,
@@ -28,6 +50,7 @@ export function LivePreview({
 }: LivePreviewProps) {
   const theme = THEMES[resume.theme || 'obsidian'];
   const locale = resume.locale || 'en';
+  const fontFamily = getPreviewFontFamily(resume.settings?.fontFamily, locale);
   const seeraLinkSlug = resume.contact?.seeraLinkSlug?.trim();
   const showSeeraLinkQr = Boolean(resume.contact?.showSeeraLinkQr && seeraLinkSlug);
   const appUrl = (process.env.NEXT_PUBLIC_APP_URL || 'https://seera-ai.com').replace(/\/$/, '');
@@ -43,19 +66,19 @@ export function LivePreview({
   const renderTemplate = useMemo(() => {
     switch (resume.template) {
       case 'prestige-executive':
-        return <PrestigeExecutivePreview resume={resume} theme={theme} locale={locale} />;
+        return <PrestigeExecutivePreview resume={resume} theme={theme} locale={locale} fontFamily={fontFamily} />;
       case 'nordic-minimal':
-        return <NordicMinimalPreview resume={resume} theme={theme} locale={locale} />;
+        return <NordicMinimalPreview resume={resume} theme={theme} locale={locale} fontFamily={fontFamily} />;
       case 'metropolitan-split':
-        return <MetropolitanSplitPreview resume={resume} theme={theme} locale={locale} />;
+        return <MetropolitanSplitPreview resume={resume} theme={theme} locale={locale} fontFamily={fontFamily} />;
       case 'classic-professional':
-        return <ClassicProfessionalPreview resume={resume} theme={theme} locale={locale} />;
+        return <ClassicProfessionalPreview resume={resume} theme={theme} locale={locale} fontFamily={fontFamily} />;
       case 'impact-modern':
-        return <ImpactModernPreview resume={resume} theme={theme} locale={locale} />;
+        return <ImpactModernPreview resume={resume} theme={theme} locale={locale} fontFamily={fontFamily} />;
       default:
-        return <PrestigeExecutivePreview resume={resume} theme={theme} locale={locale} />;
+        return <PrestigeExecutivePreview resume={resume} theme={theme} locale={locale} fontFamily={fontFamily} />;
     }
-  }, [resume, theme, locale]);
+  }, [resume, theme, locale, fontFamily]);
 
   return (
     <div
@@ -103,13 +126,15 @@ function PrestigeExecutivePreview({
   resume,
   theme,
   locale,
+  fontFamily,
 }: {
   resume: ResumeData;
   theme: typeof THEMES.obsidian;
   locale: 'en' | 'ar';
+  fontFamily: string;
 }) {
   return (
-    <div className="p-8 font-sans text-sm" style={{ color: theme.text }}>
+    <div className="p-8 font-sans text-sm" style={{ color: theme.text, fontFamily }}>
       {/* Header */}
       <div className="mb-6">
         <h1
@@ -265,13 +290,15 @@ function NordicMinimalPreview({
   resume,
   theme,
   locale,
+  fontFamily,
 }: {
   resume: ResumeData;
   theme: typeof THEMES.obsidian;
   locale: 'en' | 'ar';
+  fontFamily: string;
 }) {
   return (
-    <div className="p-10 font-sans" style={{ color: theme.text }}>
+    <div className="p-10 font-sans" style={{ color: theme.text, fontFamily }}>
       {/* Header */}
       <h1 className="text-4xl font-bold">{resume.contact.fullName || 'Your Name'}</h1>
       {resume.title && (
@@ -382,15 +409,17 @@ function MetropolitanSplitPreview({
   resume,
   theme,
   locale,
+  fontFamily,
 }: {
   resume: ResumeData;
   theme: typeof THEMES.obsidian;
   locale: 'en' | 'ar';
+  fontFamily: string;
 }) {
   const photo = resume.contact.photo?.trim();
 
   return (
-    <div className="flex min-h-full">
+    <div className="flex min-h-full" style={{ fontFamily }}>
       {/* Sidebar */}
       <div className="w-24 p-4" style={{ backgroundColor: theme.secondary }}>
         {/* Photo placeholder */}
@@ -569,13 +598,15 @@ function ClassicProfessionalPreview({
   resume,
   theme,
   locale,
+  fontFamily,
 }: {
   resume: ResumeData;
   theme: typeof THEMES.obsidian;
   locale: 'en' | 'ar';
+  fontFamily: string;
 }) {
   return (
-    <div className="p-7 font-sans text-center" style={{ color: theme.text }}>
+    <div className="p-7 font-sans text-center" style={{ color: theme.text, fontFamily }}>
       {/* Header */}
       <h1 className="text-2xl font-bold">{resume.contact.fullName || 'Your Name'}</h1>
       <p className="text-xs mt-1" style={{ color: theme.muted }}>
@@ -703,13 +734,15 @@ function ImpactModernPreview({
   resume,
   theme,
   locale,
+  fontFamily,
 }: {
   resume: ResumeData;
   theme: typeof THEMES.obsidian;
   locale: 'en' | 'ar';
+  fontFamily: string;
 }) {
   return (
-    <div className="font-sans" style={{ color: theme.text }}>
+    <div className="font-sans" style={{ color: theme.text, fontFamily }}>
       {/* Hero header */}
       <div className="p-6" style={{ backgroundColor: theme.secondary }}>
         <div className="flex items-start gap-2">

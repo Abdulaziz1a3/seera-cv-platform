@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next';
-import { Inter, Noto_Sans_Arabic } from 'next/font/google';
+import { Inter, Noto_Sans_Arabic, Plus_Jakarta_Sans, Merriweather, Playfair_Display } from 'next/font/google';
 import Script from 'next/script';
 import { ThemeProvider } from '@/components/providers/theme-provider';
 import { Toaster } from '@/components/ui/sonner';
@@ -19,6 +19,23 @@ const inter = Inter({
 const notoArabic = Noto_Sans_Arabic({
     subsets: ['arabic'],
     variable: '--font-noto-arabic',
+});
+
+const jakarta = Plus_Jakarta_Sans({
+    subsets: ['latin'],
+    variable: '--font-jakarta',
+});
+
+const merriweather = Merriweather({
+    subsets: ['latin'],
+    weight: ['300', '400', '700', '900'],
+    variable: '--font-merriweather',
+});
+
+const playfair = Playfair_Display({
+    subsets: ['latin'],
+    weight: ['400', '500', '600', '700', '800', '900'],
+    variable: '--font-playfair',
 });
 
 export const metadata: Metadata = {
@@ -121,7 +138,7 @@ export default function RootLayout({
                 <meta name="apple-mobile-web-app-status-bar-style" content="default" />
             </head>
             <body
-                className={`${inter.variable} ${notoArabic.variable} font-sans antialiased`}
+                className={`${inter.variable} ${notoArabic.variable} ${jakarta.variable} ${merriweather.variable} ${playfair.variable} font-sans antialiased`}
             >
                 <SessionProvider>
                     <QueryProvider>

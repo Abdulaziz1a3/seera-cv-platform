@@ -152,6 +152,7 @@ model Resume {
   language    String   @default("en")
   template    String?
   theme       String?
+  fontFamily  String?  @default("jakarta")
   isDefault   Boolean  @default(false)
   isPublic    Boolean  @default(false)
   publicSlug  String?  @unique

@@ -27,11 +27,6 @@ export function CvPreview({
   const [previewScale, setPreviewScale] = useState(0.8);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
-  const mmToPx = 96 / 25.4;
-  const a4WidthMm = 210;
-  const maxScale = 0.85;
-  const minScale = 0.45;
-
   const shouldShow =
     enableDownloadCv && enabledCtas.includes('VIEW_CV') && !!cvResumeId;
 
@@ -65,23 +60,17 @@ export function CvPreview({
   }, [shouldShow, cvResumeId, slug, isPreview, hidePhoneNumber]);
 
   useEffect(() => {
-    const container = containerRef.current;
-    if (!container || typeof ResizeObserver === 'undefined') return;
-
     const updateScale = () => {
-      const width = container.clientWidth;
-      if (!width) return;
-      const nextScale = Math.min(
-        maxScale,
-        Math.max(minScale, (width / (a4WidthMm * mmToPx)) * 0.98)
-      );
-      setPreviewScale(nextScale);
+      if (typeof window === 'undefined') return;
+      if (window.innerWidth < 640) {
+        setPreviewScale(0.9);
+      } else {
+        setPreviewScale(0.82);
+      }
     };
-
-    const observer = new ResizeObserver(updateScale);
-    observer.observe(container);
     updateScale();
-    return () => observer.disconnect();
+    window.addEventListener('resize', updateScale);
+    return () => window.removeEventListener('resize', updateScale);
   }, []);
 
   if (!shouldShow) return null;
@@ -93,7 +82,7 @@ export function CvPreview({
       )}
       {!isLoading && resume && (
         <div ref={containerRef} className="rounded-xl border bg-white/80 p-3 overflow-x-auto">
-          <div className="flex justify-center">
+          <div className="flex justify-start">
             <LivePreview resume={resume} scale={previewScale} compact />
           </div>
         </div>

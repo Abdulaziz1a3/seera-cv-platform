@@ -22,6 +22,7 @@ class PDFRenderer {
   private pageHeight: number;
   private y: number = 0;
   private fontFamily: string = 'helvetica';
+  private latinFontFamily: 'helvetica' | 'times' | 'courier' = 'helvetica';
   private isArabicMode: boolean = false;
   private rtlEnabled: boolean = false;
   private fontStyle: 'normal' | 'bold' | 'italic' | 'bolditalic' = 'normal';
@@ -140,7 +141,7 @@ class PDFRenderer {
     if (this.isArabicMode && containsArabic(text)) {
       return 'NotoSansArabic';
     }
-    return 'helvetica';
+    return this.latinFontFamily;
   }
 
   private getFontStyleForFamily(family: string): 'normal' | 'bold' | 'italic' | 'bolditalic' {
@@ -172,6 +173,25 @@ class PDFRenderer {
     this.fontStyle = style;
     const safeStyle = this.getFontStyleForFamily(this.fontFamily);
     this.doc.setFont(this.fontFamily, safeStyle);
+  }
+
+  public applyFontSelection(resume: ResumeData) {
+    if (this.isArabicMode) {
+      return;
+    }
+    switch (resume.settings?.fontFamily) {
+      case 'merriweather':
+        this.latinFontFamily = 'times';
+        break;
+      case 'playfair':
+        this.latinFontFamily = 'times';
+        break;
+      case 'jakarta':
+      default:
+        this.latinFontFamily = 'helvetica';
+        break;
+    }
+    this.fontFamily = this.latinFontFamily;
   }
 
   private getImageType(dataUrl: string): 'PNG' | 'JPEG' | 'WEBP' | null {
@@ -1372,6 +1392,7 @@ export async function generatePDF(
 
   const renderer = new PDFRenderer(template, theme, locale);
   await renderer.prepareFonts(resume);
+  renderer.applyFontSelection(resume);
   await renderer.render(resume, template);
   return renderer.toBlob();
 }

@@ -23,12 +23,15 @@ const VALID_THEMES = [
     'slate',
 ] as const;
 
+const VALID_FONTS = ['jakarta', 'merriweather', 'playfair'] as const;
+
 const createResumeSchema = z.object({
     title: z.string().min(1).max(100),
     targetRole: z.string().max(100).optional(),
     language: z.enum(['en', 'ar']).default('en'),
     template: z.enum(VALID_TEMPLATES).default('prestige-executive'),
     theme: z.enum(VALID_THEMES).optional(),
+    fontFamily: z.enum(VALID_FONTS).optional(),
 });
 
 // GET /api/resumes - Get all resumes for the current user
@@ -116,6 +119,7 @@ export async function POST(request: Request) {
                     language: data.language,
                     template: data.template,
                     theme: data.theme || 'obsidian',
+                    fontFamily: data.fontFamily || 'jakarta',
                     sections: {
                         create: [
                             {

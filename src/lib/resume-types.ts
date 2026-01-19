@@ -87,6 +87,7 @@ export interface ResumeSettings {
   showWebsite: boolean;
   dateFormat: 'MMM YYYY' | 'MM/YYYY' | 'YYYY';
   sectionOrder: string[];
+  fontFamily: 'jakarta' | 'merriweather' | 'playfair';
 }
 
 // ============================================
@@ -174,6 +175,7 @@ export const DEFAULT_SETTINGS: ResumeSettings = {
   showWebsite: true,
   dateFormat: 'MMM YYYY',
   sectionOrder: ['summary', 'experience', 'education', 'skills', 'projects', 'certifications', 'languages'],
+  fontFamily: 'jakarta',
 };
 
 export const DEFAULT_CONTACT: ContactInfo = {

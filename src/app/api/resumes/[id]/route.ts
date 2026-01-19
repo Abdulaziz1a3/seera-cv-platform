@@ -59,6 +59,7 @@ export async function GET(
             atsScore: resume.atsScore,
             template: resume.template,
             theme: resume.theme,
+            fontFamily: resume.fontFamily,
         };
 
         resume.sections.forEach((section) => {
@@ -100,7 +101,22 @@ export async function PATCH(
         }
 
         const body = await request.json();
-        const { title, targetRole, contact, summary, experience, education, skills, projects, certifications, languages, template, theme, ...otherSections } = body;
+        const {
+            title,
+            targetRole,
+            contact,
+            summary,
+            experience,
+            education,
+            skills,
+            projects,
+            certifications,
+            languages,
+            template,
+            theme,
+            fontFamily,
+            ...otherSections
+        } = body;
 
         // Validate template and theme if provided
         if (template && !VALID_TEMPLATES.includes(template)) {
@@ -108,6 +124,9 @@ export async function PATCH(
         }
         if (theme && !VALID_THEMES.includes(theme)) {
             return NextResponse.json({ error: 'Invalid theme' }, { status: 400 });
+        }
+        if (fontFamily && !['jakarta', 'merriweather', 'playfair'].includes(fontFamily)) {
+            return NextResponse.json({ error: 'Invalid font' }, { status: 400 });
         }
 
         // Calculate ATS score
@@ -132,6 +151,7 @@ export async function PATCH(
                     targetRole: targetRole || resume.targetRole,
                     template: template || resume.template,
                     theme: theme || resume.theme,
+                    fontFamily: fontFamily || resume.fontFamily,
                     atsScore: lintResult.score,
                     updatedAt: new Date(),
                 },

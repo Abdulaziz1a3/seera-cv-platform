@@ -20,6 +20,7 @@ interface ResumeContextType {
         language?: 'en' | 'ar';
         template?: string;
         theme?: string;
+        fontFamily?: string;
     }) => Promise<string>;
     deleteResume: (id: string) => Promise<void>;
     duplicateResume: (id: string) => Promise<string | null>;
@@ -117,6 +118,7 @@ export function ResumeProvider({ children }: { children: ReactNode }) {
             language: original.language || 'en',
             template: original.template,
             theme: original.theme,
+            fontFamily: original.fontFamily,
         });
 
         await fetch(`/api/resumes/${newId}`, {
@@ -135,6 +137,7 @@ export function ResumeProvider({ children }: { children: ReactNode }) {
                 languages: original.languages,
                 template: original.template,
                 theme: original.theme,
+                fontFamily: original.fontFamily,
             }),
         });
 

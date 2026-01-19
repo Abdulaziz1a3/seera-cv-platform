@@ -274,7 +274,10 @@ export function mapResumeRecordToResumeData(resume: ResumeRecord): ResumeData {
         projects,
         certifications,
         languages,
-        settings: { ...DEFAULT_SETTINGS },
+        settings: {
+            ...DEFAULT_SETTINGS,
+            fontFamily: (resume.fontFamily as ResumeData['settings']['fontFamily']) || DEFAULT_SETTINGS.fontFamily,
+        },
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
     };
