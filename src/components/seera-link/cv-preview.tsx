@@ -24,6 +24,7 @@ export function CvPreview({
 }: CvPreviewProps) {
   const [resume, setResume] = useState<ResumeData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [previewScale, setPreviewScale] = useState(0.8);
 
   const shouldShow =
     enableDownloadCv && enabledCtas.includes('VIEW_CV') && !!cvResumeId;
@@ -57,6 +58,24 @@ export function CvPreview({
     fetchResume();
   }, [shouldShow, cvResumeId, slug, isPreview, hidePhoneNumber]);
 
+  useEffect(() => {
+    const updateScale = () => {
+      if (typeof window === 'undefined') return;
+      const width = window.innerWidth;
+      if (width < 480) {
+        setPreviewScale(0.48);
+      } else if (width < 768) {
+        setPreviewScale(0.6);
+      } else {
+        setPreviewScale(0.8);
+      }
+    };
+
+    updateScale();
+    window.addEventListener('resize', updateScale);
+    return () => window.removeEventListener('resize', updateScale);
+  }, []);
+
   if (!shouldShow) return null;
 
   return (
@@ -66,8 +85,8 @@ export function CvPreview({
       )}
       {!isLoading && resume && (
         <div className="rounded-xl border bg-white/80 p-3 overflow-x-auto">
-          <div className="min-w-[720px]">
-            <LivePreview resume={resume} scale={0.8} />
+          <div className="flex justify-center">
+            <LivePreview resume={resume} scale={previewScale} />
           </div>
         </div>
       )}

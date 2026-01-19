@@ -18,6 +18,8 @@ const PREVIEW_SCALE = 0.55; // Scale for sidebar preview
 export function LivePreview({ resume, scale = PREVIEW_SCALE }: LivePreviewProps) {
   const theme = THEMES[resume.theme || 'obsidian'];
   const locale = resume.locale || 'en';
+  const scaledWidth = `${A4_WIDTH * scale}mm`;
+  const scaledHeight = `${A4_HEIGHT * scale}mm`;
 
   // Render based on template
   const renderTemplate = useMemo(() => {
@@ -39,16 +41,24 @@ export function LivePreview({ resume, scale = PREVIEW_SCALE }: LivePreviewProps)
 
   return (
     <div
-      className="bg-white shadow-xl rounded-sm origin-top overflow-hidden"
-      dir={locale === 'ar' ? 'rtl' : 'ltr'}
+      className="bg-white shadow-xl rounded-sm overflow-hidden"
       style={{
-        width: `${A4_WIDTH}mm`,
-        minHeight: `${A4_HEIGHT}mm`,
-        transform: `scale(${scale})`,
-        transformOrigin: 'top center',
+        width: scaledWidth,
+        minHeight: scaledHeight,
       }}
     >
-      {renderTemplate}
+      <div
+        className="origin-top-left"
+        dir={locale === 'ar' ? 'rtl' : 'ltr'}
+        style={{
+          width: `${A4_WIDTH}mm`,
+          minHeight: `${A4_HEIGHT}mm`,
+          transform: `scale(${scale})`,
+          transformOrigin: 'top left',
+        }}
+      >
+        {renderTemplate}
+      </div>
     </div>
   );
 }

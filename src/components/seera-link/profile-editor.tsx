@@ -332,10 +332,10 @@ export function ProfileEditor({ mode, initialData, profileId, onCancel }: Profil
   const PreviewComponent = formData.template === 'BOLD' ? ProfileBoldTemplate : ProfileMinimalTemplate;
 
   return (
-    <div className="flex flex-col lg:flex-row h-[calc(100vh-4rem)] -mt-6 -mx-6">
+    <div className="flex flex-col lg:flex-row min-h-[calc(100dvh-4rem)] lg:h-[calc(100vh-4rem)] lg:-mt-6 lg:-mx-6">
       {/* Editor Panel */}
-      <div className="w-full lg:w-1/2 xl:w-2/5 border-r overflow-y-auto">
-        <div className="sticky top-0 z-10 bg-background border-b px-4 py-3 flex items-center justify-between">
+      <div className="w-full lg:w-1/2 xl:w-2/5 border-b lg:border-b-0 lg:border-r overflow-y-auto">
+        <div className="sticky top-0 z-10 bg-background border-b px-4 py-3 flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="icon" onClick={onCancel || (() => router.back())}>
               <ArrowLeft className="w-4 h-4" />
@@ -344,7 +344,7 @@ export function ProfileEditor({ mode, initialData, profileId, onCancel }: Profil
               {mode === 'create' ? 'Create Profile' : 'Edit Profile'}
             </h1>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Button
               variant="outline"
               size="sm"
@@ -375,7 +375,7 @@ export function ProfileEditor({ mode, initialData, profileId, onCancel }: Profil
 
         <div className="p-4 space-y-6">
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
               <TabsTrigger value="hero">Hero</TabsTrigger>
               <TabsTrigger value="content">Content</TabsTrigger>
               <TabsTrigger value="ctas">CTAs</TabsTrigger>
@@ -534,8 +534,8 @@ export function ProfileEditor({ mode, initialData, profileId, onCancel }: Profil
                   {formData.experiences.map((exp, index) => (
                     <Card key={index}>
                       <CardContent className="pt-4 space-y-3">
-                        <div className="flex justify-between items-start">
-                          <div className="flex-1 grid grid-cols-2 gap-2">
+                        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2">
+                          <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-2">
                             <Input
                               value={exp.role}
                               onChange={(e) => updateExperience(index, { role: e.target.value })}
@@ -551,11 +551,12 @@ export function ProfileEditor({ mode, initialData, profileId, onCancel }: Profil
                             variant="ghost"
                             size="icon"
                             onClick={() => removeExperience(index)}
+                            className="self-start"
                           >
                             <Trash2 className="w-4 h-4 text-destructive" />
                           </Button>
                         </div>
-                        <div className="grid grid-cols-2 gap-2">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                           <Input
                             value={exp.startDate || ''}
                             onChange={(e) => updateExperience(index, { startDate: e.target.value || null })}

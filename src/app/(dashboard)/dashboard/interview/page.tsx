@@ -506,13 +506,13 @@ export default function InterviewPrepPage() {
     };
 
     return (
-        <div className="min-h-[calc(100vh-4rem)] flex flex-col">
+        <div className="min-h-[calc(100dvh-4rem)] flex flex-col">
             {/* Hidden audio element */}
             <audio ref={audioRef} onEnded={() => setIsPlaying(false)} />
 
             {/* Header */}
-            <div className="border-b bg-card px-6 py-4">
-                <div className="flex items-center justify-between">
+            <div className="border-b bg-card px-4 py-4 sm:px-6">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                         <h1 className="text-2xl font-bold flex items-center gap-2">
                             <Brain className="h-6 w-6 text-primary" />
@@ -691,7 +691,7 @@ export default function InterviewPrepPage() {
                             </CardContent>
                         </Card>
 
-                        <div className="flex gap-4">
+                        <div className="flex flex-col sm:flex-row gap-4">
                             <Button variant="outline" onClick={() => setStatus('setup')} className="flex-1">
                                 {locale === 'ar' ? 'تعديل الإعدادات' : 'Edit Settings'}
                             </Button>
@@ -956,7 +956,7 @@ export default function InterviewPrepPage() {
                         </div>
 
                         {/* Actions */}
-                        <div className="flex gap-4">
+                        <div className="flex flex-col sm:flex-row gap-4">
                             <Button variant="outline" onClick={() => setStatus('setup')} className="flex-1">
                                 {locale === 'ar' ? 'مقابلة جديدة' : 'New Interview'}
                             </Button>

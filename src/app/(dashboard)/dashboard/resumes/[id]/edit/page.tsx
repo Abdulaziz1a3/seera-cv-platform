@@ -418,7 +418,7 @@ export default function ResumeEditorPage() {
     const previewResume = resume ? mapResumeRecordToResumeData(resume) : null;
 
     return (
-        <div className="flex flex-col h-full -m-6">
+        <div className="flex flex-col h-full -m-4 sm:-m-6">
             {/* Editor Header */}
             <header className="flex items-center justify-between px-4 lg:px-6 py-3 border-b bg-card gap-2">
                 <div className="flex items-center gap-2 lg:gap-4 min-w-0">

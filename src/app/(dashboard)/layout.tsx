@@ -57,6 +57,7 @@ export default function DashboardLayout({
     const { theme, setTheme } = useTheme();
     const { t, locale, dir } = useLocale();
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+    const [mobileNavOpen, setMobileNavOpen] = useState(false);
     const [subscriptionState, setSubscriptionState] = useState<{
         isActive: boolean;
         status: string;
@@ -85,6 +86,10 @@ export default function DashboardLayout({
             mounted = false;
         };
     }, []);
+
+    useEffect(() => {
+        setMobileNavOpen(false);
+    }, [pathname]);
 
     useEffect(() => {
         const handler = (event: Event) => {
@@ -133,77 +138,78 @@ export default function DashboardLayout({
         .join('')
         .toUpperCase() || 'U';
 
-    return (
-        <div className="flex h-screen bg-muted/30">
-            <SkipLink />
-            {/* Sidebar */}
-            <aside
-                role="navigation"
-                aria-label={locale === 'ar' ? 'القائمة الرئيسية' : 'Main navigation'}
-                className={`flex flex-col bg-card border-e transition-all duration-300 ${sidebarCollapsed ? 'w-16' : 'w-64'
-                    }`}
-            >
-                {/* Logo */}
-                <div className="flex items-center gap-2 p-4 h-16 border-b">
-                    <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center flex-shrink-0">
-                        <FileText className="h-5 w-5 text-primary-foreground" />
-                    </div>
-                    {!sidebarCollapsed && (
-                        <span className="text-lg font-bold">Seera AI</span>
-                    )}
+    const renderSidebarContent = ({
+        collapsed,
+        showCollapseToggle,
+        onNavigate,
+    }: {
+        collapsed: boolean;
+        showCollapseToggle: boolean;
+        onNavigate?: () => void;
+    }) => (
+        <>
+            {/* Logo */}
+            <div className="flex items-center gap-2 p-4 h-16 border-b">
+                <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center flex-shrink-0">
+                    <FileText className="h-5 w-5 text-primary-foreground" />
                 </div>
+                {!collapsed && (
+                    <span className="text-lg font-bold">Seera AI</span>
+                )}
+            </div>
 
-                {/* Navigation */}
-                <nav className="flex-1 p-2 space-y-1 overflow-y-auto">
-                    {navigation.map((item) => {
-                        const isBillingLink = item.href === billingHref;
-                        const isLocked = item.isPro && !isSubscriptionActive && !isBillingLink;
-                        const href = isLocked ? billingHref : item.href;
+            {/* Navigation */}
+            <nav className="flex-1 p-2 space-y-1 overflow-y-auto" onClick={onNavigate}>
+                {navigation.map((item) => {
+                    const isBillingLink = item.href === billingHref;
+                    const isLocked = item.isPro && !isSubscriptionActive && !isBillingLink;
+                    const href = isLocked ? billingHref : item.href;
 
-                        return (
-                            <Link
-                                key={item.href}
-                                href={href}
-                                aria-disabled={isLocked}
+                    return (
+                        <Link
+                            key={item.href}
+                            href={href}
+                            aria-disabled={isLocked}
                             className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${isActive(item.href)
                                     ? 'bg-primary text-primary-foreground'
                                     : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-                                    } ${isLocked ? 'opacity-70 cursor-not-allowed' : ''}`}
-                            >
-                                <item.icon className="h-5 w-5 flex-shrink-0" />
-                                {!sidebarCollapsed && (
-                                    <span className="flex items-center gap-2 flex-1">
-                                        {item.name}
-                                        {item.isPro && (
-                                            <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
-                                                PRO
-                                            </Badge>
-                                        )}
-                                    </span>
-                                )}
-                            </Link>
-                        );
-                    })}
-                </nav>
-
-                {/* Secondary Nav */}
-                <div className="p-2 border-t space-y-1">
-                    {secondaryNav.map((item) => (
-                        <Link
-                            key={item.href}
-                            href={item.href}
-                            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${isActive(item.href)
-                                ? 'bg-primary text-primary-foreground'
-                                : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-                                }`}
+                                } ${isLocked ? 'opacity-70 cursor-not-allowed' : ''}`}
                         >
                             <item.icon className="h-5 w-5 flex-shrink-0" />
-                            {!sidebarCollapsed && <span>{item.name}</span>}
+                            {!collapsed && (
+                                <span className="flex items-center gap-2 flex-1">
+                                    {item.name}
+                                    {item.isPro && (
+                                        <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+                                            PRO
+                                        </Badge>
+                                    )}
+                                </span>
+                            )}
                         </Link>
-                    ))}
-                </div>
+                    );
+                })}
+            </nav>
 
-                {/* Collapse Toggle */}
+            {/* Secondary Nav */}
+            <div className="p-2 border-t space-y-1" onClick={onNavigate}>
+                {secondaryNav.map((item) => (
+                    <Link
+                        key={item.href}
+                        href={item.href}
+                        className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${isActive(item.href)
+                                ? 'bg-primary text-primary-foreground'
+                                : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                            }`}
+                    >
+                        <item.icon className="h-5 w-5 flex-shrink-0" />
+                        {!collapsed && <span>{item.name}</span>}
+                    </Link>
+                ))}
+            </div>
+
+            {/* Collapse Toggle */}
+            {showCollapseToggle && (
                 <button
                     onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
                     className="flex items-center justify-center gap-2 p-3 border-t text-muted-foreground hover:text-foreground transition-colors"
@@ -212,37 +218,86 @@ export default function DashboardLayout({
                         className={`h-4 w-4 transition-transform ${sidebarCollapsed ? 'rotate-180' : ''
                             }`}
                     />
-                    {!sidebarCollapsed && (
+                    {!collapsed && (
                         <span className="text-sm">
                             {locale === 'ar' ? 'طي' : 'Collapse'}
                         </span>
                     )}
                 </button>
+            )}
+        </>
+    );
+
+    return (
+        <div className="flex min-h-[100dvh] bg-muted/30">
+            <SkipLink />
+            {/* Sidebar */}
+            <aside
+                role="navigation"
+                aria-label={locale === 'ar' ? 'القائمة الرئيسية' : 'Main navigation'}
+                className={`hidden lg:flex flex-col bg-card border-e transition-all duration-300 ${sidebarCollapsed ? 'w-16' : 'w-64'
+                    }`}
+            >
+                {renderSidebarContent({
+                    collapsed: sidebarCollapsed,
+                    showCollapseToggle: true,
+                })}
             </aside>
+
+            {/* Mobile Sidebar */}
+            {mobileNavOpen && (
+                <div className="fixed inset-0 z-40 lg:hidden">
+                    <div
+                        className="absolute inset-0 bg-black/40"
+                        onClick={() => setMobileNavOpen(false)}
+                        aria-hidden="true"
+                    />
+                    <aside
+                        role="navigation"
+                        aria-label={locale === 'ar' ? 'القائمة الرئيسية' : 'Main navigation'}
+                        className="absolute inset-y-0 start-0 w-72 bg-card border-e shadow-xl flex flex-col"
+                    >
+                        {renderSidebarContent({
+                            collapsed: false,
+                            showCollapseToggle: false,
+                            onNavigate: () => setMobileNavOpen(false),
+                        })}
+                    </aside>
+                </div>
+            )}
 
             {/* Main Content */}
             <div className="flex-1 flex flex-col overflow-hidden">
                 {/* Top Header */}
-                <header className="flex items-center justify-between gap-4 px-6 h-16 bg-card border-b">
+                <header className="flex flex-col gap-3 px-4 py-3 sm:h-16 sm:flex-row sm:items-center sm:justify-between bg-card border-b">
                     {/* Search */}
-                    <div className="flex-1 max-w-md">
-                        <div className="relative">
-                            <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                            <Input
-                                type="search"
-                                placeholder={`${t.common.search} ${t.nav.myResumes.toLowerCase()}, ${t.nav.applications.toLowerCase()}...`}
-                                className="ps-10 bg-muted/50"
-                            />
+                    <div className="flex w-full items-center gap-3 sm:w-auto sm:flex-1">
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="lg:hidden"
+                            onClick={() => setMobileNavOpen(true)}
+                            aria-label={locale === 'ar' ? 'فتح القائمة' : 'Open menu'}
+                        >
+                            <Menu className="h-5 w-5" />
+                        </Button>
+                        <div className="flex-1 sm:max-w-md">
+                            <div className="relative">
+                                <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                <Input
+                                    type="search"
+                                    placeholder={`${t.common.search} ${t.nav.myResumes.toLowerCase()}, ${t.nav.applications.toLowerCase()}...`}
+                                    className="ps-10 bg-muted/50"
+                                />
+                            </div>
                         </div>
                     </div>
 
                     {/* Actions */}
-                    <div className="flex items-center gap-2">
+                    <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:flex-nowrap sm:justify-end">
                         {/* New Resume Button */}
-                        <Button asChild size="sm">
-                            <Link
-                                href="/dashboard/resumes/new"
-                                                            >
+                        <Button asChild size="sm" className="w-full sm:w-auto">
+                            <Link href="/dashboard/resumes/new">
                                 <Plus className="h-4 w-4 me-1" />
                                 {t.dashboard.newResume}
                             </Link>
@@ -318,7 +373,7 @@ export default function DashboardLayout({
                 {/* Page Content */}
                 <main
                     id="main-content"
-                    className="flex-1 overflow-y-auto p-6"
+                    className="flex-1 overflow-y-auto p-4 sm:p-6"
                     tabIndex={-1}
                     role="main"
                     aria-label={locale === 'ar' ? 'المحتوى الرئيسي' : 'Main content'}

@@ -162,7 +162,7 @@ export default function ResumesPage() {
                             : `${resumes.length} resumes`}
                     </p>
                 </div>
-                <Button asChild size="lg" className="shadow-lg">
+                <Button asChild size="lg" className="shadow-lg w-full sm:w-auto">
                     <Link href="/dashboard/resumes/new">
                         <Plus className="h-5 w-5 me-2" />
                         {t.dashboard.newResume}
@@ -182,7 +182,7 @@ export default function ResumesPage() {
                         onChange={(e) => setSearchQuery(e.target.value)}
                     />
                 </div>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                     <Button variant="outline" size="icon">
                         <Filter className="h-4 w-4" />
                     </Button>
@@ -338,7 +338,7 @@ export default function ResumesPage() {
                     {filteredResumes.map((resume) => (
                         <Card key={resume.id} className="group hover:shadow-md transition-shadow">
                             <CardContent className="p-4">
-                                <div className="flex items-center gap-4">
+                                <div className="flex flex-col sm:flex-row sm:items-center gap-4">
                                     <div className="h-14 w-14 rounded-xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center flex-shrink-0">
                                         <FileText className="h-7 w-7 text-primary-foreground" />
                                     </div>
@@ -349,7 +349,7 @@ export default function ResumesPage() {
                                         >
                                             {resume.title}
                                         </Link>
-                                        <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
+                                        <div className="flex flex-wrap items-center gap-4 mt-1 text-sm text-muted-foreground">
                                             <span className="flex items-center gap-1">
                                                 <Target className="h-3 w-3" />
                                                 {resume.targetRole}
@@ -360,43 +360,45 @@ export default function ResumesPage() {
                                             </span>
                                         </div>
                                     </div>
-                                    <div
-                                        className={`px-3 py-1 rounded-full ${getScoreBg(
-                                            resume.atsScore
-                                        )} flex items-center gap-1`}
-                                    >
-                                        <span className={`font-semibold ${getScoreColor(resume.atsScore)}`}>
-                                            {resume.atsScore}%
-                                        </span>
+                                    <div className="flex w-full sm:w-auto items-center justify-between gap-2 sm:justify-end">
+                                        <div
+                                            className={`px-3 py-1 rounded-full ${getScoreBg(
+                                                resume.atsScore
+                                            )} flex items-center gap-1`}
+                                        >
+                                            <span className={`font-semibold ${getScoreColor(resume.atsScore)}`}>
+                                                {resume.atsScore}%
+                                            </span>
+                                        </div>
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                <Button variant="ghost" size="icon">
+                                                    <MoreVertical className="h-4 w-4" />
+                                                </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent align="end">
+                                                <DropdownMenuItem asChild>
+                                                    <Link href={`/dashboard/resumes/${resume.id}/edit`}>
+                                                        <Edit className="h-4 w-4 me-2" />
+                                                        {t.common.edit}
+                                                    </Link>
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem>
+                                                    <Copy className="h-4 w-4 me-2" />
+                                                    {locale === 'ar' ? 'تكرار' : 'Duplicate'}
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem onClick={() => handleDownload(resume.id)}>
+                                                    <Download className="h-4 w-4 me-2" />
+                                                    {t.common.download}
+                                                </DropdownMenuItem>
+                                                <DropdownMenuSeparator />
+                                                <DropdownMenuItem className="text-destructive">
+                                                    <Trash2 className="h-4 w-4 me-2" />
+                                                    {t.common.delete}
+                                                </DropdownMenuItem>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
                                     </div>
-                                    <DropdownMenu>
-                                        <DropdownMenuTrigger asChild>
-                                            <Button variant="ghost" size="icon">
-                                                <MoreVertical className="h-4 w-4" />
-                                            </Button>
-                                        </DropdownMenuTrigger>
-                                        <DropdownMenuContent align="end">
-                                            <DropdownMenuItem asChild>
-                                                <Link href={`/dashboard/resumes/${resume.id}/edit`}>
-                                                    <Edit className="h-4 w-4 me-2" />
-                                                    {t.common.edit}
-                                                </Link>
-                                            </DropdownMenuItem>
-                                            <DropdownMenuItem>
-                                                <Copy className="h-4 w-4 me-2" />
-                                                {locale === 'ar' ? 'تكرار' : 'Duplicate'}
-                                            </DropdownMenuItem>
-                                            <DropdownMenuItem onClick={() => handleDownload(resume.id)}>
-                                                <Download className="h-4 w-4 me-2" />
-                                                {t.common.download}
-                                            </DropdownMenuItem>
-                                            <DropdownMenuSeparator />
-                                            <DropdownMenuItem className="text-destructive">
-                                                <Trash2 className="h-4 w-4 me-2" />
-                                                {t.common.delete}
-                                            </DropdownMenuItem>
-                                        </DropdownMenuContent>
-                                    </DropdownMenu>
                                 </div>
                             </CardContent>
                         </Card>

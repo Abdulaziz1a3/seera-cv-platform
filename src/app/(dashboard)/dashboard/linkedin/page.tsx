@@ -154,10 +154,10 @@ export default function LinkedInOptimizerPage() {
     };
 
     return (
-        <div className="min-h-[calc(100vh-4rem)] flex flex-col">
+        <div className="min-h-[calc(100dvh-4rem)] flex flex-col">
             {/* Header */}
-            <div className="border-b bg-card px-6 py-4">
-                <div className="flex items-center justify-between">
+            <div className="border-b bg-card px-4 py-4 sm:px-6">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                         <h1 className="text-2xl font-bold flex items-center gap-2">
                             <Linkedin className="h-6 w-6 text-[#0A66C2]" />
@@ -172,7 +172,7 @@ export default function LinkedInOptimizerPage() {
                 </div>
             </div>
 
-            <div className="flex-1 p-6">
+            <div className="flex-1 p-4 sm:p-6">
                 {!profile ? (
                     // Setup Phase
                     <div className="max-w-2xl mx-auto space-y-6">
@@ -338,7 +338,7 @@ export default function LinkedInOptimizerPage() {
 
                         {/* Content Tabs */}
                         <Tabs defaultValue="headline">
-                            <TabsList className="grid w-full grid-cols-4">
+                            <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
                                 <TabsTrigger value="headline">
                                     {locale === 'ar' ? 'العنوان' : 'Headline'}
                                 </TabsTrigger>

@@ -1491,10 +1491,10 @@ export default function LiveInterviewPage() {
     };
 
     return (
-        <div className="min-h-[calc(100vh-4rem)] flex flex-col">
+        <div className="min-h-[calc(100dvh-4rem)] flex flex-col">
             {/* Header */}
-            <div className="border-b bg-card px-6 py-4">
-                <div className="flex items-center justify-between">
+            <div className="border-b bg-card px-4 py-4 sm:px-6">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                         <h1 className="text-2xl font-bold flex items-center gap-2">
                             <Brain className="h-6 w-6 text-primary" />
@@ -1518,7 +1518,7 @@ export default function LiveInterviewPage() {
                 </div>
             </div>
 
-            <div className="flex-1 p-6">
+            <div className="flex-1 p-4 sm:p-6">
                 {/* SETUP */}
                 {phase === 'setup' && (
                     <div className="max-w-2xl mx-auto space-y-8">
@@ -1614,7 +1614,7 @@ export default function LiveInterviewPage() {
                                     )}
                                 </div>
 
-                                <div className="grid grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div className="space-y-2">
                                         <label className="text-sm font-medium">{locale === 'ar' ? 'الخبرة' : 'Experience'}</label>
                                         <Select value={experienceLevel} onValueChange={(v: any) => setExperienceLevel(v)}>

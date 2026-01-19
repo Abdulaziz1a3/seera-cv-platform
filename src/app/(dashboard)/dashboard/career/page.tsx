@@ -209,10 +209,10 @@ export default function CareerGPSPage() {
     };
 
     return (
-        <div className="min-h-[calc(100vh-4rem)] flex flex-col">
+        <div className="min-h-[calc(100dvh-4rem)] flex flex-col">
             {/* Header */}
-            <div className="border-b bg-gradient-to-r from-primary/5 via-primary/10 to-transparent px-6 py-6">
-                <div className="flex items-center justify-between">
+            <div className="border-b bg-gradient-to-r from-primary/5 via-primary/10 to-transparent px-4 py-6 sm:px-6">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                         <h1 className="text-3xl font-bold flex items-center gap-3">
                             <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center">
@@ -236,7 +236,7 @@ export default function CareerGPSPage() {
                 </div>
             </div>
 
-            <div className="flex-1 p-6">
+            <div className="flex-1 p-4 sm:p-6">
                 {!analysis ? (
                     // Setup Phase
                     <div className="max-w-2xl mx-auto space-y-8">
@@ -425,7 +425,7 @@ export default function CareerGPSPage() {
 
                         {/* Main Content Tabs */}
                         <Tabs defaultValue="paths" className="space-y-6">
-                            <TabsList className="grid w-full grid-cols-4">
+                        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
                                 <TabsTrigger value="paths" className="gap-2">
                                     <TrendingUp className="h-4 w-4" />
                                     <span className="hidden sm:inline">{locale === 'ar' ? 'المسارات' : 'Paths'}</span>
