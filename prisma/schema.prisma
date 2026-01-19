@@ -177,6 +177,7 @@ model Resume {
     profilesAsSource SeeraProfile[] @relation("ProfileSourceResume")
     profilesAsCv     SeeraProfile[] @relation("ProfileCvResume")
     talentProfiles   TalentProfile[]
+  interviewSessions InterviewSession[]
 
   @@index([userId])
   @@index([publicSlug])
