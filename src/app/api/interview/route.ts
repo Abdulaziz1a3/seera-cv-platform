@@ -11,6 +11,7 @@ import {
     generateInterviewerVoice,
     generateInterviewSummary,
 } from '@/lib/interview-ai';
+import type { InterviewContext } from '@/lib/interview-ai';
 
 async function enrichContextWithResume(
     userId: string,
@@ -109,7 +110,19 @@ export async function POST(request: NextRequest) {
 
         let result;
         const contextBase = params.context ? { ...params.context, userId: session.user.id } : { userId: session.user.id };
-        const context = await enrichContextWithResume(session.user.id, contextBase);
+        const enrichedContext = await enrichContextWithResume(session.user.id, contextBase);
+        const normalizedExperience =
+            enrichedContext.experienceLevel === 'junior' ||
+            enrichedContext.experienceLevel === 'mid' ||
+            enrichedContext.experienceLevel === 'senior' ||
+            enrichedContext.experienceLevel === 'executive'
+                ? enrichedContext.experienceLevel
+                : 'mid';
+        const context: InterviewContext = {
+            targetRole: enrichedContext.targetRole || '',
+            experienceLevel: normalizedExperience,
+            ...enrichedContext,
+        };
 
         switch (action) {
             case 'generate-questions':
