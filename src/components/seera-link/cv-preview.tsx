@@ -92,7 +92,7 @@ export function CvPreview({
         <div className="text-sm text-muted-foreground">Loading CV preview...</div>
       )}
       {!isLoading && resume && (
-        <div ref={containerRef} className="rounded-xl border bg-white/80 p-3 overflow-hidden">
+        <div ref={containerRef} className="rounded-xl border bg-white/80 p-3 overflow-x-auto">
           <div className="flex justify-center">
             <LivePreview resume={resume} scale={previewScale} compact />
           </div>

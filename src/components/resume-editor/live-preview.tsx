@@ -33,8 +33,8 @@ export function LivePreview({
   const appUrl = (process.env.NEXT_PUBLIC_APP_URL || 'https://seera-ai.com').replace(/\/$/, '');
   const seeraLinkUrl = showSeeraLinkQr ? `${appUrl}/p/${seeraLinkSlug}` : '';
   const scaledWidth = `${A4_WIDTH * scale}mm`;
-  const scaledHeight = compact ? 'auto' : `${A4_HEIGHT * scale}mm`;
-  const contentMinHeight = compact ? 'auto' : `${A4_HEIGHT}mm`;
+  const scaledHeight = `${A4_HEIGHT * scale}mm`;
+  const contentMinHeight = compact ? undefined : `${A4_HEIGHT}mm`;
   const finalWatermarkText =
     watermarkText ||
     (locale === 'ar' ? 'Seera AI نسخة مجانية' : 'Seera AI Free Preview');
@@ -62,7 +62,7 @@ export function LivePreview({
       className="relative bg-white shadow-xl rounded-sm overflow-hidden"
       style={{
         width: scaledWidth,
-        minHeight: scaledHeight,
+        minHeight: compact ? undefined : scaledHeight,
       }}
     >
       <div
