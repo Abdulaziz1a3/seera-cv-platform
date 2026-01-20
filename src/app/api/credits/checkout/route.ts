@@ -1,14 +1,14 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { auth } from '@/lib/auth';
-import { MIN_RECHARGE_SAR, sarToCredits } from '@/lib/ai-credits';
+import { MIN_RECHARGE_SAR, MAX_RECHARGE_SAR, sarToCredits } from '@/lib/ai-credits';
 import { createTuwaiqPayBill } from '@/lib/tuwaiqpay';
 import { getUserPaymentProfile } from '@/lib/payments';
 import { prisma } from '@/lib/db';
 import { logger } from '@/lib/logger';
 
 const requestSchema = z.object({
-    amountSar: z.number().min(MIN_RECHARGE_SAR),
+    amountSar: z.number().min(MIN_RECHARGE_SAR).max(MAX_RECHARGE_SAR),
     returnUrl: z.string().url().optional(),
 });
 

@@ -24,6 +24,7 @@ type CreditSummary = {
     availableCredits: number;
     resetAt: string | Date;
     minRechargeSar: number;
+    maxRechargeSar: number;
     sarPerCredit: number;
 };
 
@@ -77,8 +78,13 @@ export function CreditsModal({ isOpen, onClose, initialCredits }: CreditsModalPr
 
     const handleCheckout = async () => {
         const min = summary?.minRechargeSar || 5;
+        const max = summary?.maxRechargeSar || 10;
         if (!amountSar || Number.isNaN(amountSar) || amountSar < min) {
             toast.error(locale === 'ar' ? `الحد الأدنى ${min} ر.س` : `Minimum recharge is ${min} SAR`);
+            return;
+        }
+        if (amountSar > max) {
+            toast.error(locale === 'ar' ? `الحد الأقصى ${max} ر.س` : `Maximum recharge is ${max} SAR`);
             return;
         }
 
@@ -116,6 +122,7 @@ export function CreditsModal({ isOpen, onClose, initialCredits }: CreditsModalPr
     };
 
     const minRecharge = summary?.minRechargeSar || 5;
+    const maxRecharge = summary?.maxRechargeSar || 10;
     const displayRemaining = summary ? summary.remainingCredits : 0;
     const displayBase = summary ? summary.baseCredits : 50;
 
@@ -173,12 +180,13 @@ export function CreditsModal({ isOpen, onClose, initialCredits }: CreditsModalPr
                         <Input
                             type="number"
                             min={minRecharge}
+                            max={maxRecharge}
                             step="1"
                             value={amountSar}
                             onChange={(e) => setAmountSar(Number(e.target.value))}
                         />
                         <div className="flex gap-2">
-                            {[5, 10, 20].map((amount) => (
+                            {[5, 10].map((amount) => (
                                 <Button
                                     key={amount}
                                     type="button"
@@ -192,8 +200,8 @@ export function CreditsModal({ isOpen, onClose, initialCredits }: CreditsModalPr
                         </div>
                         <p className="text-xs text-muted-foreground">
                             {locale === 'ar'
-                                ? `الحد الأدنى للشحن ${minRecharge} ر.س`
-                                : `Minimum recharge is ${minRecharge} SAR`}
+                                ? `الحد الأدنى ${minRecharge} ر.س - الحد الأقصى ${maxRecharge} ر.س`
+                                : `Min ${minRecharge} SAR - Max ${maxRecharge} SAR`}
                         </p>
                     </div>
 

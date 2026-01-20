@@ -5,6 +5,7 @@ export const BASE_MONTHLY_CREDITS = 50;
 export const SAR_PER_CREDIT = 0.2; // 10 SAR / 50 credits
 export const CREDITS_PER_SAR = 1 / SAR_PER_CREDIT;
 export const MIN_RECHARGE_SAR = 5;
+export const MAX_RECHARGE_SAR = 10;
 const USD_TO_SAR = 3.75;
 
 type ChatPricing = {
@@ -30,6 +31,7 @@ type CreditSummary = {
     availableCredits: number;
     resetAt: Date;
     minRechargeSar: number;
+    maxRechargeSar: number;
     sarPerCredit: number;
 };
 
@@ -107,6 +109,7 @@ export async function getCreditSummary(userId: string, now = new Date()): Promis
         availableCredits,
         resetAt: periodEnd,
         minRechargeSar: MIN_RECHARGE_SAR,
+        maxRechargeSar: MAX_RECHARGE_SAR,
         sarPerCredit: SAR_PER_CREDIT,
     };
 }
