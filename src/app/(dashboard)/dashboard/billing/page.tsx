@@ -361,8 +361,8 @@ export default function BillingGiftsPage() {
         const plan = billingStatus?.plan || 'FREE';
         if (plan === 'PRO') {
             return locale === 'ar'
-                ? '5 سير ذاتية، 100 توليد AI شهرياً'
-                : '5 resumes, 100 AI generations/month';
+                ? '5 سير ذاتية، 50 رصيد AI شهرياً'
+                : '5 resumes, 50 AI credits/month';
         }
         if (plan === 'ENTERPRISE') {
             return locale === 'ar'
@@ -370,8 +370,8 @@ export default function BillingGiftsPage() {
                 : 'Unlimited resumes, unlimited AI, priority support';
         }
         return locale === 'ar'
-            ? 'سيرة ذاتية واحدة، 50 رصيد AI شهرياً'
-            : '1 resume, 50 AI credits/month';
+            ? 'سيرة ذاتية واحدة، 10 رصيد AI شهرياً'
+            : '1 resume, 10 AI credits/month';
     })();
     const upgradeTargetPlan = 'pro';
     const upgradeLabel = (() => {

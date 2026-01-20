@@ -47,7 +47,7 @@ export const PLANS = {
         features: {
             resumeLimit: 5, // 5 resumes for Pro
             downloadLimit: -1,
-            aiUsageLimit: 100,
+            aiUsageLimit: 50, // Pro plan: 50 AI credits/month
             premiumTemplates: true,
             docxExport: true,
             coverLetters: true,

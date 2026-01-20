@@ -1,7 +1,8 @@
 import { prisma } from '@/lib/db';
 import { logger } from '@/lib/logger';
 
-export const BASE_MONTHLY_CREDITS = 50;
+export const BASE_MONTHLY_CREDITS = 10; // Free plan gets 10 credits
+export const PRO_MONTHLY_CREDITS = 50;  // Pro plan gets 50 credits
 export const SAR_PER_CREDIT = 0.2; // 10 SAR / 50 credits
 export const CREDITS_PER_SAR = 1 / SAR_PER_CREDIT;
 export const MIN_RECHARGE_SAR = 5;

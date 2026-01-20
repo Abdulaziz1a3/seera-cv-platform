@@ -192,7 +192,7 @@ export default function PricingPage() {
                             <tbody>
                                 {[
                                     { feature: locale === 'ar' ? 'السير الذاتية' : 'Resumes', pro: '5', enterprise: locale === 'ar' ? 'غير محدود' : 'Unlimited' },
-                                    { feature: locale === 'ar' ? 'توليدات الذكاء الاصطناعي/شهر' : 'AI Generations/mo', pro: '100', enterprise: locale === 'ar' ? 'غير محدود' : 'Unlimited' },
+                                    { feature: locale === 'ar' ? 'توليدات الذكاء الاصطناعي/شهر' : 'AI Generations/mo', pro: '50', enterprise: locale === 'ar' ? 'غير محدود' : 'Unlimited' },
                                     { feature: locale === 'ar' ? 'القوالب' : 'Templates', pro: locale === 'ar' ? 'الكل' : 'All', enterprise: locale === 'ar' ? 'الكل + مخصص' : 'All + Custom' },
                                     { feature: locale === 'ar' ? 'تصدير PDF' : 'PDF Export', pro: true, enterprise: true },
                                     { feature: locale === 'ar' ? 'تصدير DOCX' : 'DOCX Export', pro: true, enterprise: true },
