@@ -235,7 +235,7 @@ export async function sendPasswordResetEmail(
         return { success: false, error: 'Email service not configured' };
     }
 
-    const resetUrl = `${APP_URL}/auth/reset-password?token=${token}`;
+    const resetUrl = `${APP_URL}/reset-password?token=${token}`;
     const greeting = name ? `Hi ${name.split(' ')[0]},` : 'Hi there,';
 
     const content = `
