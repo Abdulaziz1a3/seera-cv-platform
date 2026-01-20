@@ -86,8 +86,8 @@ export default function PricingPage() {
                             <Card
                                 key={plan.name}
                                 className={`relative overflow-hidden transition-all duration-300 hover:shadow-xl ${plan.popular
-                                        ? 'border-2 border-primary shadow-lg md:scale-105'
-                                        : 'hover:-translate-y-1'
+                                    ? 'border-2 border-primary shadow-lg md:scale-105'
+                                    : 'hover:-translate-y-1'
                                     }`}
                             >
                                 {plan.popular && (
@@ -191,7 +191,7 @@ export default function PricingPage() {
                             </thead>
                             <tbody>
                                 {[
-                                    { feature: locale === 'ar' ? 'السير الذاتية' : 'Resumes', pro: locale === 'ar' ? 'غير محدود' : 'Unlimited', enterprise: locale === 'ar' ? 'غير محدود' : 'Unlimited' },
+                                    { feature: locale === 'ar' ? 'السير الذاتية' : 'Resumes', pro: '5', enterprise: locale === 'ar' ? 'غير محدود' : 'Unlimited' },
                                     { feature: locale === 'ar' ? 'توليدات الذكاء الاصطناعي/شهر' : 'AI Generations/mo', pro: '100', enterprise: locale === 'ar' ? 'غير محدود' : 'Unlimited' },
                                     { feature: locale === 'ar' ? 'القوالب' : 'Templates', pro: locale === 'ar' ? 'الكل' : 'All', enterprise: locale === 'ar' ? 'الكل + مخصص' : 'All + Custom' },
                                     { feature: locale === 'ar' ? 'تصدير PDF' : 'PDF Export', pro: true, enterprise: true },
@@ -265,7 +265,7 @@ export default function PricingPage() {
                         {locale === 'ar' ? 'جاهز للبدء؟' : 'Ready to get started?'}
                     </h2>
                     <p className="text-muted-foreground mb-8 max-w-xl mx-auto">
-                            {locale === 'ar'
+                        {locale === 'ar'
                             ? 'ابدأ اليوم. لا حاجة لبطاقة ائتمان.'
                             : 'Start today. No credit card required.'}
                     </p>

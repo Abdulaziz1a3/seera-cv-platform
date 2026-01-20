@@ -361,8 +361,8 @@ export default function BillingGiftsPage() {
         const plan = billingStatus?.plan || 'FREE';
         if (plan === 'PRO') {
             return locale === 'ar'
-                ? 'سير ذاتية غير محدودة، 100 توليد AI شهرياً'
-                : 'Unlimited resumes, 100 AI generations/month';
+                ? '5 سير ذاتية، 100 توليد AI شهرياً'
+                : '5 resumes, 100 AI generations/month';
         }
         if (plan === 'ENTERPRISE') {
             return locale === 'ar'
@@ -463,9 +463,18 @@ export default function BillingGiftsPage() {
                             <div className="p-4 rounded-lg border">
                                 <div className="flex justify-between text-sm mb-2">
                                     <span>{t.settings.billing.resumes}</span>
-                                    <span className="font-medium">1 / 1</span>
+                                    <span className="font-medium">
+                                        {billingStatus?.plan === 'ENTERPRISE'
+                                            ? (locale === 'ar' ? 'غير محدود' : 'Unlimited')
+                                            : billingStatus?.plan === 'PRO'
+                                                ? '1 / 5'
+                                                : '1 / 1'}
+                                    </span>
                                 </div>
-                                <Progress value={100} className="h-2" />
+                                <Progress
+                                    value={billingStatus?.plan === 'ENTERPRISE' ? 0 : billingStatus?.plan === 'PRO' ? 20 : 100}
+                                    className="h-2"
+                                />
                             </div>
                             <div className="p-4 rounded-lg border">
                                 <div className="flex justify-between text-sm mb-2">

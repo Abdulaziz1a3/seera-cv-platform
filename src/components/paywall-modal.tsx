@@ -98,7 +98,7 @@ export function PaywallModal({ isOpen, onClose, feature }: PaywallModalProps) {
     };
 
     const proFeatures = t?.landing?.pricing?.pro?.features ?? [
-        locale === 'ar' ? 'سير ذاتية غير محدودة وتصدير PDF/DOCX/TXT متوافق مع ATS' : 'Unlimited resumes + ATS-safe PDF/DOCX/TXT exports',
+        locale === 'ar' ? '5 سير ذاتية وتصدير PDF/DOCX/TXT متوافق مع ATS' : '5 resumes + ATS-safe PDF/DOCX/TXT exports',
         locale === 'ar' ? 'محاكي ATS مع عرض مسؤول التوظيف ونتيجة القراءة' : 'ATS Simulator with recruiter-view scoring',
         locale === 'ar' ? 'تلخيص ونقاط خبرة بالذكاء الاصطناعي وفق الوظيفة المستهدفة' : 'AI summary & bullet generator for your target role',
         locale === 'ar' ? 'مطابقة الوصف الوظيفي وفجوات الكلمات المفتاحية' : 'Job description match + keyword gap insights',

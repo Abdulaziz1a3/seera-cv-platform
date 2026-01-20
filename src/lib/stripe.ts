@@ -13,9 +13,9 @@ const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
 
 const stripe = stripeSecretKey
     ? new Stripe(stripeSecretKey, {
-          apiVersion: '2023-10-16',
-          typescript: true,
-      })
+        apiVersion: '2023-10-16',
+        typescript: true,
+    })
     : null;
 
 // Subscription Plans with SAR pricing
@@ -45,7 +45,7 @@ export const PLANS = {
         stripePriceIdMonthly: process.env.STRIPE_PRO_MONTHLY_PRICE_ID,
         stripePriceIdYearly: process.env.STRIPE_PRO_YEARLY_PRICE_ID,
         features: {
-            resumeLimit: -1, // unlimited
+            resumeLimit: 5, // 5 resumes for Pro
             downloadLimit: -1,
             aiUsageLimit: 100,
             premiumTemplates: true,
