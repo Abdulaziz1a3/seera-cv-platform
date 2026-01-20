@@ -26,7 +26,7 @@ export async function POST(request: Request) {
         const credits = sarToCredits(amountSar);
         const bill = await createTuwaiqPayBill({
             amountSar,
-            description: `Seera AI Credits (${credits})`,
+            description: `Seera AI - AI Credits Top-up (${credits} credits) - ${amountSar} SAR`,
             customerName: customer.customerName,
             customerMobilePhone: customer.customerPhone,
         });

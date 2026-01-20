@@ -44,9 +44,10 @@ export async function POST(request: Request) {
         const amountSar = interval === 'yearly' ? planConfig.priceYearly : planConfig.priceMonthly;
         const customer = await getUserPaymentProfile(session.user.id);
 
+        const intervalLabel = interval === 'yearly' ? 'Annual' : 'Monthly';
         const bill = await createTuwaiqPayBill({
             amountSar,
-            description: `Seera AI ${planConfig.name.en} (${interval})`,
+            description: `Seera AI - ${planConfig.name.en} Plan (${intervalLabel}) - ${amountSar} SAR`,
             customerName: customer.customerName,
             customerMobilePhone: customer.customerPhone,
         });
