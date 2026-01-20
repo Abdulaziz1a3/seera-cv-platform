@@ -539,10 +539,12 @@ export default function LiveInterviewPage() {
 
     // Speak using OpenAI TTS
     const speak = useCallback(async (text: string): Promise<void> => {
+        console.log('[TTS] speak() called with text:', text.substring(0, 50) + '...');
         const shouldResume = autoListenRef.current && !useTextInput;
         let playbackFailed = false;
 
         if (isMuted) {
+            console.log('[TTS] Audio is muted, skipping');
             if (shouldResume) {
                 setTimeout(() => startListening(), 300);
             }
@@ -561,19 +563,25 @@ export default function LiveInterviewPage() {
 
         try {
             if (!audioRef.current) {
+                console.log('[TTS] No audioRef, using browser TTS');
                 await speakWithBrowser(text);
                 return;
             }
 
+            console.log('[TTS] Unlocking audio...');
             await unlockAudio();
 
+            console.log('[TTS] Fetching TTS from API...');
             const response = await fetch('/api/interview/tts', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ text, voice: selectedVoice }),
             });
 
+            console.log('[TTS] Response status:', response.status);
+
             if (await handleAICreditsResponse(response.clone())) {
+                console.log('[TTS] AI credits exhausted, using browser TTS');
                 setTtsFallbackActive(true);
                 await speakWithBrowser(text);
                 return;
@@ -585,24 +593,32 @@ export default function LiveInterviewPage() {
                     errorPayload?.error ||
                     errorPayload?.message ||
                     `TTS failed (${response.status})`;
+                console.error('[TTS] API error:', message);
                 throw new Error(message);
             }
 
             const audioBlob = await response.blob();
+            console.log('[TTS] Got audio blob:', audioBlob.size, 'bytes, type:', audioBlob.type);
+
             audioUrl = URL.createObjectURL(audioBlob);
             setTtsFallbackActive(false);
             audioRef.current.src = audioUrl;
 
+            console.log('[TTS] Attempting to play audio...');
             const tryPlay = async () => {
                 try {
                     await audioRef.current!.play();
+                    console.log('[TTS] Audio playing successfully');
                     return true;
-                } catch {
+                } catch (playError) {
+                    console.error('[TTS] First play attempt failed:', playError);
                     try {
                         await unlockAudio();
                         await audioRef.current!.play();
+                        console.log('[TTS] Audio playing after unlock');
                         return true;
-                    } catch {
+                    } catch (retryError) {
+                        console.error('[TTS] Retry play failed:', retryError);
                         return false;
                     }
                 }
@@ -610,6 +626,7 @@ export default function LiveInterviewPage() {
 
             const played = await tryPlay();
             if (!played) {
+                console.log('[TTS] Playback failed, showing blocked message');
                 playbackFailed = true;
                 setAudioBlocked(true);
                 pendingAudioUrlRef.current = audioUrl;
@@ -620,12 +637,19 @@ export default function LiveInterviewPage() {
                 return;
             }
 
+            console.log('[TTS] Waiting for audio to finish...');
             await new Promise<void>((resolve, reject) => {
-                audioRef.current!.onended = () => resolve();
-                audioRef.current!.onerror = () => reject(new Error('Audio playback failed'));
+                audioRef.current!.onended = () => {
+                    console.log('[TTS] Audio ended normally');
+                    resolve();
+                };
+                audioRef.current!.onerror = (e) => {
+                    console.error('[TTS] Audio playback error:', e);
+                    reject(new Error('Audio playback failed'));
+                };
             });
         } catch (error) {
-            console.error('TTS error:', error);
+            console.error('[TTS] Error in speak():', error);
             if (!ttsErrorShown) {
                 setTtsErrorShown(true);
                 const message = error instanceof Error ? error.message : 'TTS failed';
@@ -635,6 +659,7 @@ export default function LiveInterviewPage() {
                         : `AI voice unavailable: ${message}`
                 );
             }
+            console.log('[TTS] Falling back to browser TTS');
             await speakWithBrowser(text);
         } finally {
             if (audioUrl && pendingAudioUrlRef.current !== audioUrl) {
