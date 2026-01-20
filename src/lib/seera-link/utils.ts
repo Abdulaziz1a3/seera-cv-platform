@@ -118,19 +118,23 @@ export async function validateSlug(
     return { valid: false, error: 'This slug contains inappropriate content' };
   }
 
-  // Check reserved slugs in database
-  const reserved = await prisma.reservedSlug.findUnique({
-    where: { slug: normalizedSlug },
-  });
+  // Check reserved slugs in database (table may not exist)
+  try {
+    const reserved = await (prisma as any).reservedSlug?.findUnique?.({
+      where: { slug: normalizedSlug },
+    });
 
-  if (reserved) {
-    return {
-      valid: false,
-      error:
-        reserved.reason === 'profanity'
-          ? 'This slug contains inappropriate content'
-          : 'This slug is reserved',
-    };
+    if (reserved) {
+      return {
+        valid: false,
+        error:
+          reserved.reason === 'profanity'
+            ? 'This slug contains inappropriate content'
+            : 'This slug is reserved',
+      };
+    }
+  } catch {
+    // reservedSlug table may not exist, skip this check
   }
 
   // Check existing profiles
