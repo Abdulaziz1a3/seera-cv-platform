@@ -87,6 +87,22 @@ export async function getCreditSummary(userId: string, now = new Date()): Promis
     const periodStart = getPeriodStart(now);
     const periodEnd = getPeriodEnd(now);
 
+    // Get user's subscription to determine base credits
+    const subscription = await prisma.subscription.findUnique({
+        where: { userId },
+        select: { plan: true, status: true },
+    });
+
+    // Determine base credits based on plan
+    let baseCredits = BASE_MONTHLY_CREDITS; // Free plan: 10
+    if (subscription?.status === 'ACTIVE') {
+        if (subscription.plan === 'PRO') {
+            baseCredits = PRO_MONTHLY_CREDITS; // Pro plan: 50
+        } else if (subscription.plan === 'ENTERPRISE') {
+            baseCredits = 9999; // Enterprise: essentially unlimited
+        }
+    }
+
     const [usedAgg, topupAgg] = await Promise.all([
         prisma.usageRecord.aggregate({
             where: { userId, type: 'AI_GENERATION', createdAt: { gte: periodStart, lt: periodEnd } },
@@ -100,10 +116,10 @@ export async function getCreditSummary(userId: string, now = new Date()): Promis
 
     const usedCredits = roundTwo(usedAgg._sum.credits || 0);
     const topupCredits = roundTwo(topupAgg._sum.credits || 0);
-    const availableCredits = roundTwo(BASE_MONTHLY_CREDITS + topupCredits - usedCredits);
+    const availableCredits = roundTwo(baseCredits + topupCredits - usedCredits);
 
     return {
-        baseCredits: BASE_MONTHLY_CREDITS,
+        baseCredits,
         topupCredits,
         usedCredits,
         remainingCredits: Math.max(0, availableCredits),
