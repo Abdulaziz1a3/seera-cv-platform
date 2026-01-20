@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
 
-// Content Security Policy
+// Content Security Policy - includes media-src for TTS audio playback
 const ContentSecurityPolicy = `
   default-src 'self';
   script-src 'self' 'unsafe-eval' 'unsafe-inline' https://www.googletagmanager.com https://www.google-analytics.com;
@@ -8,6 +8,7 @@ const ContentSecurityPolicy = `
   img-src 'self' blob: data: https: https://lh3.googleusercontent.com https://avatars.githubusercontent.com;
   font-src 'self' https://fonts.gstatic.com;
   connect-src 'self' https://www.google-analytics.com https://api.openai.com https://vitals.vercel-insights.com;
+  media-src 'self' blob: data:;
   frame-src 'self';
   worker-src 'self' blob:;
   object-src 'none';
