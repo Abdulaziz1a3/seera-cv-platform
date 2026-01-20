@@ -382,8 +382,10 @@ export default function InterviewPrepPage() {
             question: questions[currentQuestionIndex].question,
             answer: locale === 'ar' ? '(تم التخطي)' : '(Skipped)',
             score: 0,
-            strengths: [],
-            improvements: [locale === 'ar' ? 'لم يتم الإجابة على هذا السؤال' : 'This question was not answered'],
+            feedback: {
+                strengths: [],
+                improvements: [locale === 'ar' ? 'لم يتم الإجابة على هذا السؤال' : 'This question was not answered'],
+            },
         };
         setResults(prev => [...prev, skippedResult]);
 
