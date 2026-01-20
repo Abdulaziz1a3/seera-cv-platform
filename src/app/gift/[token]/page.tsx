@@ -164,7 +164,7 @@ export default function GiftClaimPage({ params }: { params: { token: string } })
                                 <>
                                     {!session?.user ? (
                                         <Button asChild className="w-full">
-                                            <Link href={`/auth/login?next=/gift/${token}`}>{t.gift.signIn}</Link>
+                                            <Link href={`/login?callbackUrl=/gift/${token}`}>{t.gift.signIn}</Link>
                                         </Button>
                                     ) : (
                                         <Button className="w-full" onClick={handleClaim} disabled={claiming}>
