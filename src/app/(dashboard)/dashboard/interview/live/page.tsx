@@ -459,7 +459,9 @@ export default function LiveInterviewPage() {
     }, [isSpeaking, isLoading, locale, micErrorShown, micRequesting, useTextInput]);
 
     const speakWithBrowser = useCallback(async (text: string, langOverride?: InterviewLanguage): Promise<void> => {
+        console.log('[Browser TTS] speakWithBrowser() called');
         if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
+            console.log('[Browser TTS] speechSynthesis not available');
             return;
         }
 
@@ -469,6 +471,7 @@ export default function LiveInterviewPage() {
             const synth = window.speechSynthesis;
             const speakNow = () => {
                 try {
+                    console.log('[Browser TTS] Creating utterance...');
                     const utterance = new SpeechSynthesisUtterance(text);
                     const langSource = langOverride || interviewLang;
                     utterance.lang = langSource === 'en' ? 'en-US' : 'ar-SA';
@@ -476,18 +479,28 @@ export default function LiveInterviewPage() {
                     const preferredVoice = pickSpeechVoice(langOverride);
                     if (preferredVoice) {
                         utterance.voice = preferredVoice;
+                        console.log('[Browser TTS] Using voice:', preferredVoice.name);
                     }
-                    utterance.onend = () => resolve();
-                    utterance.onerror = () => resolve();
+                    utterance.onend = () => {
+                        console.log('[Browser TTS] Speech ended');
+                        resolve();
+                    };
+                    utterance.onerror = (e) => {
+                        console.error('[Browser TTS] Speech error:', e);
+                        resolve();
+                    };
 
                     synth.cancel();
                     synth.speak(utterance);
-                } catch {
+                    console.log('[Browser TTS] Speaking started');
+                } catch (err) {
+                    console.error('[Browser TTS] Exception:', err);
                     resolve();
                 }
             };
 
             if (synth.getVoices().length === 0) {
+                console.log('[Browser TTS] Waiting for voices to load...');
                 const onVoicesChanged = () => {
                     synth.removeEventListener('voiceschanged', onVoicesChanged);
                     speakNow();
