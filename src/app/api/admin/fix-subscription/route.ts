@@ -8,10 +8,9 @@ import { prisma } from '@/lib/db';
 export async function POST(request: Request) {
     const session = await auth();
 
-    // Only allow super admin or specific user
-    if (!session?.user?.email ||
-        (session.user.email !== 'info@seera-ai.com' && session.user.email !== 'abdulaziz1a3@gmail.com')) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    // Only allow SUPER_ADMIN users - regular users cannot access this
+    if (!session?.user?.role || session.user.role !== 'SUPER_ADMIN') {
+        return NextResponse.json({ error: 'Unauthorized - Super Admin only' }, { status: 403 });
     }
 
     try {
