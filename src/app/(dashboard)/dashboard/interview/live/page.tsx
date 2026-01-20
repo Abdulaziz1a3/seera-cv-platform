@@ -167,11 +167,6 @@ export default function LiveInterviewPage() {
     const [candidateName, setCandidateName] = useState('');
     const [interviewLang, setInterviewLang] = useState<InterviewLanguage>(locale === 'ar' ? 'ar-sa' : 'en');
     const [selectedResumeId, setSelectedResumeId] = useState('');
-    const [savedSessions, setSavedSessions] = useState<SavedInterviewSession[]>([]);
-    const [expandedSessionId, setExpandedSessionId] = useState<string | null>(null);
-    const [recordingPlaybackSessionId, setRecordingPlaybackSessionId] = useState<string | null>(null);
-    const [isRecording, setIsRecording] = useState(false);
-    const [recordingError, setRecordingError] = useState<string | null>(null);
 
     // Interview state
     const [phase, setPhase] = useState<InterviewPhase>('setup');
@@ -228,19 +223,7 @@ export default function LiveInterviewPage() {
     const lastInterviewerRef = useRef<{ normalized: string; at: number } | null>(null);
     const lastSpeakAtRef = useRef(0);
     const lastSpeakEndedAtRef = useRef(0);
-    const currentSessionIdRef = useRef<string | null>(null);
-    const lastSavedSessionIdRef = useRef<string | null>(null);
-    const recordingPlaybackRef = useRef<HTMLAudioElement | null>(null);
-    const recordingChunksRef = useRef<Blob[]>([]);
-    const recordingBlobRef = useRef<Blob | null>(null);
-    const pendingUploadSessionIdRef = useRef<string | null>(null);
-    const audioContextRef = useRef<AudioContext | null>(null);
-    const recordingDestinationRef = useRef<MediaStreamAudioDestinationNode | null>(null);
-    const micStreamRef = useRef<MediaStream | null>(null);
-    const micSourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
-    const aiSourceRef = useRef<MediaElementAudioSourceNode | null>(null);
-    const aiSourceConnectedRef = useRef(false);
-    const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+
 
     // Get phrases for current language
     const phrases = PHRASES[interviewLang];
@@ -270,58 +253,24 @@ export default function LiveInterviewPage() {
         messagesRef.current = messages;
     }, [messages]);
 
-    useEffect(() => {
-        let active = true;
-
-        const loadSessions = async () => {
-            try {
-                const res = await fetch('/api/interview/sessions?limit=2');
-                if (!res.ok) {
-                    throw new Error('Failed to load sessions');
-                }
-                const payload = await res.json();
-                if (!active) return;
-                setSavedSessions(payload.sessions || []);
-            } catch {
-                if (!active) return;
-                if (typeof window === 'undefined') {
-                    setSavedSessions([]);
-                    return;
-                }
-                try {
-                    const stored = window.localStorage.getItem(INTERVIEW_STORAGE_KEY);
-                    if (!stored) {
-                        setSavedSessions([]);
-                        return;
-                    }
-                    const parsed = JSON.parse(stored);
-                    if (Array.isArray(parsed)) {
-                        const trimmed = parsed.slice(0, 2);
-                        setSavedSessions(trimmed);
-                    }
-                } catch {
-                    setSavedSessions([]);
-                }
-            }
-        };
-
-        loadSessions();
-        return () => {
-            active = false;
-        };
-    }, []);
-
-    // Initialize audio
+    // Initialize audio - simple approach for reliable playback
     useEffect(() => {
         audioRef.current = new Audio();
         audioRef.current.preload = 'auto';
-    }, []);
-
-    useEffect(() => {
-        recordingPlaybackRef.current = new Audio();
+        // Enable audio on user interaction
+        const enableAudio = () => {
+            if (audioRef.current) {
+                audioRef.current.muted = false;
+            }
+            setAudioUnlocked(true);
+            document.removeEventListener('click', enableAudio);
+            document.removeEventListener('touchstart', enableAudio);
+        };
+        document.addEventListener('click', enableAudio);
+        document.addEventListener('touchstart', enableAudio);
         return () => {
-            recordingPlaybackRef.current?.pause();
-            recordingPlaybackRef.current = null;
+            document.removeEventListener('click', enableAudio);
+            document.removeEventListener('touchstart', enableAudio);
         };
     }, []);
 
@@ -434,180 +383,6 @@ export default function LiveInterviewPage() {
         }
     }, [interviewLang, playAudioTest, unlockAudio]);
 
-    const getSupportedRecordingMimeType = useCallback(() => {
-        if (typeof window === 'undefined' || !('MediaRecorder' in window)) return '';
-        const candidates = [
-            'audio/webm;codecs=opus',
-            'audio/webm',
-            'audio/ogg;codecs=opus',
-        ];
-        return candidates.find((type) => MediaRecorder.isTypeSupported(type)) || '';
-    }, []);
-
-    const uploadRecording = useCallback(async (sessionId: string, blob: Blob) => {
-        try {
-            const formData = new FormData();
-            const extension = blob.type.split('/')[1]?.split(';')[0] || 'webm';
-            formData.append('file', blob, `interview-${sessionId}.${extension}`);
-
-            const res = await fetch(`/api/interview/sessions/${sessionId}/recording`, {
-                method: 'POST',
-                body: formData,
-            });
-
-            if (!res.ok) {
-                const payload = await res.json().catch(() => ({}));
-                throw new Error(payload?.error || 'Failed to upload recording');
-            }
-
-            setSavedSessions((prev) =>
-                prev.map((session) =>
-                    session.id === sessionId
-                        ? { ...session, recordingAvailable: true }
-                        : session
-                )
-            );
-        } catch (error) {
-            const message = error instanceof Error ? error.message : 'Failed to upload recording';
-            toast.error(interviewLang.startsWith('ar') ? `تعذر رفع التسجيل: ${message}` : `Recording upload failed: ${message}`);
-        }
-    }, [interviewLang]);
-
-    const startRecording = useCallback(async () => {
-        if (typeof window === 'undefined' || !('MediaRecorder' in window)) {
-            setRecordingError(locale === 'ar' ? 'التسجيل غير مدعوم' : 'Recording not supported');
-            return;
-        }
-        if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') return;
-
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            micStreamRef.current = stream;
-            setRecordingError(null);
-
-            const AudioContextRef = (window as any).AudioContext || (window as any).webkitAudioContext;
-            if (!AudioContextRef) {
-                setRecordingError(locale === 'ar' ? 'تعذر إنشاء سياق الصوت' : 'Audio context unavailable');
-                return;
-            }
-
-            const context = audioContextRef.current || new AudioContextRef();
-            audioContextRef.current = context;
-            if (context.state === 'suspended') {
-                await context.resume();
-            }
-
-            const destination = recordingDestinationRef.current || context.createMediaStreamDestination();
-            recordingDestinationRef.current = destination;
-
-            micSourceRef.current?.disconnect();
-            micSourceRef.current = context.createMediaStreamSource(stream);
-            micSourceRef.current?.connect(destination);
-
-            if (audioRef.current && !aiSourceRef.current) {
-                aiSourceRef.current = context.createMediaElementSource(audioRef.current);
-            }
-
-            if (aiSourceRef.current && !aiSourceConnectedRef.current) {
-                aiSourceRef.current.connect(destination);
-                aiSourceRef.current.connect(context.destination);
-                aiSourceConnectedRef.current = true;
-            }
-
-            const mimeType = getSupportedRecordingMimeType();
-            const recorder = mimeType
-                ? new MediaRecorder(destination.stream, { mimeType })
-                : new MediaRecorder(destination.stream);
-
-            recordingChunksRef.current = [];
-            recorder.ondataavailable = (event) => {
-                if (event.data && event.data.size > 0) {
-                    recordingChunksRef.current.push(event.data);
-                }
-            };
-            recorder.onstop = () => {
-                const recordedBlob = new Blob(recordingChunksRef.current, { type: recorder.mimeType || mimeType || 'audio/webm' });
-                recordingBlobRef.current = recordedBlob;
-                setIsRecording(false);
-                const pendingId = pendingUploadSessionIdRef.current;
-                if (pendingId) {
-                    uploadRecording(pendingId, recordedBlob);
-                    pendingUploadSessionIdRef.current = null;
-                }
-            };
-
-            recorder.start(1000);
-            mediaRecorderRef.current = recorder;
-            setIsRecording(true);
-        } catch (error) {
-            const message = error instanceof Error ? error.message : 'Recording failed';
-            setRecordingError(message);
-            setIsRecording(false);
-        }
-    }, [getSupportedRecordingMimeType, locale, uploadRecording]);
-
-    const stopRecording = useCallback(() => {
-        if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-            mediaRecorderRef.current.stop();
-        } else {
-            setIsRecording(false);
-        }
-        micStreamRef.current?.getTracks().forEach((track) => track.stop());
-        micStreamRef.current = null;
-    }, []);
-
-    useEffect(() => {
-        return () => {
-            stopRecording();
-        };
-    }, [stopRecording]);
-
-    const getRecordingUrl = useCallback(async (sessionId: string) => {
-        const res = await fetch(`/api/interview/sessions/${sessionId}/recording`);
-        if (!res.ok) {
-            const payload = await res.json().catch(() => ({}));
-            throw new Error(payload?.error || 'Recording unavailable');
-        }
-        const payload = await res.json();
-        return payload?.url as string;
-    }, []);
-
-    const stopRecordingPlayback = useCallback(() => {
-        if (recordingPlaybackRef.current) {
-            recordingPlaybackRef.current.pause();
-            recordingPlaybackRef.current.currentTime = 0;
-        }
-        setRecordingPlaybackSessionId(null);
-    }, []);
-
-    const playRecording = useCallback(async (session: SavedInterviewSession) => {
-        if (recordingPlaybackSessionId && recordingPlaybackSessionId !== session.id) {
-            stopRecordingPlayback();
-        }
-        if (recordingPlaybackSessionId === session.id) {
-            stopRecordingPlayback();
-            return;
-        }
-
-        if (!session.recordingAvailable) {
-            toast.error(interviewLang.startsWith('ar') ? 'لا يوجد تسجيل متاح' : 'No recording available');
-            return;
-        }
-
-        try {
-            const url = await getRecordingUrl(session.id);
-            if (!recordingPlaybackRef.current) return;
-            recordingPlaybackRef.current.src = url;
-            await recordingPlaybackRef.current.play();
-            setRecordingPlaybackSessionId(session.id);
-            recordingPlaybackRef.current.onended = () => setRecordingPlaybackSessionId(null);
-            recordingPlaybackRef.current.onerror = () => setRecordingPlaybackSessionId(null);
-        } catch (error) {
-            const message = error instanceof Error ? error.message : 'Failed to play recording';
-            toast.error(interviewLang.startsWith('ar') ? `تعذر تشغيل التسجيل: ${message}` : `Playback failed: ${message}`);
-        }
-    }, [getRecordingUrl, interviewLang, recordingPlaybackSessionId, stopRecordingPlayback]);
-
     const pickSpeechVoice = useCallback((langOverride?: InterviewLanguage) => {
         if (typeof window === 'undefined' || !('speechSynthesis' in window)) return undefined;
         const voices = window.speechSynthesis.getVoices();
@@ -661,12 +436,6 @@ export default function LiveInterviewPage() {
             stopListening();
         }
     }, [phase, stopListening]);
-
-    useEffect(() => {
-        if (phase === 'ended') {
-            stopRecording();
-        }
-    }, [phase, stopRecording]);
 
     // Start listening
     const startListening = useCallback(() => {
@@ -1086,7 +855,7 @@ export default function LiveInterviewPage() {
         selectedResumeId,
     ]);
 
-    
+
 
     // Initialize speech recognition
     useEffect(() => {
@@ -1204,13 +973,6 @@ export default function LiveInterviewPage() {
         suppressListenRef.current = false;
         setLiveTranscript('');
         stopListening();
-        stopRecordingPlayback();
-        recordingBlobRef.current = null;
-        pendingUploadSessionIdRef.current = null;
-        currentSessionIdRef.current = typeof crypto !== 'undefined' && 'randomUUID' in crypto
-            ? crypto.randomUUID()
-            : `${Date.now()}`;
-        lastSavedSessionIdRef.current = null;
 
         try {
             const audioOk = await unlockAudio(true);
@@ -1230,9 +992,6 @@ export default function LiveInterviewPage() {
                         ? 'تم تفعيل وضع الكتابة لعدم توفر الميكروفون.'
                         : 'Microphone not available. Switching to text input.');
                 }
-            }
-            if (micOk) {
-                startRecording();
             }
 
             setPhase('connecting');
@@ -1308,7 +1067,6 @@ export default function LiveInterviewPage() {
         } catch (error) {
             console.error('Start error:', error);
             toast.error(interviewLang.startsWith('ar') ? 'فشل البدء' : 'Failed to start');
-            stopRecording();
             setPhase('setup');
             phaseRef.current = 'setup';
             setIsLoading(false);
@@ -1331,7 +1089,6 @@ export default function LiveInterviewPage() {
         autoListenRef.current = false;
         setPhase('ended');
         phaseRef.current = 'ended';
-        stopRecording();
     };
 
     const toggleTextInput = () => {
@@ -1427,64 +1184,6 @@ export default function LiveInterviewPage() {
         runSummary();
     }, [phase, results, summaryLoading, summaryData, targetRole, experienceLevel, interviewLang, selectedResumeId]);
 
-    useEffect(() => {
-        if (phase !== 'ended' || results.length === 0 || summaryLoading || !summaryRequested) return;
-        const sessionId = currentSessionIdRef.current;
-        if (!sessionId || lastSavedSessionIdRef.current === sessionId) return;
-
-        const transcript = messagesRef.current.map((msg) => ({
-            role: msg.role,
-            content: msg.content,
-        }));
-
-        const persistSession = async () => {
-            try {
-                const res = await fetch('/api/interview/sessions', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        targetRole,
-                        experienceLevel,
-                        interviewLang,
-                        resumeId: selectedResumeId || null,
-                        overallScore,
-                        summary: summaryData,
-                        results,
-                        transcript,
-                    }),
-                });
-
-                if (!res.ok) {
-                    const payload = await res.json().catch(() => ({}));
-                    throw new Error(payload?.error || 'Failed to save session');
-                }
-
-                const payload = await res.json();
-                const session = payload.session as SavedInterviewSession | undefined;
-                if (!session) {
-                    throw new Error('Missing session response');
-                }
-
-                setSavedSessions((prev) => {
-                    const next = [session, ...prev.filter((item) => item.id !== session.id)].slice(0, 2);
-                    return next;
-                });
-
-                if (recordingBlobRef.current) {
-                    await uploadRecording(session.id, recordingBlobRef.current);
-                } else {
-                    pendingUploadSessionIdRef.current = session.id;
-                }
-
-                lastSavedSessionIdRef.current = sessionId;
-            } catch (error) {
-                const message = error instanceof Error ? error.message : 'Failed to save session';
-                toast.error(interviewLang.startsWith('ar') ? `تعذر حفظ الجلسة: ${message}` : `Session save failed: ${message}`);
-            }
-        };
-
-        persistSession();
-    }, [phase, results, summaryLoading, summaryRequested, summaryData, targetRole, experienceLevel, interviewLang, overallScore, selectedResumeId, uploadRecording]);
 
     const getReadinessLevel = (score: number) => {
         if (score >= 8) return { label: interviewLang.startsWith('ar') ? 'ممتاز' : 'Excellent', color: 'text-green-500', icon: Trophy };
@@ -1770,91 +1469,6 @@ export default function LiveInterviewPage() {
                                 <p className="text-sm text-muted-foreground">{locale === 'ar' ? 'تقييم فوري' : 'Instant feedback'}</p>
                             </Card>
                         </div>
-
-                        {savedSessions.length > 0 && (
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle>
-                                        {locale === 'ar' ? 'آخر المقابلات الحية' : 'Recent Live Interviews'}
-                                    </CardTitle>
-                                    <CardDescription>
-                                        {locale === 'ar'
-                                            ? 'نحتفظ بآخر مقابلتين للمراجعة.'
-                                            : 'We keep your last two sessions for review.'}
-                                    </CardDescription>
-                                </CardHeader>
-                                <CardContent className="space-y-4">
-                                    {savedSessions.map((session) => (
-                                        <div key={session.id} className="rounded-lg border p-4 space-y-3">
-                                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                                                <div>
-                                                    <p className="font-medium">
-                                                        {session.targetRole || (locale === 'ar' ? 'مقابلة وظيفية' : 'Live interview')}
-                                                    </p>
-                                                    <p className="text-xs text-muted-foreground">
-                                                        {new Date(session.createdAt).toLocaleDateString(locale === 'ar' ? 'ar-SA' : 'en-US', {
-                                                            year: 'numeric',
-                                                            month: 'short',
-                                                            day: 'numeric',
-                                                        })}
-                                                        {' • '}
-                                                        {getLanguageLabel(session.interviewLang)}
-                                                        {session.resumeTitle ? ` • ${session.resumeTitle}` : ''}
-                                                    </p>
-                                                </div>
-                                                <div className="flex items-center gap-2">
-                                                    <Badge variant="secondary">{session.overallScore}/10</Badge>
-                                                    <Button
-                                                        size="sm"
-                                                        variant="outline"
-                                                        onClick={() => playRecording(session)}
-                                                        disabled={!session.recordingAvailable}
-                                                    >
-                                                        {recordingPlaybackSessionId === session.id
-                                                            ? (locale === 'ar' ? 'إيقاف' : 'Stop')
-                                                            : (locale === 'ar' ? 'استماع' : 'Listen')}
-                                                    </Button>
-                                                    <Button
-                                                        size="sm"
-                                                        variant="ghost"
-                                                        onClick={() => setExpandedSessionId((prev) => prev === session.id ? null : session.id)}
-                                                    >
-                                                        {expandedSessionId === session.id
-                                                            ? (locale === 'ar' ? 'إخفاء' : 'Hide')
-                                                            : (locale === 'ar' ? 'عرض' : 'View')}
-                                                    </Button>
-                                                </div>
-                                                {!session.recordingAvailable && (
-                                                    <p className="text-xs text-muted-foreground">
-                                                        {locale === 'ar' ? 'التسجيل غير متاح بعد' : 'Recording not available yet'}
-                                                    </p>
-                                                )}
-                                            </div>
-
-                                            {expandedSessionId === session.id && (
-                                                <div className="space-y-3 text-sm text-muted-foreground">
-                                                    {session.summary?.summary && (
-                                                        <p>{session.summary.summary}</p>
-                                                    )}
-                                                    <div className="space-y-2">
-                                                        {(session.transcript || session.messages || []).map((message, index) => (
-                                                            <p key={`${session.id}-${index}`}>
-                                                                <span className="font-semibold">
-                                                                    {message.role === 'interviewer'
-                                                                        ? (session.interviewLang.startsWith('ar') ? 'المحاوِر: ' : 'Interviewer: ')
-                                                                        : (session.interviewLang.startsWith('ar') ? 'المرشح: ' : 'Candidate: ')}
-                                                                </span>
-                                                                {message.content}
-                                                            </p>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
-                                    ))}
-                                </CardContent>
-                            </Card>
-                        )}
                     </div>
                 )}
 
@@ -1912,22 +1526,6 @@ export default function LiveInterviewPage() {
 
                             {/* Input */}
                             <div className="border-t p-4 space-y-4">
-                                {isRecording ? (
-                                    <p className="text-center text-xs text-emerald-600">
-                                        {interviewLang.startsWith('ar') ? '● يتم تسجيل المقابلة الآن' : '● Recording this interview'}
-                                    </p>
-                                ) : recordingError ? (
-                                    <p className="text-center text-xs text-amber-600">
-                                        {interviewLang.startsWith('ar') ? `التسجيل غير متاح: ${recordingError}` : `Recording unavailable: ${recordingError}`}
-                                    </p>
-                                ) : null}
-                                {ttsFallbackActive && (
-                                    <p className="text-center text-xs text-amber-600">
-                                        {interviewLang.startsWith('ar')
-                                            ? 'تنبيه: صوت المتصفح قد لا يدخل في التسجيل.'
-                                            : 'Note: Browser voice may not be included in the recording.'}
-                                    </p>
-                                )}
                                 <div className="flex items-center justify-center gap-6">
                                     <Button variant="outline" size="icon" onClick={() => setIsMuted(!isMuted)}>
                                         {isMuted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
