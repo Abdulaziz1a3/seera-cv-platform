@@ -267,7 +267,7 @@ export const ar = {
         },
         branding: {
             title: 'ابنِ سيرتك الذاتية المثالية',
-                description: 'للشركات وفرق التوظيف',
+            description: 'للشركات وفرق التوظيف',
             feature1: 'نسبة نجاح ATS أكثر من 95%',
             feature2: 'مساعدة الكتابة بالذكاء الاصطناعي',
             feature3: 'دعم الإنجليزية والعربية',
@@ -433,7 +433,7 @@ export const ar = {
 
         tip: {
             title: 'نصيحة احترافية: حسّن لكل طلب',
-                description: 'للشركات وفرق التوظيف',
+            description: 'للشركات وفرق التوظيف',
             cta: 'جرّب الآن',
         },
     },
@@ -459,7 +459,7 @@ export const ar = {
 
         contact: {
             title: 'معلومات الاتصال',
-                description: 'للشركات وفرق التوظيف',
+            description: 'للشركات وفرق التوظيف',
             basicInfo: 'المعلومات الأساسية',
             basicInfoDesc: 'اسمك وتفاصيل الاتصال الرئيسية',
             fullName: 'الاسم الكامل',
@@ -477,7 +477,7 @@ export const ar = {
 
         summary: {
             title: 'الملخص المهني',
-                description: 'للشركات وفرق التوظيف',
+            description: 'للشركات وفرق التوظيف',
             yourSummary: 'ملخصك',
             yourSummaryDesc: '2-4 جمل تبرز قيمتك المضافة',
             generateAi: 'توليد بالذكاء الاصطناعي',
@@ -502,7 +502,7 @@ export const ar = {
 
         experience: {
             title: 'الخبرة العملية',
-                description: 'للشركات وفرق التوظيف',
+            description: 'للشركات وفرق التوظيف',
             addExperience: 'إضافة خبرة',
             empty: 'لم تُضف خبرة عملية بعد. أضف أول وظيفة للبدء.',
             jobTitle: 'المسمى الوظيفي',
@@ -519,7 +519,7 @@ export const ar = {
 
         education: {
             title: 'التعليم',
-                description: 'للشركات وفرق التوظيف',
+            description: 'للشركات وفرق التوظيف',
             addEducation: 'إضافة تعليم',
             empty: 'لم يُضف تعليم بعد. أضف خلفيتك التعليمية.',
             institution: 'المؤسسة',
@@ -532,7 +532,7 @@ export const ar = {
 
         skills: {
             title: 'المهارات',
-                description: 'للشركات وفرق التوظيف',
+            description: 'للشركات وفرق التوظيف',
             extractFromJob: 'استخراج من الوظيفة',
             simpleList: 'قائمة بسيطة',
             byCategory: 'حسب الفئة',
@@ -582,7 +582,7 @@ export const ar = {
     // Job Targeting
     jobTarget: {
         title: 'استهداف وظيفة',
-                description: 'للشركات وفرق التوظيف',
+        description: 'للشركات وفرق التوظيف',
         steps: {
             jobDetails: 'تفاصيل الوظيفة',
             selectResume: 'اختر السيرة الذاتية',
@@ -590,7 +590,7 @@ export const ar = {
         },
         jobDetails: {
             title: 'تفاصيل الوظيفة',
-                description: 'للشركات وفرق التوظيف',
+            description: 'للشركات وفرق التوظيف',
             company: 'اسم الشركة',
             position: 'المسمى الوظيفي',
             jobDescription: 'الوصف الوظيفي',
@@ -599,7 +599,7 @@ export const ar = {
         },
         selectResume: {
             title: 'اختر السيرة الذاتية',
-                description: 'للشركات وفرق التوظيف',
+            description: 'للشركات وفرق التوظيف',
             placeholder: 'اختر سيرة ذاتية',
             whatWeAnalyze: 'ما سنحلله:',
             analysis1: 'نسبة التطابق (0-100%)',
@@ -627,7 +627,7 @@ export const ar = {
     // Settings
     settings: {
         title: 'الإعدادات',
-                description: 'للشركات وفرق التوظيف',
+        description: 'للشركات وفرق التوظيف',
         tabs: {
             profile: 'الملف الشخصي',
             security: 'الأمان',
@@ -712,13 +712,13 @@ export const ar = {
         expiredNote: 'انتهت صلاحية هذه الهدية. اطلب من المُرسل شراء هدية جديدة.',
         inactive: 'غير نشطة',
         reservedFor: 'هذه الهدية مخصصة لـ',
-        signIn: 'سجّل الدخول للاسترداد',
+        signIn: 'سجّل الدخول أو أنشئ حساب للاسترداد',
         claim: 'استرداد الهدية',
     },
 
     // Footer
     footer: {
-                description: 'للشركات وفرق التوظيف',
+        description: 'للشركات وفرق التوظيف',
         product: 'المنتج',
         resources: 'الموارد',
         company: 'الشركة',

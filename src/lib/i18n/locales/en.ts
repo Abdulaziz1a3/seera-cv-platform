@@ -712,7 +712,7 @@ export const en = {
         expiredNote: 'This gift has expired. Ask the sender to purchase a new one.',
         inactive: 'Inactive',
         reservedFor: 'This gift is reserved for',
-        signIn: 'Sign in to claim',
+        signIn: 'Sign in or Sign up to claim',
         claim: 'Claim gift',
     },
 
