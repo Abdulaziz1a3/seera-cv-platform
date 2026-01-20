@@ -55,33 +55,9 @@ export async function POST(request: Request) {
             });
         }
 
-        // Reset AI credits
-        const creditBalance = await prisma.aICreditBalance.findUnique({
-            where: { userId: user.id }
-        });
-
-        if (creditBalance) {
-            await prisma.aICreditBalance.update({
-                where: { userId: user.id },
-                data: {
-                    balance: 1000,
-                    totalPurchased: creditBalance.totalPurchased + 1000
-                }
-            });
-        } else {
-            await prisma.aICreditBalance.create({
-                data: {
-                    userId: user.id,
-                    balance: 1000,
-                    totalPurchased: 1000,
-                    totalUsed: 0
-                }
-            });
-        }
-
         return NextResponse.json({
             success: true,
-            message: 'Subscription and credits restored',
+            message: 'Subscription restored',
             user: {
                 email: user.email,
                 name: user.name
@@ -89,8 +65,7 @@ export async function POST(request: Request) {
             subscription: {
                 plan: 'PRO',
                 validUntil: oneYearFromNow.toISOString()
-            },
-            credits: 1000
+            }
         });
 
     } catch (error) {
