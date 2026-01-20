@@ -36,6 +36,7 @@ import {
     Send,
     Keyboard,
     Globe,
+    SkipForward,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { handleAICreditsResponse } from '@/lib/ai-credits-client';
@@ -203,6 +204,7 @@ export default function LiveInterviewPage() {
     // Text input mode
     const [useTextInput, setUseTextInput] = useState(false);
     const [textInput, setTextInput] = useState('');
+    const [countdown, setCountdown] = useState<number | null>(null);
 
     // Refs
     const recognitionRef = useRef<any>(null);
@@ -1523,8 +1525,60 @@ export default function LiveInterviewPage() {
                 {/* LIVE INTERVIEW */}
                 {['greeting', 'warmup', 'interview', 'closing'].includes(phase) && (
                     <div className="max-w-3xl mx-auto space-y-6">
+                        {/* Countdown Overlay */}
+                        {countdown !== null && (
+                            <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
+                                <div className="text-center space-y-4">
+                                    <div className="text-8xl font-bold text-primary animate-pulse">
+                                        {countdown}
+                                    </div>
+                                    <p className="text-xl text-muted-foreground">
+                                        {interviewLang.startsWith('ar') ? 'المقابلة تبدأ خلال...' : 'Interview starting in...'}
+                                    </p>
+                                </div>
+                            </div>
+                        )}
+
                         {phase === 'interview' && questions.length > 0 && (
-                            <Progress value={(currentQuestionIndex / questions.length) * 100} />
+                            <div className="flex items-center gap-4">
+                                <Progress value={(currentQuestionIndex / questions.length) * 100} className="flex-1" />
+                                <span className="text-sm text-muted-foreground whitespace-nowrap">
+                                    {currentQuestionIndex + 1} / {questions.length}
+                                </span>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => {
+                                        // Skip to next question
+                                        const skippedResult: QuestionResult = {
+                                            question: questions[currentQuestionIndex].question,
+                                            answer: interviewLang.startsWith('ar') ? '(تم التخطي)' : '(Skipped)',
+                                            score: 0,
+                                            feedback: {
+                                                strengths: [],
+                                                improvements: [interviewLang.startsWith('ar') ? 'لم يتم الإجابة' : 'Not answered'],
+                                            },
+                                        };
+                                        setResults(prev => [...prev, skippedResult]);
+
+                                        if (currentQuestionIndex + 1 < questions.length) {
+                                            setCurrentQuestionIndex(prev => prev + 1);
+                                            const nextQ = questions[currentQuestionIndex + 1].question;
+                                            const transition = interviewLang.startsWith('ar') ? `حسناً، لننتقل للسؤال التالي. ${nextQ}` : `Let's move to the next question. ${nextQ}`;
+                                            setMessages(prev => [...prev, { id: Date.now().toString(), role: 'interviewer', content: transition, timestamp: new Date() }]);
+                                            speak(transition);
+                                        } else {
+                                            setPhase('closing');
+                                            phaseRef.current = 'closing';
+                                        }
+                                    }}
+                                    disabled={isLoading || isSpeaking || countdown !== null}
+                                    className="gap-2"
+                                >
+                                    <SkipForward className="h-4 w-4" />
+                                    {interviewLang.startsWith('ar') ? 'تخطي' : 'Skip'}
+                                </Button>
+                            </div>
                         )}
 
                         <Card className="min-h-[400px] flex flex-col">

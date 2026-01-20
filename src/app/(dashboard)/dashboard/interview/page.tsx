@@ -44,6 +44,7 @@ import {
     Phone,
     Keyboard,
     Send,
+    SkipForward,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { handleAICreditsResponse } from '@/lib/ai-credits-client';
@@ -101,6 +102,7 @@ export default function InterviewPrepPage() {
     const [micPermissionDenied, setMicPermissionDenied] = useState(false);
     const [useTextInput, setUseTextInput] = useState(false);
     const [textInput, setTextInput] = useState('');
+    const [countdown, setCountdown] = useState<number | null>(null);
 
     // Refs
     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -342,10 +344,18 @@ export default function InterviewPrepPage() {
 
     // Start the interview
     const startInterview = async () => {
+        // Show countdown before starting
         setStatus('interviewing');
         setCurrentQuestionIndex(0);
         setMessages([]);
         setResults([]);
+
+        // Countdown from 3 before AI speaks
+        for (let i = 3; i > 0; i--) {
+            setCountdown(i);
+            await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+        setCountdown(null);
 
         // Play first question
         const firstQuestion = questions[0].question;
@@ -361,6 +371,49 @@ export default function InterviewPrepPage() {
         }]);
 
         await playInterviewerVoice(introMessage);
+    };
+
+    // Skip to next question without answering
+    const skipToNextQuestion = async () => {
+        if (isLoading || isPlaying) return;
+
+        // Record skipped answer
+        const skippedResult: QuestionResult = {
+            question: questions[currentQuestionIndex].question,
+            answer: locale === 'ar' ? '(تم التخطي)' : '(Skipped)',
+            score: 0,
+            strengths: [],
+            improvements: [locale === 'ar' ? 'لم يتم الإجابة على هذا السؤال' : 'This question was not answered'],
+        };
+        setResults(prev => [...prev, skippedResult]);
+
+        const nextIndex = currentQuestionIndex + 1;
+
+        if (nextIndex < questions.length) {
+            setCurrentQuestionIndex(nextIndex);
+            const nextQ = questions[nextIndex].question;
+            const transition = locale === 'ar' ? `حسناً، لننتقل للسؤال التالي. ${nextQ}` : `Alright, let's move to the next question. ${nextQ}`;
+
+            setMessages(prev => [...prev, {
+                id: Date.now().toString(),
+                role: 'interviewer',
+                content: transition,
+                timestamp: new Date(),
+            }]);
+
+            await playInterviewerVoice(transition);
+        } else {
+            // End interview
+            const closing = locale === 'ar' ? 'شكراً لك على وقتك. انتهت المقابلة.' : 'Thank you for your time. The interview is now complete.';
+            setMessages(prev => [...prev, {
+                id: Date.now().toString(),
+                role: 'interviewer',
+                content: closing,
+                timestamp: new Date(),
+            }]);
+            await playInterviewerVoice(closing);
+            setStatus('summary');
+        }
     };
 
     // Process user's answer
@@ -706,12 +759,36 @@ export default function InterviewPrepPage() {
                 {/* INTERVIEWING PHASE */}
                 {status === 'interviewing' && (
                     <div className="max-w-3xl mx-auto space-y-6">
-                        {/* Progress */}
+                        {/* Countdown Overlay */}
+                        {countdown !== null && (
+                            <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center">
+                                <div className="text-center space-y-4">
+                                    <div className="text-8xl font-bold text-primary animate-pulse">
+                                        {countdown}
+                                    </div>
+                                    <p className="text-xl text-muted-foreground">
+                                        {locale === 'ar' ? 'المقابلة تبدأ خلال...' : 'Interview starting in...'}
+                                    </p>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Progress + Skip Button */}
                         <div className="flex items-center gap-4">
                             <Progress value={(currentQuestionIndex / questions.length) * 100} className="flex-1" />
                             <span className="text-sm text-muted-foreground whitespace-nowrap">
                                 {currentQuestionIndex + 1} / {questions.length}
                             </span>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={skipToNextQuestion}
+                                disabled={isLoading || isPlaying || countdown !== null}
+                                className="gap-2"
+                            >
+                                <SkipForward className="h-4 w-4" />
+                                {locale === 'ar' ? 'تخطي' : 'Skip'}
+                            </Button>
                         </div>
 
                         {/* Chat Area */}
