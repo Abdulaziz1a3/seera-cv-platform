@@ -320,6 +320,7 @@ export default function BillingGiftsPage() {
                         plan: data.plan || 'FREE',
                         status: data.status || 'UNPAID',
                         isActive: Boolean(data.isActive),
+                        currentPeriodEnd: data.currentPeriodEnd || null,
                     });
                 }
                 // Force page reload after 2 seconds to ensure all components update
