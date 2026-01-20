@@ -99,8 +99,8 @@ export async function POST(request: Request) {
                                 stripePriceId: null,
                             }
                             : {
-                                plan: 'PRO',
-                                status: 'UNPAID',
+                                plan: 'FREE',
+                                status: 'ACTIVE',
                             },
                     },
                 },
