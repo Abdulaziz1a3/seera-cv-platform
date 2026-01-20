@@ -69,6 +69,7 @@ export default function BillingGiftsPage() {
         plan: 'FREE' | 'PRO' | 'ENTERPRISE';
         status: string;
         isActive: boolean;
+        currentPeriodEnd: string | null;
     } | null>(null);
     const [pendingGifts, setPendingGifts] = useState<PendingGift[]>([]);
     const [pendingGiftsLoading, setPendingGiftsLoading] = useState(false);
@@ -138,6 +139,7 @@ export default function BillingGiftsPage() {
                     plan: data.plan || 'FREE',
                     status: data.status || 'UNPAID',
                     isActive: Boolean(data.isActive),
+                    currentPeriodEnd: data.currentPeriodEnd || null,
                 });
             })
             .catch(() => null);
@@ -424,6 +426,13 @@ export default function BillingGiftsPage() {
                             <p className="text-sm text-muted-foreground mt-1">
                                 {currentPlanDescription}
                             </p>
+                            {billingStatus?.plan !== 'FREE' && billingStatus?.currentPeriodEnd && (
+                                <p className="text-sm font-medium text-amber-600 dark:text-amber-400 mt-2 flex items-center gap-1">
+                                    ⚠️ {locale === 'ar'
+                                        ? `ينتهي في: ${new Date(billingStatus.currentPeriodEnd).toLocaleDateString('ar-SA', { year: 'numeric', month: 'long', day: 'numeric' })}`
+                                        : `Expires: ${new Date(billingStatus.currentPeriodEnd).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`}
+                                </p>
+                            )}
                         </div>
                         <div className="flex flex-col gap-3 sm:items-end">
                             <Select
