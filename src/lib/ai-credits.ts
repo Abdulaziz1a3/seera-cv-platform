@@ -93,14 +93,12 @@ export async function getCreditSummary(userId: string, now = new Date()): Promis
         select: { plan: true, status: true },
     });
 
-    // Determine base credits based on plan
+    // Determine base credits based on plan (regardless of status)
     let baseCredits = BASE_MONTHLY_CREDITS; // Free plan: 10
-    if (subscription?.status === 'ACTIVE') {
-        if (subscription.plan === 'PRO') {
-            baseCredits = PRO_MONTHLY_CREDITS; // Pro plan: 50
-        } else if (subscription.plan === 'ENTERPRISE') {
-            baseCredits = 9999; // Enterprise: essentially unlimited
-        }
+    if (subscription?.plan === 'PRO') {
+        baseCredits = PRO_MONTHLY_CREDITS; // Pro plan: 50
+    } else if (subscription?.plan === 'ENTERPRISE') {
+        baseCredits = 9999; // Enterprise: essentially unlimited
     }
 
     const [usedAgg, topupAgg] = await Promise.all([
