@@ -37,6 +37,15 @@ export default function Home() {
     // New premium features
     const premiumFeatures = [
         {
+            icon: FileText,
+            title: locale === 'ar' ? 'منشئ السيرة الذاتية' : 'Smart Resume Builder',
+            description: locale === 'ar'
+                ? 'أنشئ سيرة ذاتية احترافية في دقائق مع قوالب جاهزة ومحتوى ذكي يتجاوز أنظمة ATS بنجاح'
+                : 'Create a professional resume in minutes with ready-to-use templates and AI-powered content that beats ATS systems',
+            color: 'from-amber-500 to-orange-500',
+            badge: 'CORE',
+        },
+        {
             icon: Compass,
             title: locale === 'ar' ? 'GPS المهني' : 'Career GPS',
             description: locale === 'ar'
