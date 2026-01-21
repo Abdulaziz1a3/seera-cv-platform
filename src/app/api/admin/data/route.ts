@@ -145,8 +145,7 @@ export async function GET(request: NextRequest) {
                         orderBy: { updatedAt: 'desc' }
                     },
                     seeraProfiles: {
-                        where: { status: 'PUBLISHED' },
-                        select: { title: true, location: true },
+                        select: { title: true, location: true, status: true },
                         take: 1
                     },
                     _count: {
