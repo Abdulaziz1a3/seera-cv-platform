@@ -90,14 +90,19 @@ export async function getCreditSummary(userId: string, now = new Date()): Promis
     // Get user's subscription to determine base credits
     const subscription = await prisma.subscription.findUnique({
         where: { userId },
-        select: { plan: true, status: true },
+        select: { plan: true, status: true, currentPeriodEnd: true },
     });
 
-    // Determine base credits based on plan (regardless of status)
+    // Check if subscription is active and not expired
+    const isSubscriptionActive = subscription
+        && (subscription.status === 'ACTIVE' || subscription.status === 'TRIALING')
+        && (!subscription.currentPeriodEnd || subscription.currentPeriodEnd >= now);
+
+    // Determine base credits based on plan (only if subscription is active)
     let baseCredits = BASE_MONTHLY_CREDITS; // Free plan: 10
-    if (subscription?.plan === 'PRO') {
+    if (isSubscriptionActive && subscription?.plan === 'PRO') {
         baseCredits = PRO_MONTHLY_CREDITS; // Pro plan: 50
-    } else if (subscription?.plan === 'ENTERPRISE') {
+    } else if (isSubscriptionActive && subscription?.plan === 'ENTERPRISE') {
         baseCredits = 9999; // Enterprise: essentially unlimited
     }
 
