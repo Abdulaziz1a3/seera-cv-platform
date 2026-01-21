@@ -19,6 +19,8 @@ import {
     Zap,
     Award,
     PenTool,
+    ScanSearch,
+    EyeOff,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -89,6 +91,24 @@ export default function Home() {
                 : 'Create a shareable career profile page with direct contact actions and CV access.',
             color: 'from-fuchsia-500 to-rose-500',
             badge: 'PUBLIC PROFILE',
+        },
+        {
+            icon: ScanSearch,
+            title: locale === 'ar' ? 'محاكي ATS' : 'ATS Simulator',
+            description: locale === 'ar'
+                ? 'شاهد سيرتك كما يراها مسؤولو التوظيف وأنظمة ATS مع تحليل فوري ونصائح للتحسين'
+                : 'See your resume exactly as recruiters and ATS systems see it with instant analysis and improvement tips',
+            color: 'from-indigo-500 to-violet-500',
+            badge: 'RECRUITER VIEW',
+        },
+        {
+            icon: EyeOff,
+            title: locale === 'ar' ? 'وضع التخفي' : 'Stealth Mode',
+            description: locale === 'ar'
+                ? 'ابحث عن وظيفة جديدة بسرية تامة — أخفِ ملفك عن صاحب عملك الحالي والشركات المحددة'
+                : 'Job hunt in complete privacy — hide your profile from your current employer and specific companies',
+            color: 'from-slate-600 to-zinc-700',
+            badge: 'PRIVACY',
         },
     ];
 
