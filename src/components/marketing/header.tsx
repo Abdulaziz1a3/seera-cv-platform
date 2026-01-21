@@ -153,7 +153,7 @@ export function MarketingHeader() {
                                                 </div>
                                                 <div>
                                                     <p className="font-semibold">
-                                                        {locale === 'ar' ? 'أنا أبحث عن عمل' : "I'm a Job Seeker"}
+                                                        {locale === 'ar' ? 'اصنع سيرتك' : 'Build your Career'}
                                                     </p>
                                                     <p className="text-xs text-muted-foreground">
                                                         {locale === 'ar' ? 'أنشئ سيرتك الذاتية' : 'Create your resume'}
@@ -168,7 +168,7 @@ export function MarketingHeader() {
                                             </div>
                                             <div>
                                                 <p className="font-semibold text-purple-600">
-                                                    {locale === 'ar' ? 'أنا أوظف مواهب' : "I'm Hiring Talent"}
+                                                    {locale === 'ar' ? 'صائد مواهب' : 'Talent Hunter'}
                                                 </p>
                                                 <p className="text-xs text-muted-foreground">
                                                     {comingSoonLabel}

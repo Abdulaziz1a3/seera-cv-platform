@@ -193,13 +193,13 @@ export default function Home() {
                         <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
                             <Link href="/register">
                                 <Button size="lg" className="h-14 px-8 text-lg gap-2 bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-600/90">
-                                    {locale === 'ar' ? 'أنا أبحث عن عمل' : "I'm a Job Seeker"}
+                                    {locale === 'ar' ? 'اصنع سيرتك' : 'Build your Career'}
                                     <ArrowRight className="h-5 w-5" />
                                 </Button>
                             </Link>
                             <Button size="lg" variant="outline" className="h-14 px-8 text-lg gap-2 border-2" disabled>
                                 <Building2 className="h-5 w-5" />
-                                {locale === 'ar' ? 'أنا أوظف مواهب' : "I'm Hiring Talent"}
+                                {locale === 'ar' ? 'صائد مواهب' : 'Talent Hunter'}
                                 <Badge variant="secondary" className="ms-2">
                                     {locale === 'ar' ? 'قريباً' : 'Coming soon'}
                                 </Badge>
