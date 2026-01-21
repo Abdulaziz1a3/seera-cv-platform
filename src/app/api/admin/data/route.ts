@@ -140,10 +140,6 @@ export async function GET(request: NextRequest) {
                             title: true,
                             targetRole: true,
                             language: true,
-                            sections: {
-                                where: { type: { in: ['SKILLS', 'LANGUAGES', 'EDUCATION', 'EXPERIENCE'] } },
-                                select: { type: true, content: true }
-                            }
                         },
                         take: 1,
                         orderBy: { updatedAt: 'desc' }
@@ -165,56 +161,8 @@ export async function GET(request: NextRequest) {
 
         // Process and extract data from users
         const formattedUsers = users.map(user => {
-            // Extract skills from resume sections if no talent profile
-            let extractedSkills: string[] = [];
-            let extractedLanguages: string[] = [];
-            let extractedEducation = '';
-            let extractedExperience: any[] = [];
-
-            if (user.resumes?.[0]?.sections) {
-                for (const section of user.resumes[0].sections) {
-                    if (section.type === 'SKILLS' && section.content) {
-                        const content = section.content as any;
-                        if (content.skills) {
-                            extractedSkills = content.skills.map((s: any) =>
-                                typeof s === 'string' ? s : s.name || s.skill || ''
-                            ).filter(Boolean);
-                        }
-                    }
-                    if (section.type === 'LANGUAGES' && section.content) {
-                        const content = section.content as any;
-                        if (content.languages) {
-                            extractedLanguages = content.languages.map((l: any) =>
-                                typeof l === 'string' ? l : l.name || l.language || ''
-                            ).filter(Boolean);
-                        }
-                    }
-                    if (section.type === 'EDUCATION' && section.content) {
-                        const content = section.content as any;
-                        if (content.items?.[0]) {
-                            extractedEducation = content.items[0].degree || content.items[0].field || '';
-                        }
-                    }
-                    if (section.type === 'EXPERIENCE' && section.content) {
-                        const content = section.content as any;
-                        if (content.items) {
-                            extractedExperience = content.items;
-                        }
-                    }
-                }
-            }
-
-            // Calculate years of experience from resume if not in talent profile
-            let yearsExperience = user.talentProfile?.yearsExperience;
-            if (!yearsExperience && extractedExperience.length > 0) {
-                const dates = extractedExperience
-                    .filter((exp: any) => exp.startDate)
-                    .map((exp: any) => new Date(exp.startDate).getFullYear());
-                if (dates.length > 0) {
-                    const earliestYear = Math.min(...dates);
-                    yearsExperience = new Date().getFullYear() - earliestYear;
-                }
-            }
+            // Get years of experience from talent profile
+            const yearsExperience = user.talentProfile?.yearsExperience || null;
 
             // Get location from various sources
             const userLocation = user.talentProfile?.location
@@ -223,16 +171,13 @@ export async function GET(request: NextRequest) {
                 || '';
 
             // Get title from various sources
-            const currentTitle = user.talentProfile?.currentTitle
+            const userTitle = user.talentProfile?.currentTitle
                 || user.seeraProfiles?.[0]?.title
                 || user.resumes?.[0]?.targetRole
                 || '';
 
-            // Combine skills from all sources
-            const allSkills = [
-                ...(user.talentProfile?.skills || []),
-                ...extractedSkills
-            ].filter((v, i, a) => a.indexOf(v) === i); // Remove duplicates
+            // Get skills from talent profile
+            const allSkills = user.talentProfile?.skills || [];
 
             return {
                 id: user.id,
@@ -241,12 +186,12 @@ export async function GET(request: NextRequest) {
                 image: user.image,
                 phone: user.profile?.phone || '',
                 location: userLocation,
-                currentTitle,
+                currentTitle: userTitle,
                 currentCompany: user.talentProfile?.currentCompany || '',
                 yearsExperience,
                 skills: allSkills.slice(0, 10), // Top 10 skills
-                education: user.talentProfile?.education || extractedEducation,
-                languages: extractedLanguages,
+                education: user.talentProfile?.education || '',
+                languages: [] as string[],
                 industries: user.talentProfile?.preferredIndustries || [],
                 desiredRoles: user.talentProfile?.desiredRoles || [],
                 availabilityStatus: user.talentProfile?.availabilityStatus || 'unknown',
@@ -338,7 +283,7 @@ export async function GET(request: NextRequest) {
     } catch (error) {
         console.error('Admin data error:', error);
         return NextResponse.json(
-            { error: 'Failed to fetch user data' },
+            { error: 'Failed to fetch user data', details: error instanceof Error ? error.message : 'Unknown error' },
             { status: 500 }
         );
     }
@@ -494,7 +439,7 @@ export async function POST(request: NextRequest) {
     } catch (error) {
         console.error('Admin data stats error:', error);
         return NextResponse.json(
-            { error: 'Failed to fetch stats' },
+            { error: 'Failed to fetch stats', details: error instanceof Error ? error.message : 'Unknown error' },
             { status: 500 }
         );
     }
