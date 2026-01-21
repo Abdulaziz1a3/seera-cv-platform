@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db';
+import { logger } from '@/lib/logger';
 
 export async function GET() {
     const session = await auth();
@@ -8,7 +9,9 @@ export async function GET() {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const subscription = await prisma.subscription.findUnique({
+    const now = new Date();
+
+    let subscription = await prisma.subscription.findUnique({
         where: { userId: session.user.id },
         select: {
             plan: true,
@@ -18,9 +21,45 @@ export async function GET() {
         },
     });
 
+    // Auto-downgrade expired subscriptions to FREE
+    if (
+        subscription
+        && (subscription.plan === 'PRO' || subscription.plan === 'ENTERPRISE')
+        && subscription.status === 'ACTIVE'
+        && subscription.currentPeriodEnd
+        && subscription.currentPeriodEnd < now
+    ) {
+        try {
+            subscription = await prisma.subscription.update({
+                where: { userId: session.user.id },
+                data: {
+                    plan: 'FREE',
+                    status: 'CANCELED',
+                    cancelAtPeriodEnd: false,
+                },
+                select: {
+                    plan: true,
+                    status: true,
+                    currentPeriodEnd: true,
+                    cancelAtPeriodEnd: true,
+                },
+            });
+
+            logger.info('Auto-downgraded expired subscription', {
+                userId: session.user.id,
+                expiredAt: subscription.currentPeriodEnd,
+            });
+        } catch (error) {
+            logger.error('Failed to auto-downgrade subscription', {
+                error: error as Error,
+                userId: session.user.id,
+            });
+        }
+    }
+
     const status = subscription?.status || 'UNPAID';
     const isActive = (status === 'ACTIVE' || status === 'TRIALING')
-        && (!subscription?.currentPeriodEnd || subscription.currentPeriodEnd >= new Date());
+        && (!subscription?.currentPeriodEnd || subscription.currentPeriodEnd >= now);
 
     return NextResponse.json({
         plan: subscription?.plan || 'FREE',
