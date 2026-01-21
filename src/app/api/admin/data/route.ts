@@ -34,10 +34,9 @@ export async function GET(request: NextRequest) {
         const skip = exportFormat ? 0 : (page - 1) * limit;
         const take = exportFormat ? exportLimit : limit;
 
-        // Build where clause for users who have talent profiles or resume data
+        // Build where clause for users
         const userWhere: any = {
             deletedAt: null,
-            emailVerified: { not: null },
         };
 
         if (search) {
@@ -430,7 +429,7 @@ export async function POST(request: NextRequest) {
                 locationDistribution,
                 experienceDistribution
             ] = await Promise.all([
-                prisma.user.count({ where: { deletedAt: null, emailVerified: { not: null } } }),
+                prisma.user.count({ where: { deletedAt: null } }),
                 prisma.talentProfile.count(),
                 prisma.user.count({ where: { deletedAt: null, resumes: { some: {} } } }),
                 prisma.subscription.groupBy({
