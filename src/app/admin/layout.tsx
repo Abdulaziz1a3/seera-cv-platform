@@ -27,7 +27,6 @@ import {
     Flag,
     LogOut,
     Gift,
-    Database,
 } from 'lucide-react';
 
 const adminNavItems = [
@@ -40,11 +39,6 @@ const adminNavItems = [
         href: '/admin/users',
         icon: Users,
         label: { en: 'Users', ar: 'المستخدمين' },
-    },
-    {
-        href: '/admin/data',
-        icon: Database,
-        label: { en: 'Data', ar: 'البيانات' },
     },
     {
         href: '/admin/templates',
