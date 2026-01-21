@@ -178,9 +178,11 @@ export default function AdminDataPage() {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ action: 'get_stats' })
                 });
+                const data = await res.json();
                 if (res.ok) {
-                    const data = await res.json();
                     setStats(data);
+                } else {
+                    console.error('Stats API error:', data.error);
                 }
             } catch (error) {
                 console.error('Failed to fetch stats:', error);
@@ -211,10 +213,14 @@ export default function AdminDataPage() {
             selectedIndustries.forEach(ind => params.append('industries', ind));
 
             const res = await fetch(`/api/admin/data?${params.toString()}`);
+            const data = await res.json();
+
             if (res.ok) {
-                const data = await res.json();
-                setUsers(data.users);
+                setUsers(data.users || []);
                 setPagination(prev => ({ ...prev, ...data.pagination }));
+            } else {
+                console.error('API error:', data.error || 'Unknown error');
+                toast.error(data.error || (isArabic ? 'فشل في تحميل البيانات' : 'Failed to load data'));
             }
         } catch (error) {
             console.error('Failed to fetch users:', error);
