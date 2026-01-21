@@ -214,6 +214,12 @@ export default function BillingGiftsPage() {
             router.push('/dashboard/settings');
             return;
         }
+        if (!giftForm.recipientEmail || !giftForm.recipientEmail.trim()) {
+            toast.error(locale === 'ar'
+                ? 'يرجى إدخال البريد الإلكتروني للمستلم.'
+                : 'Please enter the recipient email address.');
+            return;
+        }
         setGiftCheckoutLoading(true);
         try {
             const response = await fetch('/api/gifts/checkout', {
@@ -670,13 +676,17 @@ export default function BillingGiftsPage() {
 
                     <div className="grid gap-4 sm:grid-cols-2">
                         <div className="space-y-2">
-                            <Label htmlFor="gift-recipient">{t.settings.billing.gifts.recipientLabel}</Label>
+                            <Label htmlFor="gift-recipient">
+                                {t.settings.billing.gifts.recipientLabel}
+                                <span className="text-destructive ms-1">*</span>
+                            </Label>
                             <Input
                                 id="gift-recipient"
                                 type="email"
                                 placeholder="example@email.com"
                                 value={giftForm.recipientEmail}
                                 onChange={(e) => setGiftForm((prev) => ({ ...prev, recipientEmail: e.target.value }))}
+                                required
                             />
                         </div>
                         <div className="space-y-2">

@@ -688,7 +688,7 @@ export const en = {
                 description: 'Send Pro or Enterprise access to someone else.',
                 planLabel: 'Plan',
                 intervalLabel: 'Duration',
-                recipientLabel: 'Recipient email (optional)',
+                recipientLabel: 'Recipient email',
                 messageLabel: 'Gift message (optional)',
                 messageHint: 'Add a short note for the recipient',
                 submit: 'Buy gift',

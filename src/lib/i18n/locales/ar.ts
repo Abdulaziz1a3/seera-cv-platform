@@ -688,7 +688,7 @@ export const ar = {
                 description: 'أرسل وصول برو أو المؤسسات لشخص آخر.',
                 planLabel: 'الخطة',
                 intervalLabel: 'المدة',
-                recipientLabel: 'بريد المستلم (اختياري)',
+                recipientLabel: 'بريد المستلم',
                 messageLabel: 'رسالة الهدية (اختياري)',
                 messageHint: 'أضف ملاحظة قصيرة للمستلم',
                 submit: 'شراء الهدية',
