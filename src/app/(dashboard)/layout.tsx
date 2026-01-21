@@ -152,7 +152,7 @@ export default function DashboardLayout({
             {/* Logo */}
             <div className="flex items-center gap-2 p-4 h-16 border-b">
                 <Image
-                    src="/images/Seera AI logo.PNG"
+                    src="/images/seera-logo.png"
                     alt="Seera AI"
                     width={36}
                     height={36}
