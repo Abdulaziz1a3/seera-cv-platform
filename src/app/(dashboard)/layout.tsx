@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
 import { useTheme } from 'next-themes';
@@ -151,13 +150,9 @@ export default function DashboardLayout({
         <>
             {/* Logo */}
             <div className="flex items-center gap-2 p-4 h-16 border-b">
-                <Image
-                    src="/images/seera-logo.png"
-                    alt="Seera AI"
-                    width={36}
-                    height={36}
-                    className="flex-shrink-0"
-                />
+                <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center flex-shrink-0">
+                    <FileText className="h-5 w-5 text-primary-foreground" />
+                </div>
                 {!collapsed && (
                     <span className="text-lg font-bold">Seera AI</span>
                 )}
