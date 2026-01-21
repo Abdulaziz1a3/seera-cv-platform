@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import {
     Dialog,
@@ -123,11 +122,15 @@ export function WelcomeModal() {
                             </Button>
                         </>
                     ) : (
-                        <Button asChild className="w-full" onClick={handleComplete}>
-                            <Link href="/dashboard/resumes/new">
-                                <CheckCircle2 className="h-4 w-4 me-2" />
-                                {locale === 'ar' ? 'ابدأ الآن' : 'Get Started'}
-                            </Link>
+                        <Button
+                            className="w-full"
+                            onClick={() => {
+                                handleComplete();
+                                window.location.href = '/dashboard/resumes/new';
+                            }}
+                        >
+                            <CheckCircle2 className="h-4 w-4 me-2" />
+                            {locale === 'ar' ? 'ابدأ الآن' : 'Get Started'}
                         </Button>
                     )}
                 </div>
