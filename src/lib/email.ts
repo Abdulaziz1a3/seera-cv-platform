@@ -760,6 +760,149 @@ export async function sendExportReadyEmail(
     }
 }
 
+// Gift claim confirmation email - sent when someone successfully claims a gift
+export async function sendGiftClaimConfirmationEmail(
+    email: string,
+    params: {
+        planLabel: string;
+        intervalLabel: string;
+        periodEnd: Date;
+        name?: string;
+    }
+): Promise<EmailResult> {
+    if (!resend) {
+        logger.warn('Email service not configured - skipping gift claim confirmation email', { email });
+        return { success: false, error: 'Email service not configured' };
+    }
+
+    const greeting = params.name ? `Hi ${params.name.split(' ')[0]},` : 'Hi there,';
+    const billingUrl = `${APP_URL}/dashboard/billing`;
+    const periodEndLabel = params.periodEnd.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+    });
+
+    const content = `
+        <h1 style="margin: 0 0 16px 0; font-size: 24px; font-weight: 700; color: #18181b;">🎉 Gift Activated!</h1>
+        <p style="margin: 0 0 24px 0; font-size: 16px; color: #3f3f46; line-height: 1.6;">
+            ${greeting}<br><br>
+            Congratulations! You've successfully activated your gift subscription.
+        </p>
+        <div style="background-color: #ecfdf5; border: 1px solid #10b981; border-radius: 8px; padding: 24px; margin: 24px 0;">
+            <table role="presentation" style="width: 100%; border-collapse: collapse; font-size: 14px; color: #3f3f46;">
+                <tr>
+                    <td style="padding: 6px 0; font-weight: 600;">Plan</td>
+                    <td style="padding: 6px 0; text-align: right;">${escapeHtml(params.planLabel)}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 6px 0; font-weight: 600;">Duration</td>
+                    <td style="padding: 6px 0; text-align: right;">${escapeHtml(params.intervalLabel)}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 6px 0; font-weight: 600;">Valid until</td>
+                    <td style="padding: 6px 0; text-align: right;">${escapeHtml(periodEndLabel)}</td>
+                </tr>
+            </table>
+        </div>
+        <p style="margin: 0 0 24px 0; font-size: 16px; color: #3f3f46; line-height: 1.6;">
+            You now have full access to all premium features. Start creating professional, ATS-optimized resumes today!
+        </p>
+        <div style="text-align: center; margin: 32px 0;">
+            <a href="${billingUrl}" style="${getButtonStyle()}">View Your Subscription</a>
+        </div>
+    `;
+
+    try {
+        const { data, error } = await resend.emails.send({
+            from: FROM_EMAIL,
+            to: email,
+            subject: `🎉 Gift Activated - Welcome to ${APP_NAME} ${params.planLabel}!`,
+            html: getBaseTemplate(content),
+        });
+
+        if (error) {
+            logger.error('Failed to send gift claim confirmation email', { email, error });
+            return { success: false, error: error.message };
+        }
+
+        logger.info('Gift claim confirmation email sent', { email, messageId: data?.id });
+        return { success: true, messageId: data?.id };
+    } catch (error) {
+        logger.error('Email sending failed', { email, error: error as Error });
+        return { success: false, error: 'Failed to send email' };
+    }
+}
+
+// Payment failure notification email
+export async function sendPaymentFailureEmail(
+    email: string,
+    params: {
+        planLabel: string;
+        amountSar: number;
+        reason?: string;
+        name?: string;
+    }
+): Promise<EmailResult> {
+    if (!resend) {
+        logger.warn('Email service not configured - skipping payment failure email', { email });
+        return { success: false, error: 'Email service not configured' };
+    }
+
+    const greeting = params.name ? `Hi ${params.name.split(' ')[0]},` : 'Hi there,';
+    const billingUrl = `${APP_URL}/dashboard/billing`;
+    const reasonText = params.reason || 'The payment could not be processed.';
+
+    const content = `
+        <h1 style="margin: 0 0 16px 0; font-size: 24px; font-weight: 700; color: #18181b;">Payment Failed</h1>
+        <p style="margin: 0 0 24px 0; font-size: 16px; color: #3f3f46; line-height: 1.6;">
+            ${greeting}<br><br>
+            We were unable to process your payment for <strong>${escapeHtml(params.planLabel)}</strong>.
+        </p>
+        <div style="background-color: #fef2f2; border: 1px solid #ef4444; border-radius: 8px; padding: 24px; margin: 24px 0;">
+            <table role="presentation" style="width: 100%; border-collapse: collapse; font-size: 14px; color: #3f3f46;">
+                <tr>
+                    <td style="padding: 6px 0; font-weight: 600;">Amount</td>
+                    <td style="padding: 6px 0; text-align: right;">${formatSar(params.amountSar)}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 6px 0; font-weight: 600;">Reason</td>
+                    <td style="padding: 6px 0; text-align: right;">${escapeHtml(reasonText)}</td>
+                </tr>
+            </table>
+        </div>
+        <p style="margin: 0 0 24px 0; font-size: 16px; color: #3f3f46; line-height: 1.6;">
+            Please try again or use a different payment method. If you continue to experience issues, please contact our support team.
+        </p>
+        <div style="text-align: center; margin: 32px 0;">
+            <a href="${billingUrl}" style="${getButtonStyle()}">Try Again</a>
+        </div>
+        <p style="margin: 16px 0 0 0; font-size: 12px; color: #71717a;">
+            Need help? Reply to this email and we'll assist you.
+        </p>
+    `;
+
+    try {
+        const { data, error } = await resend.emails.send({
+            from: FROM_EMAIL,
+            to: email,
+            subject: `Payment Failed - ${APP_NAME}`,
+            html: getBaseTemplate(content),
+        });
+
+        if (error) {
+            logger.error('Failed to send payment failure email', { email, error });
+            return { success: false, error: error.message };
+        }
+
+        logger.info('Payment failure email sent', { email, messageId: data?.id });
+        return { success: true, messageId: data?.id };
+    } catch (error) {
+        logger.error('Email sending failed', { email, error: error as Error });
+        return { success: false, error: 'Failed to send email' };
+    }
+}
+
 export default {
     isEmailConfigured,
     sendAdminEmail,
@@ -771,6 +914,8 @@ export default {
     sendPaymentReceiptEmail,
     sendBillingPortalEmail,
     sendGiftSubscriptionEmail,
+    sendGiftClaimConfirmationEmail,
+    sendPaymentFailureEmail,
     sendResumeReminderEmail,
     sendWeeklyTipsEmail,
     sendFeedbackRequestEmail,

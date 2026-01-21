@@ -4,7 +4,7 @@ import { prisma } from '@/lib/db';
 import { logger } from '@/lib/logger';
 import { getWebhookVerificationConfig } from '@/lib/tuwaiqpay';
 import { recordAICreditTopup } from '@/lib/ai-credits';
-import { sendGiftSubscriptionEmail, sendPaymentReceiptEmail } from '@/lib/email';
+import { sendGiftSubscriptionEmail, sendPaymentReceiptEmail, sendPaymentFailureEmail } from '@/lib/email';
 
 export const dynamic = 'force-dynamic';
 
@@ -84,6 +84,46 @@ export async function POST(request: Request) {
                     },
                 },
             });
+
+            // Send payment failure notification email
+            if (payment.userId) {
+                const user = await prisma.user.findUnique({
+                    where: { id: payment.userId },
+                    select: { email: true, name: true },
+                });
+
+                if (user?.email) {
+                    const planLabel = (() => {
+                        if (payment.purpose === 'SUBSCRIPTION') {
+                            return payment.plan === 'ENTERPRISE' ? 'Enterprise Subscription' : 'Pro Subscription';
+                        }
+                        if (payment.purpose === 'AI_CREDITS') {
+                            return payment.credits ? `${payment.credits} AI Credits` : 'AI Credits';
+                        }
+                        if (payment.purpose === 'GIFT') {
+                            return `Gift ${payment.plan === 'ENTERPRISE' ? 'Enterprise' : 'Pro'}`;
+                        }
+                        return 'Payment';
+                    })();
+
+                    const reasonMap: Record<string, string> = {
+                        'FAILED': 'Payment was declined',
+                        'DECLINED': 'Payment was declined by your bank',
+                        'CANCELED': 'Payment was canceled',
+                        'CANCELLED': 'Payment was canceled',
+                        'EXPIRED': 'Payment link expired',
+                    };
+
+                    sendPaymentFailureEmail(user.email, {
+                        planLabel,
+                        amountSar: payment.amountSar,
+                        reason: reasonMap[status.toUpperCase()] || 'Payment could not be processed',
+                        name: user.name || undefined,
+                    }).catch((error) => {
+                        logger.error('Failed to send payment failure email', { error, userId: payment.userId });
+                    });
+                }
+            }
         }
         return NextResponse.json({ received: true });
     }

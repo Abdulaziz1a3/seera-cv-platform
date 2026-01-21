@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db';
+import { sendGiftClaimConfirmationEmail } from '@/lib/email';
+import { logger } from '@/lib/logger';
 
 const claimSchema = z.object({
     token: z.string().min(1),
@@ -111,6 +113,21 @@ export async function POST(request: Request) {
                 },
             });
             console.log('Gift marked as REDEEMED');
+        });
+
+        // Send gift claim confirmation email
+        const user = await prisma.user.findUnique({
+            where: { id: session.user.id },
+            select: { name: true },
+        });
+
+        sendGiftClaimConfirmationEmail(session.user.email, {
+            planLabel: gift.plan === 'ENTERPRISE' ? 'Enterprise' : 'Pro',
+            intervalLabel: gift.interval === 'YEARLY' ? '1 Year' : '1 Month',
+            periodEnd,
+            name: user?.name || undefined,
+        }).catch((error) => {
+            logger.error('Failed to send gift claim confirmation email', { error, userId: session.user.id });
         });
 
         console.log('Gift claim completed successfully');

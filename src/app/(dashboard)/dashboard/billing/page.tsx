@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { CreditCard, Copy, Gift, Loader2, Sparkles, CheckCircle2, PartyPopper } from 'lucide-react';
+import { CreditCard, Copy, Gift, Loader2, Sparkles, CheckCircle2, PartyPopper, Receipt, Download, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -42,6 +42,19 @@ type PendingGift = {
     fromEmail?: string | null;
 };
 
+type BillingHistoryItem = {
+    id: string;
+    purpose: 'SUBSCRIPTION' | 'AI_CREDITS' | 'GIFT';
+    description: string;
+    amountSar: number;
+    paidAt: string | null;
+    receiptId: string;
+    plan?: string | null;
+    interval?: string | null;
+    credits?: number | null;
+    recipientEmail?: string | null;
+};
+
 export default function BillingGiftsPage() {
     const { t, locale } = useLocale();
     const router = useRouter();
@@ -75,6 +88,8 @@ export default function BillingGiftsPage() {
     const [pendingGiftsLoading, setPendingGiftsLoading] = useState(false);
     const [claimingGiftId, setClaimingGiftId] = useState<string | null>(null);
     const [claimSuccess, setClaimSuccess] = useState(false);
+    const [billingHistory, setBillingHistory] = useState<BillingHistoryItem[]>([]);
+    const [billingHistoryLoading, setBillingHistoryLoading] = useState(false);
 
     useEffect(() => {
         let mounted = true;
@@ -279,6 +294,24 @@ export default function BillingGiftsPage() {
 
     useEffect(() => {
         fetchPendingGifts();
+    }, []);
+
+    const fetchBillingHistory = async () => {
+        setBillingHistoryLoading(true);
+        try {
+            const res = await fetch('/api/billing/history');
+            if (!res.ok) throw new Error('Failed to fetch billing history');
+            const data = await res.json();
+            setBillingHistory(Array.isArray(data.history) ? data.history : []);
+        } catch {
+            setBillingHistory([]);
+        } finally {
+            setBillingHistoryLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchBillingHistory();
     }, []);
 
     const handleClaimGift = async (token: string, giftId: string) => {
@@ -798,14 +831,65 @@ export default function BillingGiftsPage() {
 
             <Card>
                 <CardHeader>
-                    <CardTitle>{t.settings.billing.billingHistory}</CardTitle>
+                    <CardTitle className="flex items-center gap-2">
+                        <Receipt className="h-5 w-5 text-primary" />
+                        {t.settings.billing.billingHistory}
+                    </CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <div className="text-center py-6">
-                        <p className="text-sm text-muted-foreground">
-                            {t.settings.billing.noBillingHistory}
-                        </p>
-                    </div>
+                    {billingHistoryLoading ? (
+                        <div className="flex items-center justify-center py-8 gap-2 text-muted-foreground">
+                            <Loader2 className="h-5 w-5 animate-spin" />
+                            {locale === 'ar' ? 'جاري التحميل...' : 'Loading history...'}
+                        </div>
+                    ) : billingHistory.length === 0 ? (
+                        <div className="text-center py-6">
+                            <p className="text-sm text-muted-foreground">
+                                {t.settings.billing.noBillingHistory}
+                            </p>
+                        </div>
+                    ) : (
+                        <div className="space-y-3">
+                            {billingHistory.map((item) => (
+                                <div
+                                    key={item.id}
+                                    className="flex flex-col gap-3 rounded-lg border p-4 sm:flex-row sm:items-center sm:justify-between"
+                                >
+                                    <div className="space-y-1">
+                                        <div className="flex flex-wrap items-center gap-2">
+                                            <span className="font-medium">{item.description}</span>
+                                            <Badge variant={
+                                                item.purpose === 'SUBSCRIPTION' ? 'default' :
+                                                item.purpose === 'GIFT' ? 'secondary' : 'outline'
+                                            }>
+                                                {item.purpose === 'SUBSCRIPTION'
+                                                    ? (locale === 'ar' ? 'اشتراك' : 'Subscription')
+                                                    : item.purpose === 'GIFT'
+                                                        ? (locale === 'ar' ? 'هدية' : 'Gift')
+                                                        : (locale === 'ar' ? 'رصيد AI' : 'AI Credits')}
+                                            </Badge>
+                                        </div>
+                                        <p className="text-sm text-muted-foreground">
+                                            {item.paidAt
+                                                ? new Date(item.paidAt).toLocaleDateString(
+                                                    locale === 'ar' ? 'ar-SA' : 'en-US',
+                                                    { year: 'numeric', month: 'long', day: 'numeric' }
+                                                )
+                                                : (locale === 'ar' ? 'غير محدد' : 'N/A')}
+                                        </p>
+                                        <p className="text-xs text-muted-foreground">
+                                            {locale === 'ar' ? 'رقم الإيصال:' : 'Receipt ID:'} {item.receiptId}
+                                        </p>
+                                    </div>
+                                    <div className="flex items-center gap-4">
+                                        <span className="font-semibold text-lg">
+                                            {item.amountSar.toFixed(2)} {locale === 'ar' ? 'ر.س' : 'SAR'}
+                                        </span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </CardContent>
             </Card>
         </div>
