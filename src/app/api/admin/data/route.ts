@@ -102,6 +102,8 @@ export async function GET(request: NextRequest) {
             userWhere.talentProfile = talentWhere;
         }
 
+        console.log('Data API - userWhere:', JSON.stringify(userWhere));
+
         // Get users with comprehensive data
         const [users, total] = await Promise.all([
             prisma.user.findMany({
@@ -158,6 +160,8 @@ export async function GET(request: NextRequest) {
             }),
             prisma.user.count({ where: userWhere })
         ]);
+
+        console.log('Data API - Found users:', users.length, 'Total:', total);
 
         // Process and extract data from users
         const formattedUsers = users.map(user => {
