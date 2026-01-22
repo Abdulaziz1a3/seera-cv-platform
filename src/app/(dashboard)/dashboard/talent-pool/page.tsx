@@ -51,6 +51,10 @@ import {
     GraduationCap,
     Clock,
     DollarSign,
+    RefreshCw,
+    Info,
+    Star,
+    Zap,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { GCC_LOCATIONS } from '@/lib/talent-marketplace';
@@ -502,100 +506,156 @@ export default function TalentPoolPage() {
 
                             {/* Profile Preview Tab */}
                             <TabsContent value="preview">
-                                <Card>
-                                    <CardHeader>
-                                        <CardTitle className="flex items-center gap-2">
-                                            <Eye className="h-5 w-5 text-purple-500" />
-                                            {locale === 'ar' ? 'كيف يرى المجندون ملفك' : 'How Recruiters See Your Profile'}
-                                        </CardTitle>
-                                        <CardDescription>
-                                            {locale === 'ar'
-                                                ? 'هذه معاينة لما يراه مسؤولو التوظيف عند البحث في مجموعة المواهب'
-                                                : 'This is a preview of what recruiters see when searching the Talent Pool'}
-                                        </CardDescription>
-                                    </CardHeader>
-                                    <CardContent>
-                                        {/* Recruiter View Card */}
-                                        <div className="border-2 border-dashed border-purple-200 dark:border-purple-800 rounded-xl p-6 bg-gradient-to-br from-purple-50/50 to-blue-50/50 dark:from-purple-950/20 dark:to-blue-950/20">
-                                            <div className="flex items-start gap-4">
-                                                {/* Avatar */}
-                                                <div className="h-16 w-16 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center text-white text-2xl font-bold shrink-0">
-                                                    {(profile?.displayName || 'T')[0].toUpperCase()}
+                                <div className="space-y-4">
+                                    {/* Info Banner */}
+                                    <div className="flex items-center gap-3 p-4 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800">
+                                        <Info className="h-5 w-5 text-blue-500 shrink-0" />
+                                        <div className="flex-1">
+                                            <p className="text-sm text-blue-700 dark:text-blue-300">
+                                                {locale === 'ar'
+                                                    ? 'هذه معاينة لبطاقة ملفك كما تظهر للمجندين في نتائج البحث. اضغط على "تحديث من السيرة" لمزامنة أحدث بيانات سيرتك الذاتية.'
+                                                    : 'This preview shows your profile card as it appears to recruiters in search results. Click "Sync from Resume" to update with your latest resume data.'}
+                                            </p>
+                                        </div>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={handleSave}
+                                            disabled={isSaving}
+                                            className="shrink-0"
+                                        >
+                                            {isSaving ? (
+                                                <Loader2 className="h-4 w-4 me-2 animate-spin" />
+                                            ) : (
+                                                <RefreshCw className="h-4 w-4 me-2" />
+                                            )}
+                                            {locale === 'ar' ? 'تحديث من السيرة' : 'Sync from Resume'}
+                                        </Button>
+                                    </div>
+
+                                    {/* Main Preview Card - Simulating Recruiter View */}
+                                    <Card className="overflow-hidden border-2">
+                                        <div className="bg-gradient-to-r from-purple-600 to-blue-600 px-6 py-3">
+                                            <p className="text-white/80 text-xs font-medium flex items-center gap-1">
+                                                <Eye className="h-3 w-3" />
+                                                {locale === 'ar' ? 'معاينة بطاقة المرشح - كما تظهر في نتائج البحث' : 'Candidate Card Preview - As shown in search results'}
+                                            </p>
+                                        </div>
+
+                                        <CardContent className="p-6">
+                                            {/* Candidate Card */}
+                                            <div className="bg-white dark:bg-gray-900 rounded-xl border shadow-sm p-5">
+                                                {/* Header Row */}
+                                                <div className="flex items-start gap-4">
+                                                    {/* Avatar */}
+                                                    <div className="h-20 w-20 rounded-2xl bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center text-white text-3xl font-bold shrink-0 shadow-lg">
+                                                        {(profile?.displayName || 'T')[0].toUpperCase()}
+                                                    </div>
+
+                                                    {/* Main Info */}
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="flex items-start justify-between gap-2">
+                                                            <div>
+                                                                <h3 className="text-xl font-bold text-gray-900 dark:text-white">
+                                                                    {profile?.displayName || (locale === 'ar' ? 'اسمك هنا' : 'Your Name Here')}
+                                                                </h3>
+                                                                <p className="text-gray-600 dark:text-gray-300 font-medium mt-0.5">
+                                                                    {profile?.currentTitle || (locale === 'ar' ? 'منصبك الحالي' : 'Your Current Title')}
+                                                                    {(profile?.currentCompany || !profile?.currentTitle) && (
+                                                                        <span className="text-gray-400">
+                                                                            {' '}
+                                                                            {locale === 'ar' ? 'في' : 'at'}{' '}
+                                                                            {hideCurrentEmployer
+                                                                                ? (locale === 'ar' ? 'شركة سرية' : 'Confidential')
+                                                                                : (profile?.currentCompany || (locale === 'ar' ? 'شركتك' : 'Your Company'))}
+                                                                        </span>
+                                                                    )}
+                                                                </p>
+                                                            </div>
+                                                            {/* Availability Badge */}
+                                                            <Badge
+                                                                className={`shrink-0 px-3 py-1 ${
+                                                                    availabilityStatus === 'actively_looking'
+                                                                        ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                                                                        : availabilityStatus === 'open_to_offers'
+                                                                            ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
+                                                                            : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
+                                                                }`}
+                                                            >
+                                                                {availabilityStatus === 'actively_looking' && <Zap className="h-3 w-3 me-1" />}
+                                                                {availabilityStatus === 'actively_looking'
+                                                                    ? (locale === 'ar' ? 'يبحث بنشاط' : 'Actively Looking')
+                                                                    : availabilityStatus === 'open_to_offers'
+                                                                        ? (locale === 'ar' ? 'منفتح للعروض' : 'Open to Offers')
+                                                                        : (locale === 'ar' ? 'غير متاح' : 'Not Looking')}
+                                                            </Badge>
+                                                        </div>
+
+                                                        {/* Location & Experience Row */}
+                                                        <div className="flex flex-wrap items-center gap-3 mt-2 text-sm text-gray-500 dark:text-gray-400">
+                                                            <span className="flex items-center gap-1">
+                                                                <MapPin className="h-4 w-4" />
+                                                                {profile?.location || (locale === 'ar' ? 'موقعك' : 'Your Location')}
+                                                            </span>
+                                                            <span className="flex items-center gap-1">
+                                                                <Briefcase className="h-4 w-4" />
+                                                                {profile?.yearsExperience !== null && profile?.yearsExperience !== undefined
+                                                                    ? `${profile.yearsExperience} ${locale === 'ar' ? 'سنوات خبرة' : 'years exp.'}`
+                                                                    : (locale === 'ar' ? 'سنوات الخبرة' : 'Years of exp.')}
+                                                            </span>
+                                                            {profile?.education && (
+                                                                <span className="flex items-center gap-1">
+                                                                    <GraduationCap className="h-4 w-4" />
+                                                                    {profile.education}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    </div>
                                                 </div>
 
-                                                {/* Main Info */}
-                                                <div className="flex-1 min-w-0">
-                                                    <div className="flex items-center gap-2 flex-wrap">
-                                                        <h3 className="text-xl font-bold truncate">
-                                                            {profile?.displayName || (locale === 'ar' ? 'موهبة' : 'Talent')}
-                                                        </h3>
-                                                        {/* Availability Badge */}
-                                                        <Badge
-                                                            variant={
-                                                                availabilityStatus === 'actively_looking'
-                                                                    ? 'default'
-                                                                    : availabilityStatus === 'open_to_offers'
-                                                                        ? 'secondary'
-                                                                        : 'outline'
-                                                            }
-                                                            className={
-                                                                availabilityStatus === 'actively_looking'
-                                                                    ? 'bg-green-500 text-white'
-                                                                    : availabilityStatus === 'open_to_offers'
-                                                                        ? 'bg-yellow-500 text-white'
-                                                                        : ''
-                                                            }
-                                                        >
-                                                            {availabilityStatus === 'actively_looking'
-                                                                ? (locale === 'ar' ? 'يبحث بنشاط' : 'Actively Looking')
-                                                                : availabilityStatus === 'open_to_offers'
-                                                                    ? (locale === 'ar' ? 'منفتح للعروض' : 'Open to Offers')
-                                                                    : (locale === 'ar' ? 'غير متاح' : 'Not Looking')}
-                                                        </Badge>
-                                                    </div>
-
-                                                    {/* Current Position */}
-                                                    {(profile?.currentTitle || profile?.currentCompany) && (
-                                                        <p className="text-muted-foreground mt-1 flex items-center gap-1">
-                                                            <Briefcase className="h-4 w-4" />
-                                                            {profile?.currentTitle}
-                                                            {profile?.currentTitle && profile?.currentCompany && ' at '}
-                                                            {hideCurrentEmployer
-                                                                ? (locale === 'ar' ? 'شركة سرية' : 'Confidential Company')
-                                                                : profile?.currentCompany}
-                                                        </p>
-                                                    )}
-
-                                                    {/* Location */}
-                                                    {profile?.location && (
-                                                        <p className="text-muted-foreground text-sm flex items-center gap-1 mt-1">
-                                                            <MapPin className="h-3 w-3" />
-                                                            {profile.location}
-                                                        </p>
-                                                    )}
+                                                {/* Summary */}
+                                                <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                                                    <p className="text-sm text-gray-600 dark:text-gray-300 line-clamp-2">
+                                                        {profile?.summary || (locale === 'ar'
+                                                            ? 'ملخصك المهني سيظهر هنا. أضف ملخصاً جذاباً في سيرتك الذاتية ليراه المجندون.'
+                                                            : 'Your professional summary will appear here. Add an engaging summary to your resume for recruiters to see.')}
+                                                    </p>
                                                 </div>
-                                            </div>
 
-                                            {/* Quick Stats */}
-                                            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
-                                                {profile?.yearsExperience !== null && profile?.yearsExperience !== undefined && (
-                                                    <div className="flex items-center gap-2 bg-white/50 dark:bg-gray-800/50 rounded-lg p-2">
-                                                        <Clock className="h-4 w-4 text-blue-500" />
-                                                        <span className="text-sm">
-                                                            {profile.yearsExperience} {locale === 'ar' ? 'سنوات خبرة' : 'yrs exp'}
-                                                        </span>
+                                                {/* Skills Section */}
+                                                <div className="mt-4">
+                                                    <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+                                                        {locale === 'ar' ? 'المهارات الرئيسية' : 'Top Skills'}
+                                                    </p>
+                                                    <div className="flex flex-wrap gap-2">
+                                                        {profile?.skills && profile.skills.length > 0 ? (
+                                                            <>
+                                                                {profile.skills.slice(0, 6).map((skill, idx) => (
+                                                                    <Badge key={idx} variant="secondary" className="bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">
+                                                                        {skill}
+                                                                    </Badge>
+                                                                ))}
+                                                                {profile.skills.length > 6 && (
+                                                                    <Badge variant="outline" className="text-gray-500">
+                                                                        +{profile.skills.length - 6} {locale === 'ar' ? 'أخرى' : 'more'}
+                                                                    </Badge>
+                                                                )}
+                                                            </>
+                                                        ) : (
+                                                            <span className="text-sm text-gray-400 italic">
+                                                                {locale === 'ar' ? 'أضف مهارات في سيرتك الذاتية' : 'Add skills to your resume'}
+                                                            </span>
+                                                        )}
                                                     </div>
-                                                )}
-                                                {profile?.education && (
-                                                    <div className="flex items-center gap-2 bg-white/50 dark:bg-gray-800/50 rounded-lg p-2">
-                                                        <GraduationCap className="h-4 w-4 text-green-500" />
-                                                        <span className="text-sm truncate">{profile.education}</span>
-                                                    </div>
-                                                )}
-                                                {noticePeriod && (
-                                                    <div className="flex items-center gap-2 bg-white/50 dark:bg-gray-800/50 rounded-lg p-2">
+                                                </div>
+
+                                                {/* Quick Info Row */}
+                                                <div className="flex flex-wrap gap-4 mt-4 pt-4 border-t border-gray-100 dark:border-gray-800">
+                                                    {/* Notice Period */}
+                                                    <div className="flex items-center gap-2 text-sm">
                                                         <Clock className="h-4 w-4 text-amber-500" />
-                                                        <span className="text-sm">
+                                                        <span className="text-gray-500 dark:text-gray-400">{locale === 'ar' ? 'الإشعار:' : 'Notice:'}</span>
+                                                        <span className="font-medium text-gray-700 dark:text-gray-300">
                                                             {noticePeriod === 'immediate'
                                                                 ? (locale === 'ar' ? 'فوري' : 'Immediate')
                                                                 : noticePeriod === '1_week'
@@ -609,137 +669,133 @@ export default function TalentPoolPage() {
                                                                                 : (locale === 'ar' ? '3 أشهر' : '3 Months')}
                                                         </span>
                                                     </div>
-                                                )}
-                                                {!hideSalaryHistory && (desiredSalaryMin || desiredSalaryMax) && (
-                                                    <div className="flex items-center gap-2 bg-white/50 dark:bg-gray-800/50 rounded-lg p-2">
-                                                        <DollarSign className="h-4 w-4 text-purple-500" />
-                                                        <span className="text-sm">
-                                                            {desiredSalaryMin && desiredSalaryMax
-                                                                ? `${Number(desiredSalaryMin).toLocaleString()} - ${Number(desiredSalaryMax).toLocaleString()}`
-                                                                : desiredSalaryMin
-                                                                    ? `${Number(desiredSalaryMin).toLocaleString()}+`
-                                                                    : `≤${Number(desiredSalaryMax).toLocaleString()}`}
-                                                            {' SAR'}
-                                                        </span>
+
+                                                    {/* Salary (if not hidden) */}
+                                                    {!hideSalaryHistory && (desiredSalaryMin || desiredSalaryMax) && (
+                                                        <div className="flex items-center gap-2 text-sm">
+                                                            <DollarSign className="h-4 w-4 text-green-500" />
+                                                            <span className="text-gray-500 dark:text-gray-400">{locale === 'ar' ? 'المتوقع:' : 'Expected:'}</span>
+                                                            <span className="font-medium text-gray-700 dark:text-gray-300">
+                                                                {desiredSalaryMin && desiredSalaryMax
+                                                                    ? `${Number(desiredSalaryMin).toLocaleString()} - ${Number(desiredSalaryMax).toLocaleString()} SAR`
+                                                                    : desiredSalaryMin
+                                                                        ? `${Number(desiredSalaryMin).toLocaleString()}+ SAR`
+                                                                        : `≤${Number(desiredSalaryMax).toLocaleString()} SAR`}
+                                                            </span>
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                {/* Looking For */}
+                                                {desiredRoles && desiredRoles.trim().length > 0 && (
+                                                    <div className="mt-4">
+                                                        <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+                                                            {locale === 'ar' ? 'يبحث عن' : 'Looking For'}
+                                                        </p>
+                                                        <div className="flex flex-wrap gap-2">
+                                                            {desiredRoles.split(',').filter(Boolean).map((role, idx) => (
+                                                                <Badge key={idx} variant="outline" className="border-blue-300 text-blue-700 dark:border-blue-700 dark:text-blue-300">
+                                                                    <Star className="h-3 w-3 me-1" />
+                                                                    {role.trim()}
+                                                                </Badge>
+                                                            ))}
+                                                        </div>
                                                     </div>
                                                 )}
+
+                                                {/* Preferred Locations */}
+                                                {preferredLocations.length > 0 && (
+                                                    <div className="mt-4">
+                                                        <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+                                                            {locale === 'ar' ? 'المواقع المفضلة' : 'Preferred Locations'}
+                                                        </p>
+                                                        <div className="flex flex-wrap gap-2">
+                                                            {preferredLocations.map((loc, idx) => (
+                                                                <Badge key={idx} variant="outline">
+                                                                    <MapPin className="h-3 w-3 me-1" />
+                                                                    {loc}
+                                                                </Badge>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {/* Recruiter Actions */}
+                                                <div className="flex gap-3 mt-5 pt-4 border-t border-gray-100 dark:border-gray-800">
+                                                    <Button variant="outline" className="flex-1" disabled>
+                                                        <MessageSquare className="h-4 w-4 me-2" />
+                                                        {locale === 'ar' ? 'إرسال رسالة' : 'Message'}
+                                                    </Button>
+                                                    <Button className="flex-1 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700" disabled>
+                                                        <Eye className="h-4 w-4 me-2" />
+                                                        {locale === 'ar' ? 'عرض الملف الكامل' : 'View Full Profile'}
+                                                    </Button>
+                                                </div>
                                             </div>
+                                        </CardContent>
+                                    </Card>
 
-                                            {/* Summary */}
-                                            {profile?.summary && (
-                                                <div className="mt-4 p-3 bg-white/50 dark:bg-gray-800/50 rounded-lg">
-                                                    <p className="text-sm text-muted-foreground line-clamp-3">
-                                                        {profile.summary}
-                                                    </p>
-                                                </div>
-                                            )}
-
-                                            {/* Skills */}
-                                            {profile?.skills && profile.skills.length > 0 && (
-                                                <div className="mt-4">
-                                                    <p className="text-xs text-muted-foreground mb-2 font-medium">
-                                                        {locale === 'ar' ? 'المهارات' : 'Skills'}
-                                                    </p>
-                                                    <div className="flex flex-wrap gap-1.5">
-                                                        {profile.skills.slice(0, 8).map((skill, idx) => (
-                                                            <Badge key={idx} variant="secondary" className="text-xs">
-                                                                {skill}
-                                                            </Badge>
-                                                        ))}
-                                                        {profile.skills.length > 8 && (
-                                                            <Badge variant="outline" className="text-xs">
-                                                                +{profile.skills.length - 8}
-                                                            </Badge>
-                                                        )}
+                                    {/* Privacy Status Card */}
+                                    <Card>
+                                        <CardHeader className="pb-3">
+                                            <CardTitle className="text-base flex items-center gap-2">
+                                                <Shield className="h-5 w-5 text-purple-500" />
+                                                {locale === 'ar' ? 'حالة الخصوصية' : 'Privacy Status'}
+                                            </CardTitle>
+                                        </CardHeader>
+                                        <CardContent>
+                                            <div className="grid sm:grid-cols-2 gap-3">
+                                                <div className={`flex items-center gap-3 p-3 rounded-lg border ${hideCurrentEmployer ? 'bg-green-50 border-green-200 dark:bg-green-950/20 dark:border-green-800' : 'bg-gray-50 border-gray-200 dark:bg-gray-900 dark:border-gray-800'}`}>
+                                                    <div className={`h-8 w-8 rounded-full flex items-center justify-center ${hideCurrentEmployer ? 'bg-green-100 dark:bg-green-900' : 'bg-gray-200 dark:bg-gray-800'}`}>
+                                                        <Building2 className={`h-4 w-4 ${hideCurrentEmployer ? 'text-green-600' : 'text-gray-400'}`} />
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-sm font-medium">{locale === 'ar' ? 'صاحب العمل' : 'Current Employer'}</p>
+                                                        <p className={`text-xs ${hideCurrentEmployer ? 'text-green-600' : 'text-gray-500'}`}>
+                                                            {hideCurrentEmployer ? (locale === 'ar' ? 'مخفي' : 'Hidden') : (locale === 'ar' ? 'مرئي' : 'Visible')}
+                                                        </p>
                                                     </div>
                                                 </div>
-                                            )}
 
-                                            {/* Desired Roles */}
-                                            {desiredRoles && desiredRoles.length > 0 && (
-                                                <div className="mt-4">
-                                                    <p className="text-xs text-muted-foreground mb-2 font-medium">
-                                                        {locale === 'ar' ? 'المناصب المطلوبة' : 'Looking For'}
-                                                    </p>
-                                                    <div className="flex flex-wrap gap-1.5">
-                                                        {desiredRoles.split(',').filter(Boolean).map((role, idx) => (
-                                                            <Badge key={idx} variant="outline" className="text-xs border-purple-300 text-purple-700 dark:text-purple-300">
-                                                                {role.trim()}
-                                                            </Badge>
-                                                        ))}
+                                                <div className={`flex items-center gap-3 p-3 rounded-lg border ${hideSalaryHistory ? 'bg-green-50 border-green-200 dark:bg-green-950/20 dark:border-green-800' : 'bg-gray-50 border-gray-200 dark:bg-gray-900 dark:border-gray-800'}`}>
+                                                    <div className={`h-8 w-8 rounded-full flex items-center justify-center ${hideSalaryHistory ? 'bg-green-100 dark:bg-green-900' : 'bg-gray-200 dark:bg-gray-800'}`}>
+                                                        <DollarSign className={`h-4 w-4 ${hideSalaryHistory ? 'text-green-600' : 'text-gray-400'}`} />
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-sm font-medium">{locale === 'ar' ? 'توقعات الراتب' : 'Salary Expectations'}</p>
+                                                        <p className={`text-xs ${hideSalaryHistory ? 'text-green-600' : 'text-gray-500'}`}>
+                                                            {hideSalaryHistory ? (locale === 'ar' ? 'مخفي' : 'Hidden') : (locale === 'ar' ? 'مرئي' : 'Visible')}
+                                                        </p>
                                                     </div>
                                                 </div>
-                                            )}
 
-                                            {/* Preferred Locations */}
-                                            {preferredLocations.length > 0 && (
-                                                <div className="mt-4">
-                                                    <p className="text-xs text-muted-foreground mb-2 font-medium flex items-center gap-1">
-                                                        <MapPin className="h-3 w-3" />
-                                                        {locale === 'ar' ? 'المواقع المفضلة' : 'Preferred Locations'}
-                                                    </p>
-                                                    <div className="flex flex-wrap gap-1.5">
-                                                        {preferredLocations.map((loc, idx) => (
-                                                            <Badge key={idx} variant="outline" className="text-xs">
-                                                                {loc}
-                                                            </Badge>
-                                                        ))}
+                                                <div className={`flex items-center gap-3 p-3 rounded-lg border ${verifiedCompaniesOnly ? 'bg-blue-50 border-blue-200 dark:bg-blue-950/20 dark:border-blue-800' : 'bg-gray-50 border-gray-200 dark:bg-gray-900 dark:border-gray-800'}`}>
+                                                    <div className={`h-8 w-8 rounded-full flex items-center justify-center ${verifiedCompaniesOnly ? 'bg-blue-100 dark:bg-blue-900' : 'bg-gray-200 dark:bg-gray-800'}`}>
+                                                        <CheckCircle2 className={`h-4 w-4 ${verifiedCompaniesOnly ? 'text-blue-600' : 'text-gray-400'}`} />
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-sm font-medium">{locale === 'ar' ? 'قيود الشركات' : 'Company Restriction'}</p>
+                                                        <p className={`text-xs ${verifiedCompaniesOnly ? 'text-blue-600' : 'text-gray-500'}`}>
+                                                            {verifiedCompaniesOnly ? (locale === 'ar' ? 'شركات موثقة فقط' : 'Verified Only') : (locale === 'ar' ? 'جميع الشركات' : 'All Companies')}
+                                                        </p>
                                                     </div>
                                                 </div>
-                                            )}
 
-                                            {/* Recruiter Action Buttons (Disabled Preview) */}
-                                            <div className="mt-6 pt-4 border-t border-purple-200 dark:border-purple-800 flex gap-3">
-                                                <Button disabled className="flex-1" variant="outline">
-                                                    <MessageSquare className="h-4 w-4 me-2" />
-                                                    {locale === 'ar' ? 'إرسال رسالة' : 'Send Message'}
-                                                </Button>
-                                                <Button disabled className="flex-1 bg-gradient-to-r from-purple-500 to-blue-500">
-                                                    <Eye className="h-4 w-4 me-2" />
-                                                    {locale === 'ar' ? 'عرض الملف الكامل' : 'View Full Profile'}
-                                                </Button>
+                                                <div className={`flex items-center gap-3 p-3 rounded-lg border ${isVisible ? 'bg-green-50 border-green-200 dark:bg-green-950/20 dark:border-green-800' : 'bg-red-50 border-red-200 dark:bg-red-950/20 dark:border-red-800'}`}>
+                                                    <div className={`h-8 w-8 rounded-full flex items-center justify-center ${isVisible ? 'bg-green-100 dark:bg-green-900' : 'bg-red-100 dark:bg-red-900'}`}>
+                                                        {isVisible ? <Eye className="h-4 w-4 text-green-600" /> : <EyeOff className="h-4 w-4 text-red-600" />}
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-sm font-medium">{locale === 'ar' ? 'حالة الملف' : 'Profile Status'}</p>
+                                                        <p className={`text-xs ${isVisible ? 'text-green-600' : 'text-red-600'}`}>
+                                                            {isVisible ? (locale === 'ar' ? 'مرئي للمجندين' : 'Visible to Recruiters') : (locale === 'ar' ? 'مخفي' : 'Hidden')}
+                                                        </p>
+                                                    </div>
+                                                </div>
                                             </div>
-                                        </div>
-
-                                        {/* Privacy Indicators */}
-                                        <div className="mt-4 p-4 bg-muted/50 rounded-lg">
-                                            <p className="text-sm font-medium mb-2">
-                                                {locale === 'ar' ? 'إعدادات الخصوصية المفعلة:' : 'Active Privacy Settings:'}
-                                            </p>
-                                            <div className="flex flex-wrap gap-2">
-                                                {hideCurrentEmployer && (
-                                                    <Badge variant="secondary" className="text-xs">
-                                                        <Shield className="h-3 w-3 me-1" />
-                                                        {locale === 'ar' ? 'صاحب العمل مخفي' : 'Employer Hidden'}
-                                                    </Badge>
-                                                )}
-                                                {hideSalaryHistory && (
-                                                    <Badge variant="secondary" className="text-xs">
-                                                        <Shield className="h-3 w-3 me-1" />
-                                                        {locale === 'ar' ? 'الراتب مخفي' : 'Salary Hidden'}
-                                                    </Badge>
-                                                )}
-                                                {verifiedCompaniesOnly && (
-                                                    <Badge variant="secondary" className="text-xs">
-                                                        <CheckCircle2 className="h-3 w-3 me-1" />
-                                                        {locale === 'ar' ? 'شركات موثقة فقط' : 'Verified Only'}
-                                                    </Badge>
-                                                )}
-                                                {!isVisible && (
-                                                    <Badge variant="destructive" className="text-xs">
-                                                        <EyeOff className="h-3 w-3 me-1" />
-                                                        {locale === 'ar' ? 'الملف مخفي' : 'Profile Hidden'}
-                                                    </Badge>
-                                                )}
-                                                {!hideCurrentEmployer && !hideSalaryHistory && !verifiedCompaniesOnly && isVisible && (
-                                                    <span className="text-xs text-muted-foreground">
-                                                        {locale === 'ar' ? 'لا توجد قيود - ملفك مرئي بالكامل' : 'No restrictions - your profile is fully visible'}
-                                                    </span>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </CardContent>
-                                </Card>
+                                        </CardContent>
+                                    </Card>
+                                </div>
                             </TabsContent>
 
                             {/* Visibility Tab */}
