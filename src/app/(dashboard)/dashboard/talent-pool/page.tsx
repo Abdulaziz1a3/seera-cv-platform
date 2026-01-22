@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { useLocale } from '@/components/providers/locale-provider';
 import { useResumes } from '@/components/providers/resume-provider';
@@ -11,6 +11,7 @@ import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
     Select,
     SelectContent,
@@ -19,112 +20,139 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import {
     Users,
     Eye,
     EyeOff,
     Shield,
     Briefcase,
     MapPin,
-    DollarSign,
-    Clock,
     Building2,
     CheckCircle2,
     TrendingUp,
     MessageSquare,
-    Bell,
     Settings2,
     Sparkles,
+    Loader2,
+    LogOut,
+    Crown,
+    AlertCircle,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { GCC_LOCATIONS, INDUSTRIES, INDUSTRIES_AR } from '@/lib/talent-marketplace';
+import { GCC_LOCATIONS } from '@/lib/talent-marketplace';
+
+type TalentProfile = {
+    id: string;
+    resumeId: string;
+    isVisible: boolean;
+    availabilityStatus: string;
+    hideCurrentEmployer: boolean;
+    hideSalaryHistory: boolean;
+    verifiedCompaniesOnly: boolean;
+    desiredRoles: string[];
+    desiredSalaryMin: number | null;
+    desiredSalaryMax: number | null;
+    noticePeriod: string | null;
+    preferredLocations: string[];
+    preferredIndustries: string[];
+    resume?: { id: string; title: string } | null;
+};
 
 export default function TalentPoolPage() {
     const { locale } = useLocale();
-    const { resumes } = useResumes();
+    const { resumes, isLoading: resumesLoading } = useResumes();
 
-    // Pool membership state
-  const [isJoined, setIsJoined] = useState(false);
-  const [selectedResumeId, setSelectedResumeId] = useState<string>('');
-  const [hasAccess, setHasAccess] = useState(true);
-  const [isLoadingProfile, setIsLoadingProfile] = useState(true);
+    // State
+    const [profile, setProfile] = useState<TalentProfile | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [isSaving, setIsSaving] = useState(false);
+    const [isLeaving, setIsLeaving] = useState(false);
+    const [hasAccess, setHasAccess] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
-    // Settings
-  const [isVisible, setIsVisible] = useState(true);
-  const [availabilityStatus, setAvailabilityStatus] = useState<string>('open_to_offers');
-  const [hideCurrentEmployer, setHideCurrentEmployer] = useState(false);
-  const [hideSalaryHistory, setHideSalaryHistory] = useState(true);
-  const [verifiedCompaniesOnly, setVerifiedCompaniesOnly] = useState(false);
-  const [blockedCompanies, setBlockedCompanies] = useState<string>('');
+    // Form state
+    const [selectedResumeId, setSelectedResumeId] = useState<string>('');
+    const [isVisible, setIsVisible] = useState(true);
+    const [availabilityStatus, setAvailabilityStatus] = useState<string>('open_to_offers');
+    const [hideCurrentEmployer, setHideCurrentEmployer] = useState(false);
+    const [hideSalaryHistory, setHideSalaryHistory] = useState(true);
+    const [verifiedCompaniesOnly, setVerifiedCompaniesOnly] = useState(false);
+    const [blockedCompanies, setBlockedCompanies] = useState<string>('');
+    const [desiredRoles, setDesiredRoles] = useState<string>('');
+    const [desiredSalaryMin, setDesiredSalaryMin] = useState<string>('');
+    const [desiredSalaryMax, setDesiredSalaryMax] = useState<string>('');
+    const [willingToRelocate, setWillingToRelocate] = useState(false);
+    const [preferredLocations, setPreferredLocations] = useState<string[]>([]);
+    const [noticePeriod, setNoticePeriod] = useState<string>('2_weeks');
+    const [preferredIndustries, setPreferredIndustries] = useState<string[]>([]);
 
-    // Preferences
-  const [desiredRoles, setDesiredRoles] = useState<string>('');
-  const [desiredSalaryMin, setDesiredSalaryMin] = useState<string>('');
-  const [desiredSalaryMax, setDesiredSalaryMax] = useState<string>('');
-  const [willingToRelocate, setWillingToRelocate] = useState(false);
-  const [preferredLocations, setPreferredLocations] = useState<string[]>([]);
-  const [noticePeriod, setNoticePeriod] = useState<string>('2_weeks');
-  const [preferredIndustries, setPreferredIndustries] = useState<string[]>([]);
+    const isJoined = !!profile;
 
-    const stats = {
-        profileViews: 0,
-        unlocks: 0,
-        messages: 0,
-        searchAppearances: 0,
-    };
+    // Load profile
+    const loadProfile = useCallback(async () => {
+        setIsLoading(true);
+        setError(null);
 
-    const selectedResume = resumes.find(r => r.id === selectedResumeId);
+        try {
+            const res = await fetch('/api/talent-pool/profile');
+            const data = await res.json();
+
+            if (res.status === 403) {
+                setHasAccess(false);
+                return;
+            }
+
+            if (!res.ok) {
+                throw new Error(data?.error || 'Failed to load profile');
+            }
+
+            if (data?.profile) {
+                const p = data.profile;
+                setProfile(p);
+                setSelectedResumeId(p.resumeId || '');
+                setIsVisible(Boolean(p.isVisible));
+                setAvailabilityStatus(p.availabilityStatus || 'open_to_offers');
+                setHideCurrentEmployer(Boolean(p.hideCurrentEmployer));
+                setHideSalaryHistory(Boolean(p.hideSalaryHistory));
+                setVerifiedCompaniesOnly(Boolean(p.verifiedCompaniesOnly));
+                setDesiredRoles((p.desiredRoles || []).join(', '));
+                setDesiredSalaryMin(p.desiredSalaryMin ? String(p.desiredSalaryMin) : '');
+                setDesiredSalaryMax(p.desiredSalaryMax ? String(p.desiredSalaryMax) : '');
+                setNoticePeriod(p.noticePeriod || '2_weeks');
+                setPreferredLocations(p.preferredLocations || []);
+                setPreferredIndustries(p.preferredIndustries || []);
+            }
+        } catch (err) {
+            const message = err instanceof Error ? err.message : 'Failed to load profile';
+            setError(message);
+            toast.error(message);
+        } finally {
+            setIsLoading(false);
+        }
+    }, []);
 
     useEffect(() => {
-        let active = true;
-
-        const loadProfile = async () => {
-            setIsLoadingProfile(true);
-            try {
-                const res = await fetch('/api/talent-pool/profile');
-                if (!res.ok) {
-                    if (res.status === 403) {
-                        if (active) setHasAccess(false);
-                        return;
-                    }
-                    return;
-                }
-                const data = await res.json();
-                if (!active) return;
-                if (data?.profile) {
-                    const profile = data.profile;
-                    setIsJoined(true);
-                    setSelectedResumeId(profile.resumeId || '');
-                    setIsVisible(Boolean(profile.isVisible));
-                    setAvailabilityStatus(profile.availabilityStatus || 'open_to_offers');
-                    setHideCurrentEmployer(Boolean(profile.hideCurrentEmployer));
-                    setHideSalaryHistory(Boolean(profile.hideSalaryHistory));
-                    setVerifiedCompaniesOnly(Boolean(profile.verifiedCompaniesOnly));
-                    setDesiredRoles((profile.desiredRoles || []).join(', '));
-                    setDesiredSalaryMin(profile.desiredSalaryMin ? String(profile.desiredSalaryMin) : '');
-                    setDesiredSalaryMax(profile.desiredSalaryMax ? String(profile.desiredSalaryMax) : '');
-                    setNoticePeriod(profile.noticePeriod || '2_weeks');
-                    setPreferredLocations(profile.preferredLocations || []);
-                    setPreferredIndustries(profile.preferredIndustries || []);
-                }
-            } catch (error) {
-                if (!active) return;
-                toast.error(locale === 'ar' ? 'تعذر تحميل بيانات الملف' : 'Failed to load profile');
-            } finally {
-                if (active) setIsLoadingProfile(false);
-            }
-        };
-
         loadProfile();
-        return () => {
-            active = false;
-        };
-    }, [locale]);
+    }, [loadProfile]);
 
-    const handleJoinPool = async () => {
+    // Join or update profile
+    const handleSave = async () => {
         if (!selectedResumeId) {
             toast.error(locale === 'ar' ? 'يرجى اختيار سيرة ذاتية' : 'Please select a resume first');
             return;
         }
+
+        setIsSaving(true);
         try {
             const res = await fetch('/api/talent-pool/profile', {
                 method: 'POST',
@@ -136,91 +164,124 @@ export default function TalentPoolPage() {
                     hideCurrentEmployer,
                     hideSalaryHistory,
                     verifiedCompaniesOnly,
-                    desiredRoles: desiredRoles
-                        .split(',')
-                        .map((role) => role.trim())
-                        .filter(Boolean),
-                    desiredSalaryMin: desiredSalaryMin ? Number(desiredSalaryMin) : undefined,
-                    desiredSalaryMax: desiredSalaryMax ? Number(desiredSalaryMax) : undefined,
-                    noticePeriod,
+                    desiredRoles: desiredRoles.split(',').map((r) => r.trim()).filter(Boolean),
+                    desiredSalaryMin: desiredSalaryMin ? Number(desiredSalaryMin) : null,
+                    desiredSalaryMax: desiredSalaryMax ? Number(desiredSalaryMax) : null,
+                    noticePeriod: noticePeriod || null,
                     preferredLocations,
                     preferredIndustries,
                 }),
             });
+
+            const data = await res.json();
+
             if (!res.ok) {
-                const data = await res.json();
-                toast.error(data?.error || 'Failed to join');
-                return;
+                throw new Error(data?.error || 'Failed to save');
             }
-            setIsJoined(true);
-            toast.success(locale === 'ar' ? 'تم الانضمام لقاعدة المواهب!' : 'Joined the Talent Pool!');
-        } catch (error) {
-            console.error('Join pool error', error);
-            toast.error(locale === 'ar' ? 'حدث خطأ أثناء الانضمام' : 'Failed to join');
+
+            setProfile(data.profile);
+            toast.success(
+                isJoined
+                    ? (locale === 'ar' ? 'تم حفظ التغييرات' : 'Changes saved!')
+                    : (locale === 'ar' ? 'تم الانضمام لمجموعة المواهب!' : 'Joined the Talent Pool!')
+            );
+        } catch (err) {
+            const message = err instanceof Error ? err.message : 'Failed to save';
+            toast.error(message);
+        } finally {
+            setIsSaving(false);
         }
     };
 
-    const handleSaveSettings = async () => {
-        if (!selectedResumeId) {
-            toast.error(locale === 'ar' ? 'يرجى اختيار سيرة ذاتية' : 'Please select a resume first');
-            return;
-        }
+    // Leave the pool
+    const handleLeavePool = async () => {
+        setIsLeaving(true);
         try {
             const res = await fetch('/api/talent-pool/profile', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    resumeId: selectedResumeId,
-                    isVisible,
-                    availabilityStatus,
-                    hideCurrentEmployer,
-                    hideSalaryHistory,
-                    verifiedCompaniesOnly,
-                    desiredRoles: desiredRoles
-                        .split(',')
-                        .map((role) => role.trim())
-                        .filter(Boolean),
-                    desiredSalaryMin: desiredSalaryMin ? Number(desiredSalaryMin) : undefined,
-                    desiredSalaryMax: desiredSalaryMax ? Number(desiredSalaryMax) : undefined,
-                    noticePeriod,
-                    preferredLocations,
-                    preferredIndustries,
-                }),
+                method: 'DELETE',
             });
+
+            const data = await res.json();
+
             if (!res.ok) {
-                const data = await res.json();
-                toast.error(data?.error || 'Failed to save');
-                return;
+                throw new Error(data?.error || 'Failed to leave');
             }
-            toast.success(locale === 'ar' ? 'تم حفظ الإعدادات' : 'Settings saved');
-        } catch (error) {
-            console.error('Save settings error', error);
-            toast.error(locale === 'ar' ? 'تعذر حفظ الإعدادات' : 'Failed to save settings');
+
+            setProfile(null);
+            setSelectedResumeId('');
+            toast.success(locale === 'ar' ? 'غادرت مجموعة المواهب' : 'Left the Talent Pool');
+        } catch (err) {
+            const message = err instanceof Error ? err.message : 'Failed to leave';
+            toast.error(message);
+        } finally {
+            setIsLeaving(false);
         }
     };
 
+    // No access - show upgrade prompt
     if (!hasAccess) {
         return (
-            <div className="min-h-[calc(100vh-4rem)] flex flex-col p-6">
-                <Card className="max-w-2xl mx-auto w-full">
+            <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center p-6">
+                <Card className="max-w-md w-full text-center">
                     <CardHeader>
-                        <CardTitle>{locale === 'ar' ? 'ميزة مجموعة المواهب' : 'Talent Pool Access'}</CardTitle>
-                        <CardDescription>
+                        <div className="mx-auto h-16 w-16 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center mb-4">
+                            <Crown className="h-8 w-8 text-white" />
+                        </div>
+                        <CardTitle className="text-2xl">
+                            {locale === 'ar' ? 'ميزة للمشتركين' : 'Pro Feature'}
+                        </CardTitle>
+                        <CardDescription className="text-base mt-2">
                             {locale === 'ar'
-                                ? 'تتطلب هذه الميزة اشتراكاً فعالاً لعرض ملفك للشركات.'
-                                : 'This feature requires an active subscription to make your profile visible.'}
+                                ? 'مجموعة المواهب متاحة للمشتركين في الباقة الاحترافية. قم بالترقية لعرض ملفك للشركات.'
+                                : 'Talent Pool is available for Pro subscribers. Upgrade to make your profile visible to companies.'}
                         </CardDescription>
                     </CardHeader>
-                    <CardContent className="space-y-4">
-                        <p className="text-sm text-muted-foreground">
-                            {locale === 'ar'
-                                ? 'قم بالترقية للوصول إلى الباحثين وإتاحة ملفك على الفور.'
-                                : 'Upgrade to reach recruiters and publish your profile instantly.'}
-                        </p>
-                        <Button asChild>
+                    <CardContent>
+                        <Button asChild size="lg" className="w-full">
                             <Link href="/dashboard/billing">
-                                {locale === 'ar' ? 'الترقية الآن' : 'Upgrade Now'}
+                                <Sparkles className="h-5 w-5 me-2" />
+                                {locale === 'ar' ? 'الترقية الآن' : 'Upgrade to Pro'}
                             </Link>
+                        </Button>
+                    </CardContent>
+                </Card>
+            </div>
+        );
+    }
+
+    // Loading state
+    if (isLoading || resumesLoading) {
+        return (
+            <div className="min-h-[calc(100vh-4rem)] flex flex-col">
+                <div className="border-b bg-gradient-to-r from-purple-500/10 via-blue-500/10 to-transparent px-6 py-6">
+                    <Skeleton className="h-12 w-48" />
+                    <Skeleton className="h-5 w-72 mt-2" />
+                </div>
+                <div className="flex-1 p-6">
+                    <div className="max-w-2xl mx-auto space-y-6">
+                        <Skeleton className="h-64 w-full rounded-xl" />
+                        <Skeleton className="h-48 w-full rounded-xl" />
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    // Error state
+    if (error && !profile) {
+        return (
+            <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center p-6">
+                <Card className="max-w-md w-full text-center">
+                    <CardHeader>
+                        <div className="mx-auto h-16 w-16 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center mb-4">
+                            <AlertCircle className="h-8 w-8 text-red-500" />
+                        </div>
+                        <CardTitle>{locale === 'ar' ? 'حدث خطأ' : 'Something went wrong'}</CardTitle>
+                        <CardDescription>{error}</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <Button onClick={loadProfile} variant="outline">
+                            {locale === 'ar' ? 'حاول مرة أخرى' : 'Try Again'}
                         </Button>
                     </CardContent>
                 </Card>
@@ -247,7 +308,7 @@ export default function TalentPoolPage() {
                         </p>
                     </div>
 
-                    {isJoined && !isLoadingProfile && (
+                    {isJoined && (
                         <Badge className="bg-green-500 text-white px-4 py-2 text-sm">
                             <CheckCircle2 className="h-4 w-4 me-2" />
                             {locale === 'ar' ? 'عضو نشط' : 'Active Member'}
@@ -258,9 +319,8 @@ export default function TalentPoolPage() {
 
             <div className="flex-1 p-6">
                 {!isJoined ? (
-                    // Onboarding - Not yet joined
+                    /* Onboarding - Not yet joined */
                     <div className="max-w-2xl mx-auto space-y-8">
-                        {/* Value Proposition */}
                         <Card className="overflow-hidden border-2 border-purple-200 dark:border-purple-900">
                             <div className="bg-gradient-to-r from-purple-500 to-blue-500 p-6 text-white">
                                 <h2 className="text-2xl font-bold">
@@ -276,7 +336,7 @@ export default function TalentPoolPage() {
                                 <div className="grid sm:grid-cols-2 gap-4 mb-6">
                                     {[
                                         { icon: Building2, title: locale === 'ar' ? '500+ شركة' : '500+ Companies', desc: locale === 'ar' ? 'تبحث عن مواهب' : 'Actively hiring' },
-                                        { icon: Eye, title: locale === 'ar' ? 'ظهور مجاني' : 'Free Visibility', desc: locale === 'ar' ? 'بدون رسوم عليك' : 'No fees for you' },
+                                        { icon: Eye, title: locale === 'ar' ? 'ظهور للشركات' : 'Get Discovered', desc: locale === 'ar' ? 'بدون رسوم إضافية' : 'Included in Pro' },
                                         { icon: Shield, title: locale === 'ar' ? 'خصوصية تامة' : 'Full Privacy', desc: locale === 'ar' ? 'تحكم في ما يظهر' : 'Control what shows' },
                                         { icon: MessageSquare, title: locale === 'ar' ? 'تواصل مباشر' : 'Direct Messages', desc: locale === 'ar' ? 'من مسؤولي التوظيف' : 'From recruiters' },
                                     ].map((item) => (
@@ -307,14 +367,26 @@ export default function TalentPoolPage() {
                                                 ))}
                                             </SelectContent>
                                         </Select>
+                                        {resumes.length === 0 && (
+                                            <p className="text-sm text-muted-foreground">
+                                                {locale === 'ar'
+                                                    ? 'لا توجد سير ذاتية. أنشئ واحدة أولاً.'
+                                                    : 'No resumes found. Create one first.'}
+                                            </p>
+                                        )}
                                     </div>
 
                                     <Button
                                         className="w-full h-12 bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600"
-                                        onClick={handleJoinPool}
+                                        onClick={handleSave}
+                                        disabled={isSaving || !selectedResumeId}
                                     >
-                                        <Sparkles className="h-5 w-5 me-2" />
-                                        {locale === 'ar' ? 'انضم الآن مجاناً' : 'Join for Free'}
+                                        {isSaving ? (
+                                            <Loader2 className="h-5 w-5 me-2 animate-spin" />
+                                        ) : (
+                                            <Sparkles className="h-5 w-5 me-2" />
+                                        )}
+                                        {locale === 'ar' ? 'انضم الآن' : 'Join Now'}
                                     </Button>
                                 </div>
                             </CardContent>
@@ -348,15 +420,15 @@ export default function TalentPoolPage() {
                         </Card>
                     </div>
                 ) : (
-                    // Dashboard - Already joined
+                    /* Dashboard - Already joined */
                     <div className="max-w-5xl mx-auto space-y-6">
                         {/* Stats */}
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                             {[
-                                { icon: Eye, label: locale === 'ar' ? 'مشاهدات الملف' : 'Profile Views', value: stats.profileViews, color: 'text-blue-500' },
-                                { icon: Users, label: locale === 'ar' ? 'فتح الملف' : 'Unlocks', value: stats.unlocks, color: 'text-green-500' },
-                                { icon: MessageSquare, label: locale === 'ar' ? 'رسائل' : 'Messages', value: stats.messages, color: 'text-purple-500' },
-                                { icon: TrendingUp, label: locale === 'ar' ? 'ظهور في البحث' : 'Search Appearances', value: stats.searchAppearances, color: 'text-amber-500' },
+                                { icon: Eye, label: locale === 'ar' ? 'مشاهدات الملف' : 'Profile Views', value: 0, color: 'text-blue-500' },
+                                { icon: Users, label: locale === 'ar' ? 'فتح الملف' : 'Unlocks', value: 0, color: 'text-green-500' },
+                                { icon: MessageSquare, label: locale === 'ar' ? 'رسائل' : 'Messages', value: 0, color: 'text-purple-500' },
+                                { icon: TrendingUp, label: locale === 'ar' ? 'ظهور في البحث' : 'Search Appearances', value: 0, color: 'text-amber-500' },
                             ].map((stat) => (
                                 <Card key={stat.label}>
                                     <CardContent className="pt-4 pb-4">
@@ -421,8 +493,7 @@ export default function TalentPoolPage() {
                                                     <p className="text-sm text-muted-foreground">
                                                         {isVisible
                                                             ? (locale === 'ar' ? 'الشركات يمكنها رؤية ملفك' : 'Companies can see your profile')
-                                                            : (locale === 'ar' ? 'ملفك مخفي حالياً' : 'Your profile is hidden')
-                                                        }
+                                                            : (locale === 'ar' ? 'ملفك مخفي حالياً' : 'Your profile is hidden')}
                                                     </p>
                                                 </div>
                                             </div>
@@ -471,7 +542,8 @@ export default function TalentPoolPage() {
                                             </Select>
                                         </div>
 
-                                        <Button onClick={handleSaveSettings}>
+                                        <Button onClick={handleSave} disabled={isSaving}>
+                                            {isSaving && <Loader2 className="h-4 w-4 me-2 animate-spin" />}
                                             {locale === 'ar' ? 'حفظ الإعدادات' : 'Save Settings'}
                                         </Button>
                                     </CardContent>
@@ -493,7 +565,7 @@ export default function TalentPoolPage() {
                                                 <div>
                                                     <p className="font-medium">{locale === 'ar' ? 'إخفاء صاحب العمل الحالي' : 'Hide Current Employer'}</p>
                                                     <p className="text-sm text-muted-foreground">
-                                                        {locale === 'ar' ? 'لن يظهر اسم شركتك الحالية' : 'Your current company name won\'t be shown'}
+                                                        {locale === 'ar' ? 'لن يظهر اسم شركتك الحالية' : "Your current company name won't be shown"}
                                                     </p>
                                                 </div>
                                                 <Switch checked={hideCurrentEmployer} onCheckedChange={setHideCurrentEmployer} />
@@ -503,7 +575,7 @@ export default function TalentPoolPage() {
                                                 <div>
                                                     <p className="font-medium">{locale === 'ar' ? 'إخفاء سجل الراتب' : 'Hide Salary History'}</p>
                                                     <p className="text-sm text-muted-foreground">
-                                                        {locale === 'ar' ? 'لن تظهر رواتبك السابقة' : 'Your previous salaries won\'t be shown'}
+                                                        {locale === 'ar' ? 'لن تظهر رواتبك السابقة' : "Your previous salaries won't be shown"}
                                                     </p>
                                                 </div>
                                                 <Switch checked={hideSalaryHistory} onCheckedChange={setHideSalaryHistory} />
@@ -536,7 +608,8 @@ export default function TalentPoolPage() {
                                             </p>
                                         </div>
 
-                                        <Button onClick={handleSaveSettings}>
+                                        <Button onClick={handleSave} disabled={isSaving}>
+                                            {isSaving && <Loader2 className="h-4 w-4 me-2 animate-spin" />}
                                             {locale === 'ar' ? 'حفظ إعدادات الخصوصية' : 'Save Privacy Settings'}
                                         </Button>
                                     </CardContent>
@@ -549,7 +622,7 @@ export default function TalentPoolPage() {
                                     <CardHeader>
                                         <CardTitle>{locale === 'ar' ? 'تفضيلات العمل' : 'Job Preferences'}</CardTitle>
                                         <CardDescription>
-                                            {locale === 'ar' ? 'ساعد الشركات على فهم ما تبحث عنه' : 'Help companies understand what you\'re looking for'}
+                                            {locale === 'ar' ? 'ساعد الشركات على فهم ما تبحث عنه' : "Help companies understand what you're looking for"}
                                         </CardDescription>
                                     </CardHeader>
                                     <CardContent className="space-y-6">
@@ -629,9 +702,9 @@ export default function TalentPoolPage() {
                                                         variant={preferredLocations.includes(loc) ? 'default' : 'outline'}
                                                         className="cursor-pointer"
                                                         onClick={() => {
-                                                            setPreferredLocations(prev =>
+                                                            setPreferredLocations((prev) =>
                                                                 prev.includes(loc)
-                                                                    ? prev.filter(l => l !== loc)
+                                                                    ? prev.filter((l) => l !== loc)
                                                                     : [...prev, loc]
                                                             );
                                                         }}
@@ -642,13 +715,62 @@ export default function TalentPoolPage() {
                                             </div>
                                         </div>
 
-                                        <Button onClick={handleSaveSettings}>
+                                        <Button onClick={handleSave} disabled={isSaving}>
+                                            {isSaving && <Loader2 className="h-4 w-4 me-2 animate-spin" />}
                                             {locale === 'ar' ? 'حفظ التفضيلات' : 'Save Preferences'}
                                         </Button>
                                     </CardContent>
                                 </Card>
                             </TabsContent>
                         </Tabs>
+
+                        {/* Leave Pool Section */}
+                        <Card className="border-red-200 dark:border-red-900">
+                            <CardHeader>
+                                <CardTitle className="text-red-600">
+                                    {locale === 'ar' ? 'مغادرة مجموعة المواهب' : 'Leave Talent Pool'}
+                                </CardTitle>
+                                <CardDescription>
+                                    {locale === 'ar'
+                                        ? 'سيتم حذف ملفك من مجموعة المواهب ولن تكون مرئياً للشركات.'
+                                        : 'Your profile will be removed and you will no longer be visible to companies.'}
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                        <Button variant="destructive" disabled={isLeaving}>
+                                            {isLeaving ? (
+                                                <Loader2 className="h-4 w-4 me-2 animate-spin" />
+                                            ) : (
+                                                <LogOut className="h-4 w-4 me-2" />
+                                            )}
+                                            {locale === 'ar' ? 'مغادرة المجموعة' : 'Leave Pool'}
+                                        </Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                            <AlertDialogTitle>
+                                                {locale === 'ar' ? 'هل أنت متأكد؟' : 'Are you sure?'}
+                                            </AlertDialogTitle>
+                                            <AlertDialogDescription>
+                                                {locale === 'ar'
+                                                    ? 'سيتم حذف ملفك من مجموعة المواهب. يمكنك الانضمام مرة أخرى في أي وقت.'
+                                                    : 'Your profile will be removed from the Talent Pool. You can rejoin anytime.'}
+                                            </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                            <AlertDialogCancel>
+                                                {locale === 'ar' ? 'إلغاء' : 'Cancel'}
+                                            </AlertDialogCancel>
+                                            <AlertDialogAction onClick={handleLeavePool} className="bg-red-600 hover:bg-red-700">
+                                                {locale === 'ar' ? 'نعم، غادر' : 'Yes, Leave'}
+                                            </AlertDialogAction>
+                                        </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                </AlertDialog>
+                            </CardContent>
+                        </Card>
                     </div>
                 )}
             </div>

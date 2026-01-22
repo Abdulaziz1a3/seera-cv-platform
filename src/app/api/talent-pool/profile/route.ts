@@ -3,34 +3,45 @@ import { z } from 'zod';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { errors } from '@/lib/api-response';
+import { hasActiveSubscription } from '@/lib/subscription';
+import { logger } from '@/lib/logger';
 
+// Validation schema for profile creation/update
 const profileSchema = z.object({
-    resumeId: z.string().min(1),
+    resumeId: z.string().min(1, 'Resume ID is required'),
     isVisible: z.boolean().default(true),
-    availabilityStatus: z.string().default('open_to_offers'),
+    availabilityStatus: z.enum(['actively_looking', 'open_to_offers', 'not_looking']).default('open_to_offers'),
     hideCurrentEmployer: z.boolean().default(false),
     hideSalaryHistory: z.boolean().default(true),
     verifiedCompaniesOnly: z.boolean().default(false),
     desiredRoles: z.array(z.string()).default([]),
-    desiredSalaryMin: z.number().int().nonnegative().optional(),
-    desiredSalaryMax: z.number().int().nonnegative().optional(),
-    noticePeriod: z.string().optional(),
+    desiredSalaryMin: z.number().int().nonnegative().optional().nullable(),
+    desiredSalaryMax: z.number().int().nonnegative().optional().nullable(),
+    noticePeriod: z.enum(['immediate', '1_week', '2_weeks', '1_month', '2_months', '3_months']).optional().nullable(),
     preferredLocations: z.array(z.string()).default([]),
     preferredIndustries: z.array(z.string()).default([]),
 });
 
+/**
+ * Extract years of experience from resume experience items
+ */
 function extractYearsExperience(experienceItems: any[] = []): number | null {
     const dates = experienceItems
         .map((exp) => exp.startDate)
         .filter(Boolean)
         .map((d) => new Date(d).getTime())
         .filter((t) => !Number.isNaN(t));
+
     if (!dates.length) return null;
+
     const earliest = Math.min(...dates);
     const years = (Date.now() - earliest) / (1000 * 60 * 60 * 24 * 365);
     return Math.max(0, Math.round(years));
 }
 
+/**
+ * Extract profile data from resume snapshot
+ */
 function extractProfileFromSnapshot(snapshot: any) {
     const contact = snapshot?.contact || {};
     const experience = snapshot?.experience?.items || [];
@@ -55,98 +66,229 @@ function extractProfileFromSnapshot(snapshot: any) {
     };
 }
 
+/**
+ * GET /api/talent-pool/profile
+ * Fetch the current user's talent pool profile
+ */
 export async function GET() {
     try {
+        // Authenticate user
         const session = await auth();
         if (!session?.user?.id) {
             return errors.unauthorized();
         }
 
+        // Check for Pro subscription
+        const hasAccess = await hasActiveSubscription(session.user.id);
+        if (!hasAccess) {
+            return errors.subscriptionRequired('Talent Pool');
+        }
+
+        // Fetch existing profile
         const profile = await prisma.talentProfile.findUnique({
             where: { userId: session.user.id },
+            include: {
+                resume: {
+                    select: {
+                        id: true,
+                        title: true,
+                    },
+                },
+            },
         });
 
-        return NextResponse.json({ profile });
+        return NextResponse.json({
+            profile,
+            hasAccess: true,
+        });
     } catch (error) {
-        console.error('Talent pool GET error:', error);
+        logger.error('Talent pool GET error:', { error: error as Error, });
         return NextResponse.json(
-            { error: 'Failed to fetch talent profile' },
+            { error: 'Failed to fetch talent profile. Please try again.' },
             { status: 500 }
         );
     }
 }
 
+/**
+ * POST /api/talent-pool/profile
+ * Create or update the user's talent pool profile
+ */
 export async function POST(request: NextRequest) {
-    const session = await auth();
-    if (!session?.user?.id) {
-        return errors.unauthorized();
-    }
+    try {
+        // Authenticate user
+        const session = await auth();
+        if (!session?.user?.id) {
+            return errors.unauthorized();
+        }
 
-    const body = await request.json();
-    const data = profileSchema.parse(body);
+        // Check for Pro subscription
+        const hasAccess = await hasActiveSubscription(session.user.id);
+        if (!hasAccess) {
+            return errors.subscriptionRequired('Talent Pool');
+        }
 
-    const resume = await prisma.resume.findFirst({
-        where: { id: data.resumeId, userId: session.user.id },
-        include: {
-            versions: { orderBy: { version: 'desc' }, take: 1 },
-        },
-    });
+        // Parse and validate request body
+        let body;
+        try {
+            body = await request.json();
+        } catch {
+            return NextResponse.json(
+                { error: 'Invalid request body' },
+                { status: 400 }
+            );
+        }
 
-    if (!resume || resume.versions.length === 0) {
-        return NextResponse.json({ error: 'Resume not found' }, { status: 404 });
-    }
+        const parseResult = profileSchema.safeParse(body);
+        if (!parseResult.success) {
+            return NextResponse.json(
+                {
+                    error: 'Validation failed',
+                    details: parseResult.error.flatten().fieldErrors,
+                },
+                { status: 400 }
+            );
+        }
 
-    const snapshot = resume.versions[0].snapshot as any;
-    const derived = extractProfileFromSnapshot(snapshot);
+        const data = parseResult.data;
 
-    const profile = await prisma.talentProfile.upsert({
-        where: { userId: session.user.id },
-        create: {
+        // Verify the resume exists and belongs to the user
+        const resume = await prisma.resume.findFirst({
+            where: {
+                id: data.resumeId,
+                userId: session.user.id,
+                deletedAt: null,
+            },
+            include: {
+                versions: {
+                    orderBy: { version: 'desc' },
+                    take: 1,
+                    select: { snapshot: true },
+                },
+            },
+        });
+
+        if (!resume) {
+            return NextResponse.json(
+                { error: 'Resume not found or does not belong to you' },
+                { status: 404 }
+            );
+        }
+
+        if (resume.versions.length === 0) {
+            return NextResponse.json(
+                { error: 'Resume has no saved versions. Please save your resume first.' },
+                { status: 400 }
+            );
+        }
+
+        // Extract profile data from resume
+        const snapshot = resume.versions[0].snapshot as any;
+        const derived = extractProfileFromSnapshot(snapshot);
+
+        // Create or update the profile
+        const profile = await prisma.talentProfile.upsert({
+            where: { userId: session.user.id },
+            create: {
+                userId: session.user.id,
+                resumeId: data.resumeId,
+                displayName: derived.displayName,
+                currentTitle: derived.currentTitle,
+                currentCompany: derived.currentCompany,
+                location: derived.location,
+                yearsExperience: derived.yearsExperience,
+                skills: derived.skills,
+                education: derived.education,
+                summary: derived.summary,
+                availabilityStatus: data.availabilityStatus,
+                desiredSalaryMin: data.desiredSalaryMin ?? undefined,
+                desiredSalaryMax: data.desiredSalaryMax ?? undefined,
+                isVisible: data.isVisible,
+                hideCurrentEmployer: data.hideCurrentEmployer,
+                hideSalaryHistory: data.hideSalaryHistory,
+                verifiedCompaniesOnly: data.verifiedCompaniesOnly,
+                noticePeriod: data.noticePeriod ?? undefined,
+                preferredLocations: data.preferredLocations,
+                preferredIndustries: data.preferredIndustries,
+                desiredRoles: data.desiredRoles,
+            },
+            update: {
+                resumeId: data.resumeId,
+                displayName: derived.displayName,
+                currentTitle: derived.currentTitle,
+                currentCompany: derived.currentCompany,
+                location: derived.location,
+                yearsExperience: derived.yearsExperience,
+                skills: derived.skills,
+                education: derived.education,
+                summary: derived.summary,
+                availabilityStatus: data.availabilityStatus,
+                desiredSalaryMin: data.desiredSalaryMin ?? undefined,
+                desiredSalaryMax: data.desiredSalaryMax ?? undefined,
+                isVisible: data.isVisible,
+                hideCurrentEmployer: data.hideCurrentEmployer,
+                hideSalaryHistory: data.hideSalaryHistory,
+                verifiedCompaniesOnly: data.verifiedCompaniesOnly,
+                noticePeriod: data.noticePeriod ?? undefined,
+                preferredLocations: data.preferredLocations,
+                preferredIndustries: data.preferredIndustries,
+                desiredRoles: data.desiredRoles,
+            },
+        });
+
+        logger.info('Talent profile created/updated', {
             userId: session.user.id,
-            resumeId: data.resumeId,
-            displayName: derived.displayName,
-            currentTitle: derived.currentTitle,
-            currentCompany: derived.currentCompany,
-            location: derived.location,
-            yearsExperience: derived.yearsExperience,
-            skills: derived.skills,
-            education: derived.education,
-            summary: derived.summary,
-            availabilityStatus: data.availabilityStatus,
-            desiredSalaryMin: data.desiredSalaryMin,
-            desiredSalaryMax: data.desiredSalaryMax,
-            isVisible: data.isVisible,
-            hideCurrentEmployer: data.hideCurrentEmployer,
-            hideSalaryHistory: data.hideSalaryHistory,
-            verifiedCompaniesOnly: data.verifiedCompaniesOnly,
-            noticePeriod: data.noticePeriod,
-            preferredLocations: data.preferredLocations,
-            preferredIndustries: data.preferredIndustries,
-            desiredRoles: data.desiredRoles,
-        },
-        update: {
-            resumeId: data.resumeId,
-            displayName: derived.displayName,
-            currentTitle: derived.currentTitle,
-            currentCompany: derived.currentCompany,
-            location: derived.location,
-            yearsExperience: derived.yearsExperience,
-            skills: derived.skills,
-            education: derived.education,
-            summary: derived.summary,
-            availabilityStatus: data.availabilityStatus,
-            desiredSalaryMin: data.desiredSalaryMin,
-            desiredSalaryMax: data.desiredSalaryMax,
-            isVisible: data.isVisible,
-            hideCurrentEmployer: data.hideCurrentEmployer,
-            hideSalaryHistory: data.hideSalaryHistory,
-            verifiedCompaniesOnly: data.verifiedCompaniesOnly,
-            noticePeriod: data.noticePeriod,
-            preferredLocations: data.preferredLocations,
-            preferredIndustries: data.preferredIndustries,
-            desiredRoles: data.desiredRoles,
-        },
-    });
+            profileId: profile.id,
+        });
 
-    return NextResponse.json({ profile });
+        return NextResponse.json({
+            profile,
+            success: true,
+        });
+    } catch (error) {
+        logger.error('Talent pool POST error:', { error: error as Error });
+        return NextResponse.json(
+            { error: 'Failed to save talent profile. Please try again.' },
+            { status: 500 }
+        );
+    }
+}
+
+/**
+ * DELETE /api/talent-pool/profile
+ * Remove the user from the talent pool
+ */
+export async function DELETE() {
+    try {
+        // Authenticate user
+        const session = await auth();
+        if (!session?.user?.id) {
+            return errors.unauthorized();
+        }
+
+        // Delete the profile if it exists
+        const deleted = await prisma.talentProfile.deleteMany({
+            where: { userId: session.user.id },
+        });
+
+        if (deleted.count === 0) {
+            return NextResponse.json(
+                { error: 'No talent profile found to delete' },
+                { status: 404 }
+            );
+        }
+
+        logger.info('Talent profile deleted', { userId: session.user.id });
+
+        return NextResponse.json({
+            success: true,
+            message: 'Successfully left the Talent Pool',
+        });
+    } catch (error) {
+        logger.error('Talent pool DELETE error:', { error: error as Error });
+        return NextResponse.json(
+            { error: 'Failed to leave the Talent Pool. Please try again.' },
+            { status: 500 }
+        );
+    }
 }
