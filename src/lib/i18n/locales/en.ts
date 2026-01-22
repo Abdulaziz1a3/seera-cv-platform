@@ -161,6 +161,7 @@ export const en = {
                 yearlyPrice: '299',
                 description: 'For serious job seekers',
                 features: [
+                    '50 AI Credits included monthly',
                     '5 resumes + ATS-safe PDF/DOCX/TXT exports',
                     'ATS Simulator with recruiter-view scoring',
                     'AI summary & bullet generator for your target role',
@@ -168,7 +169,7 @@ export const en = {
                     'Career GPS with paths, skill gaps, and Saudi salary ranges',
                     'Live Interview Prep with AI interviewer',
                     'Seera Link shareable profile for recruiters',
-                    'LinkedIn optimizer + cover letter builder',
+                    'LinkedIn optimizer',
                 ],
                 cta: 'Start Pro',
                 badge: 'Most Popular',

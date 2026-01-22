@@ -98,6 +98,7 @@ export function PaywallModal({ isOpen, onClose, feature }: PaywallModalProps) {
     };
 
     const proFeatures = t?.landing?.pricing?.pro?.features ?? [
+        locale === 'ar' ? '50 رصيد AI شهرياً' : '50 AI Credits included monthly',
         locale === 'ar' ? '5 سير ذاتية وتصدير PDF/DOCX/TXT متوافق مع ATS' : '5 resumes + ATS-safe PDF/DOCX/TXT exports',
         locale === 'ar' ? 'محاكي ATS مع عرض مسؤول التوظيف ونتيجة القراءة' : 'ATS Simulator with recruiter-view scoring',
         locale === 'ar' ? 'تلخيص ونقاط خبرة بالذكاء الاصطناعي وفق الوظيفة المستهدفة' : 'AI summary & bullet generator for your target role',
@@ -105,7 +106,7 @@ export function PaywallModal({ isOpen, onClose, feature }: PaywallModalProps) {
         locale === 'ar' ? 'GPS مهني لمسارات وظيفية وفجوات مهارات ورواتب السعودية' : 'Career GPS with paths, skill gaps, and Saudi salary ranges',
         locale === 'ar' ? 'تحضير مقابلات مباشر مع مُحاور ذكي' : 'Live Interview Prep with AI interviewer',
         locale === 'ar' ? 'سيرة لينك لصفحة مشاركة احترافية للرابط' : 'Seera Link shareable profile for recruiters',
-        locale === 'ar' ? 'تحسين LinkedIn وبناء خطابات التقديم' : 'LinkedIn optimizer + cover letter builder',
+        locale === 'ar' ? 'تحسين LinkedIn' : 'LinkedIn optimizer',
     ];
 
     return (

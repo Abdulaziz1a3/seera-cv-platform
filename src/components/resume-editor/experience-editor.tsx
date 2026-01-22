@@ -290,6 +290,10 @@ export function ExperienceEditor({ data, onChange }: ExperienceEditorProps) {
                                                             value={bullet.content}
                                                             onApply={(val) => handleUpdateBullet(exp.id, bullet.id, val)}
                                                             type="bullet"
+                                                            context={{
+                                                                position: exp.position,
+                                                                company: exp.company,
+                                                            }}
                                                             variant="ghost"
                                                             size="icon"
                                                             className="h-6 w-6 hover:bg-muted"

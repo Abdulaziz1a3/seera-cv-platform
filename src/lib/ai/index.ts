@@ -63,21 +63,22 @@ async function recordAIUsage(tracking: AITracking | undefined, usage?: AIRespons
 
 // Prompt templates with guardrails
 export const PROMPT_TEMPLATES = {
-    bulletGenerator: `You are a professional resume writer helping to create impactful bullet points.
+    bulletGenerator: `You are a professional resume writer helping to create impactful achievement bullet points for a CV/resume.
 
 RULES:
-- Start with a strong action verb
-- Include quantifiable results when possible
-- Use the STAR or CAR framework
-- Keep bullets concise (1-2 lines)
-- Be truthful - NEVER invent achievements or metrics
-- If information is missing, ask clarifying questions
-- Label your suggestions clearly as AI-generated
+- ALWAYS generate 4-5 bullet points regardless of provided context
+- Start each bullet with a strong action verb (Led, Managed, Developed, Achieved, Improved, etc.)
+- Include realistic quantifiable results (%, $, numbers) based on typical role outcomes
+- Keep each bullet to 1-2 lines maximum
+- Focus on achievements and impact, not just responsibilities
+- Make bullets specific to the role and industry
+- Use professional language suitable for ATS systems
 
 User's context:
 {{context}}
 
-Generate 3-5 bullet point suggestions for this experience. Format as a JSON array of strings.`,
+Generate exactly 5 achievement-focused bullet points. Return ONLY a JSON array of 5 strings, no explanations or markdown.
+Example format: ["Led team of 5 engineers...", "Improved process efficiency by 30%...", ...]`,
 
     summaryGenerator: `You are a professional resume writer helping to create an impactful professional summary.
 
@@ -389,10 +390,10 @@ export async function generateBulletPoints(
     tracking?: AITracking
 ): Promise<string[]> {
     const context = `
-Company: ${company}
-Position: ${position}
-Description: ${description}
-Existing bullets: ${existingBullets.join('\n')}
+Company: ${company || 'A professional company'}
+Position: ${position || 'Professional role'}
+Description: ${description || 'Standard professional responsibilities'}
+${existingBullets.length > 0 ? `Existing bullets to avoid duplicating:\n${existingBullets.join('\n')}` : ''}
 `;
 
     const response = await aiClient.complete([
@@ -402,21 +403,54 @@ Existing bullets: ${existingBullets.join('\n')}
         },
         {
             role: 'user',
-            content: 'Generate bullet point suggestions.',
+            content: `Generate 5 achievement bullet points for a ${position || 'professional'} at ${company || 'a company'}.`,
         },
     ]);
 
     await recordAIUsage(tracking, response.usage, aiClient.getProvider());
 
+    // Parse JSON response
     try {
-        return JSON.parse(response.content);
+        // Try to extract JSON array from response
+        let content = response.content.trim();
+
+        // Remove markdown code blocks if present
+        if (content.includes('```')) {
+            const match = content.match(/```(?:json)?\s*([\s\S]*?)```/);
+            if (match) content = match[1].trim();
+        }
+
+        // Find JSON array in content
+        const arrayMatch = content.match(/\[[\s\S]*\]/);
+        if (arrayMatch) {
+            const parsed = JSON.parse(arrayMatch[0]);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+                return parsed.filter(item => typeof item === 'string' && item.trim().length > 0);
+            }
+        }
     } catch {
-        // If parsing fails, split by newlines
-        return response.content
-            .split('\n')
-            .filter(line => line.trim().startsWith('-') || line.trim().startsWith('•'))
-            .map(line => line.replace(/^[-•]\s*/, '').trim());
+        // JSON parsing failed, try text parsing
     }
+
+    // Fallback: Parse as text with bullet points or numbered list
+    const lines = response.content
+        .split('\n')
+        .map(line => line.trim())
+        .filter(line => line.length > 10) // Filter out short lines
+        .map(line => line.replace(/^[-•*\d.)\]]+\s*/, '').trim()) // Remove bullet/number prefixes
+        .filter(line => line.length > 0);
+
+    if (lines.length > 0) {
+        return lines.slice(0, 5); // Return up to 5 bullets
+    }
+
+    // Ultimate fallback: return a generic bullet based on the position
+    return [
+        `Managed key responsibilities and delivered results as ${position || 'a professional'}`,
+        `Collaborated with cross-functional teams to achieve organizational objectives`,
+        `Improved processes and workflows to enhance operational efficiency`,
+        `Contributed to team success through problem-solving and initiative`,
+    ];
 }
 
 export async function generateSummary(

@@ -17,6 +17,11 @@ interface AIPolishButtonProps {
     value: string;
     onApply: (newValue: string) => void;
     type?: 'summary' | 'bullet' | 'description';
+    context?: {
+        position?: string;
+        company?: string;
+        description?: string;
+    };
     className?: string;
     variant?: 'default' | 'ghost' | 'outline' | 'secondary';
     size?: 'default' | 'sm' | 'lg' | 'icon';
@@ -26,6 +31,7 @@ export function AIPolishButton({
     value,
     onApply,
     type = 'description',
+    context,
     className,
     variant = 'ghost',
     size = 'icon'
@@ -47,7 +53,8 @@ export function AIPolishButton({
                 body: JSON.stringify({
                     content: value,
                     instruction: instruction,
-                    type: type
+                    type: type,
+                    context: context,
                 }),
             });
 

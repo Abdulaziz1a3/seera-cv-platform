@@ -598,12 +598,12 @@ export default function NewResumePage() {
                             </CardContent>
                         </Card>
                     </div>
-                    <Card className="hidden lg:block lg:sticky lg:top-6">
+                    <Card className="hidden lg:block lg:sticky lg:top-6 max-h-[600px]">
                         <CardContent className="p-4">
                             <div className="text-sm font-medium mb-3">
                                 {locale === 'ar' ? 'معاينة القالب' : 'Template Preview'}
                             </div>
-                            <div className="flex justify-center overflow-hidden">
+                            <div className="flex justify-center overflow-hidden max-h-[520px]">
                                 <LivePreview
                                     resume={{
                                         ...previewBase,

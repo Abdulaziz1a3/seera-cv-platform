@@ -10,6 +10,11 @@ const requestSchema = z.object({
     instruction: z.enum(['fix_grammar', 'professional', 'concise', 'make_concise', 'expand', 'active_voice']).default('professional'),
     type: z.enum(['summary', 'bullet', 'description']).default('description'),
     locale: z.enum(['en', 'ar']).default('en'),
+    context: z.object({
+        position: z.string().optional(),
+        company: z.string().optional(),
+        description: z.string().optional(),
+    }).optional(),
 });
 
 export async function POST(request: Request) {
@@ -36,16 +41,16 @@ export async function POST(request: Request) {
             );
         }
 
-        const { content, instruction, type, locale } = validation.data;
+        const { content, instruction, type, locale, context } = validation.data;
 
-        // 3. Call OpenAI Service
-        // We'll map our specific instructions to the generic 'improveContent' or enhance it here
-        // Ideally, we'd update lib/openai.ts to support these custom instructions,
-        // but for now, we'll map them to the closest existing type or pass custom prompt if we modify lib.
+        // 3. Build context-aware content for polishing
+        let contentWithContext = content;
+        if (context && (context.position || context.company)) {
+            const contextPrefix = `[Context: ${context.position ? `Role: ${context.position}` : ''}${context.position && context.company ? ', ' : ''}${context.company ? `Company: ${context.company}` : ''}]\n\n`;
+            contentWithContext = contextPrefix + content;
+        }
 
-        // Since `improveContent` currently accepts specific types, let's use it as is for now
-        // and send the formatted request.
-
+        // 4. Call OpenAI Service
         const instructionMap: Record<string, string> = {
             fix_grammar: 'fix_grammar',
             professional: 'make_professional',
@@ -57,7 +62,7 @@ export async function POST(request: Request) {
 
         const promptType = instructionMap[instruction] || type;
 
-        let polishedText = await improveContent(content, promptType as any, {
+        let polishedText = await improveContent(contentWithContext, promptType as any, {
             locale,
             tracking: {
                 userId: session.user.id,
