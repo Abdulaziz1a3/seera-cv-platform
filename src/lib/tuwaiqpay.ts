@@ -39,6 +39,20 @@ function extractErrorMessage(payload: unknown, fallback: string): string {
     return fallback;
 }
 
+async function parseErrorPayload(response: Response): Promise<{ message: string; rawText: string }> {
+    const rawText = await response.text().catch(() => '');
+    if (!rawText) {
+        return { message: 'Empty response body', rawText: '' };
+    }
+    try {
+        const payload = JSON.parse(rawText) as unknown;
+        const message = extractErrorMessage(payload, rawText);
+        return { message, rawText };
+    } catch {
+        return { message: rawText, rawText };
+    }
+}
+
 function getConfig() {
     const config = env.tuwaiqpay;
     if (!config.username || !config.password) {
@@ -79,15 +93,13 @@ async function authenticate(): Promise<string> {
     });
 
     if (!response.ok) {
-        const payload = await response.json().catch(async () => ({
-            message: await response.text().catch(() => ''),
-        }));
-        const message = extractErrorMessage(payload, 'TuwaiqPay authentication failed');
+        const { message, rawText } = await parseErrorPayload(response);
+        const shortRaw = rawText.substring(0, 1000);
         logger.error('TuwaiqPay authentication failed', {
             status: response.status,
-            payload,
+            payload: shortRaw,
         });
-        throw new Error(message);
+        throw new Error(`TuwaiqPay authentication failed (${response.status}): ${message}`);
     }
 
     const payload = (await response.json().catch(() => ({}))) as AuthResponse;
@@ -206,15 +218,13 @@ export async function createTuwaiqPayBill(params: {
     });
 
     if (!response.ok) {
-        const payload = await response.json().catch(async () => ({
-            message: await response.text().catch(() => ''),
-        }));
-        const message = extractErrorMessage(payload, 'Failed to create TuwaiqPay bill');
+        const { message, rawText } = await parseErrorPayload(response);
+        const shortRaw = rawText.substring(0, 1000);
         logger.error('TuwaiqPay create bill failed', {
             status: response.status,
-            payload,
+            payload: shortRaw,
         });
-        throw new Error(message);
+        throw new Error(`Failed to create TuwaiqPay bill (${response.status}): ${message}`);
     }
 
     const payload = (await response.json().catch(() => ({}))) as CreateBillResponse;
@@ -259,16 +269,14 @@ export async function checkBillStatus(billId: string | number): Promise<{
     });
 
     if (!response.ok) {
-        const payload = await response.json().catch(async () => ({
-            message: await response.text().catch(() => ''),
-        }));
-        const message = extractErrorMessage(payload, 'Failed to check TuwaiqPay bill status');
+        const { message, rawText } = await parseErrorPayload(response);
+        const shortRaw = rawText.substring(0, 1000);
         logger.error('TuwaiqPay check bill status failed', {
             status: response.status,
             billId,
-            payload,
+            payload: shortRaw,
         });
-        throw new Error(message);
+        throw new Error(`Failed to check TuwaiqPay bill status (${response.status}): ${message}`);
     }
 
     const payload = await response.json().catch(() => ({}));
@@ -307,16 +315,14 @@ export async function checkTransactionStatus(transactionId: string): Promise<{
     });
 
     if (!response.ok) {
-        const payload = await response.json().catch(async () => ({
-            message: await response.text().catch(() => ''),
-        }));
-        const message = extractErrorMessage(payload, 'Failed to check TuwaiqPay transaction status');
+        const { message, rawText } = await parseErrorPayload(response);
+        const shortRaw = rawText.substring(0, 1000);
         logger.error('TuwaiqPay check transaction status failed', {
             status: response.status,
             transactionId,
-            payload,
+            payload: shortRaw,
         });
-        throw new Error(message);
+        throw new Error(`Failed to check TuwaiqPay transaction status (${response.status}): ${message}`);
     }
 
     const payload = await response.json().catch(() => ({}));
