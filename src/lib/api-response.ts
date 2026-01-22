@@ -271,12 +271,9 @@ export function handleError(err: unknown, requestId?: string): NextResponse<APIR
 }
 
 function getRequestIdFromHeaders(): string | undefined {
-    try {
-        const headerList = headers();
-        return headerList.get('x-request-id') || undefined;
-    } catch {
-        return undefined;
-    }
+    // Skip headers() call to avoid async issues in Next.js 14+
+    // Request ID can be passed explicitly via options if needed
+    return undefined;
 }
 
 // Prisma error handling

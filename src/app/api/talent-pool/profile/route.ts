@@ -6,6 +6,7 @@ import { errors } from '@/lib/api-response';
 import { hasActiveSubscription } from '@/lib/subscription';
 
 export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 
 const profileSchema = z.object({
     resumeId: z.string().min(1),
