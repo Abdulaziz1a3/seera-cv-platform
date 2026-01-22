@@ -1,38 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
-import { PrismaClient } from '@prisma/client';
-import { decode } from 'next-auth/jwt';
+import { auth } from '@/lib/auth';
+import { prisma } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
-const prisma = new PrismaClient();
-
-async function getSession() {
-    try {
-        const cookieStore = await cookies();
-        const sessionToken = cookieStore.get('__Secure-authjs.session-token')?.value
-            || cookieStore.get('authjs.session-token')?.value;
-
-        if (!sessionToken) return null;
-
-        const secret = process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET;
-        if (!secret) return null;
-
-        const decoded = await decode({
-            token: sessionToken,
-            secret,
-        });
-
-        return decoded ? { user: { id: decoded.id as string, role: decoded.role as string } } : null;
-    } catch {
-        return null;
-    }
-}
-
 export async function GET() {
     try {
-        const session = await getSession();
+        const session = await auth();
 
         if (!session?.user?.id) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -82,7 +57,7 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
     try {
-        const session = await getSession();
+        const session = await auth();
 
         if (!session?.user?.id) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -158,6 +133,10 @@ export async function POST(request: NextRequest) {
             yearsExp = Math.max(0, Math.round((Date.now() - earliest) / (365 * 24 * 60 * 60 * 1000)));
         }
 
+        const educationStr = education[0]
+            ? `${education[0].degree || ''} ${education[0].field ? 'in ' + education[0].field : ''}`.trim() || null
+            : null;
+
         const profileData = {
             resumeId,
             displayName: contact.fullName || 'Talent Profile',
@@ -166,7 +145,7 @@ export async function POST(request: NextRequest) {
             location: contact.location || null,
             yearsExperience: yearsExp,
             skills: skillsList,
-            education: education[0] ? `${education[0].degree || ''} ${education[0].field ? 'in ' + education[0].field : ''}`.trim() || null : null,
+            education: educationStr,
             summary: snapshot?.summary?.content || '',
             availabilityStatus: body.availabilityStatus || 'open_to_offers',
             desiredSalaryMin: body.desiredSalaryMin || null,
