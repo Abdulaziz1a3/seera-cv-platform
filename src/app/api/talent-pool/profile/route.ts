@@ -69,22 +69,37 @@ function extractProfileFromSnapshot(snapshot: any) {
  * Fetch the current user's talent pool profile
  */
 export async function GET() {
+    // Step 1: Auth
+    let session;
     try {
-        const session = await auth();
-        if (!session?.user?.id) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-        }
+        session = await auth();
+    } catch (authError) {
+        console.error('Auth error:', authError);
+        return NextResponse.json({ error: 'Auth failed', debug: String(authError) }, { status: 500 });
+    }
 
-        // Check for Pro subscription
-        const hasAccess = await hasActiveSubscription(session.user.id);
-        if (!hasAccess) {
-            return NextResponse.json(
-                { error: 'Upgrade to access Talent Pool' },
-                { status: 403 }
-            );
-        }
+    if (!session?.user?.id) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
-        // Fetch existing profile
+    // Step 2: Subscription check
+    let hasAccess = false;
+    try {
+        hasAccess = await hasActiveSubscription(session.user.id);
+    } catch (subError) {
+        console.error('Subscription check error:', subError);
+        return NextResponse.json({ error: 'Subscription check failed', debug: String(subError) }, { status: 500 });
+    }
+
+    if (!hasAccess) {
+        return NextResponse.json(
+            { error: 'Upgrade to access Talent Pool' },
+            { status: 403 }
+        );
+    }
+
+    // Step 3: Profile fetch
+    try {
         const profile = await prisma.talentProfile.findUnique({
             where: { userId: session.user.id },
             include: {
@@ -101,12 +116,9 @@ export async function GET() {
             profile,
             hasAccess: true,
         });
-    } catch (error) {
-        console.error('Talent pool GET error:', error);
-        return NextResponse.json(
-            { error: 'Failed to fetch talent profile. Please try again.' },
-            { status: 500 }
-        );
+    } catch (dbError) {
+        console.error('Database error:', dbError);
+        return NextResponse.json({ error: 'Database query failed', debug: String(dbError) }, { status: 500 });
     }
 }
 
