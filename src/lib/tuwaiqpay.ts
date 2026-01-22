@@ -49,6 +49,7 @@ function getConfig() {
     return {
         ...config,
         baseUrl: config.baseUrl.trim().replace(/\/+$/, ''),
+        webhookUrl: config.webhookUrl?.trim(),
         username: config.username.trim(),
         userNameType,
     };
@@ -107,7 +108,7 @@ async function authenticate(): Promise<string> {
 async function fetchWithAuth(url: string, init: RequestInit): Promise<Response> {
     const token = await authenticate();
     const config = getConfig();
-    const response = await fetch(url, {
+    let response = await fetch(url, {
         ...init,
         headers: {
             ...(init.headers || {}),
@@ -119,13 +120,14 @@ async function fetchWithAuth(url: string, init: RequestInit): Promise<Response> 
         cache: 'no-store',
     });
 
-    if (response.status !== 401) {
+    const shouldRetry = await isTokenError(response);
+    if (!shouldRetry) {
         return response;
     }
 
     cachedToken = null;
     const refreshedToken = await authenticate();
-    return fetch(url, {
+    response = await fetch(url, {
         ...init,
         headers: {
             ...(init.headers || {}),
@@ -136,6 +138,23 @@ async function fetchWithAuth(url: string, init: RequestInit): Promise<Response> 
         },
         cache: 'no-store',
     });
+    return response;
+}
+
+async function isTokenError(response: Response): Promise<boolean> {
+    if (response.status === 401) return true;
+    if (response.status !== 400 && response.status !== 403) return false;
+    try {
+        const clone = response.clone();
+        const payload = await clone.json().catch(async () => {
+            const text = await clone.text();
+            return { message: text };
+        });
+        const text = JSON.stringify(payload).toLowerCase();
+        return text.includes('token') && (text.includes('expired') || text.includes('invalid'));
+    } catch {
+        return false;
+    }
 }
 
 export async function createTuwaiqPayBill(params: {
@@ -181,9 +200,10 @@ export async function createTuwaiqPayBill(params: {
     }
 
     // Add callback URL for webhooks if different
-    if (params.callbackUrl) {
-        body.callbackUrl = params.callbackUrl;
-        body.webhookUrl = params.callbackUrl;
+    const webhookUrl = params.callbackUrl || config.webhookUrl;
+    if (webhookUrl) {
+        body.callbackUrl = webhookUrl;
+        body.webhookUrl = webhookUrl;
     }
 
     const response = await fetchWithAuth(url, {
