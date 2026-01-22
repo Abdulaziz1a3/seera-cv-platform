@@ -22,10 +22,10 @@ async function debugAndFixSubscription(email: string) {
             where: { email: { equals: email, mode: 'insensitive' } },
             include: {
                 subscription: true,
+                talentProfile: true,
                 _count: {
                     select: {
                         resumes: true,
-                        talentProfile: true,
                     },
                 },
             },
@@ -41,7 +41,7 @@ async function debugAndFixSubscription(email: string) {
         console.log(`   Name: ${user.name}`);
         console.log(`   Role: ${user.role}`);
         console.log(`   Resumes: ${user._count.resumes}`);
-        console.log(`   Has Talent Profile: ${user._count.talentProfile > 0}`);
+        console.log(`   Has Talent Profile: ${!!user.talentProfile}`);
 
         // Step 2: Check subscription
         console.log('\nStep 2: Checking subscription status...');

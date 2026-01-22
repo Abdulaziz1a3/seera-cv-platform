@@ -27,10 +27,10 @@ export async function POST(request: Request) {
             where: { email: { equals: email, mode: 'insensitive' } },
             include: {
                 subscription: true,
+                talentProfile: true,
                 _count: {
                     select: {
-                        resumes: true,
-                        talentProfile: true
+                        resumes: true
                     }
                 }
             }
@@ -54,7 +54,7 @@ export async function POST(request: Request) {
                 stripeSubscriptionId: user.subscription.stripeSubscriptionId || null,
             } : null,
             resumeCount: user?._count.resumes || 0,
-            hasTalentProfile: (user?._count.talentProfile || 0) > 0,
+            hasTalentProfile: !!user?.talentProfile,
             checks: {} as Record<string, boolean>,
             hasActiveSubscription: false,
             failureReason: [] as string[],
