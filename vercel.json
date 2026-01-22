@@ -73,6 +73,9 @@
     "src/app/api/interview/**/*.ts": {
       "maxDuration": 60
     },
+    "src/app/api/talent-pool/**/*.ts": {
+      "maxDuration": 30
+    },
     "src/app/api/stripe/webhook/route.ts": {
       "maxDuration": 30
     },
