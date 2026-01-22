@@ -41,10 +41,11 @@ const customJestConfig = {
         '**/?(*.)+(spec|test).[jt]s?(x)',
     ],
     moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
-    watchPlugins: [
-        'jest-watch-typeahead/filename',
-        'jest-watch-typeahead/testname',
-    ],
+    // Watch plugins disabled - package not installed
+    // watchPlugins: [
+    //     'jest-watch-typeahead/filename',
+    //     'jest-watch-typeahead/testname',
+    // ],
 };
 
 // Export async config

@@ -3,7 +3,6 @@ import { z } from 'zod';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { errors } from '@/lib/api-response';
-import { hasActiveSubscription } from '@/lib/subscription';
 
 const profileSchema = z.object({
     resumeId: z.string().min(1),
@@ -61,10 +60,6 @@ export async function GET() {
     if (!session?.user?.id) {
         return errors.unauthorized();
     }
-    const hasAccess = await hasActiveSubscription(session.user.id);
-    if (!hasAccess) {
-        return errors.subscriptionRequired('Talent Pool');
-    }
 
     const profile = await prisma.talentProfile.findUnique({
         where: { userId: session.user.id },
@@ -77,10 +72,6 @@ export async function POST(request: NextRequest) {
     const session = await auth();
     if (!session?.user?.id) {
         return errors.unauthorized();
-    }
-    const hasAccess = await hasActiveSubscription(session.user.id);
-    if (!hasAccess) {
-        return errors.subscriptionRequired('Talent Pool');
     }
 
     const body = await request.json();
