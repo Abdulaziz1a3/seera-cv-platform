@@ -2,9 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db';
-import { errors } from '@/lib/api-response';
 import { hasActiveSubscription } from '@/lib/subscription';
 import { logger } from '@/lib/logger';
+
+// Force dynamic to prevent static generation issues
+export const dynamic = 'force-dynamic';
 
 // Validation schema for profile creation/update
 const profileSchema = z.object({
@@ -72,21 +74,40 @@ function extractProfileFromSnapshot(snapshot: any) {
  */
 export async function GET() {
     try {
-        // Authenticate user
+        // Step 1: Authenticate user
         const session = await auth();
         if (!session?.user?.id) {
-            return errors.unauthorized();
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        // Check for Pro subscription
-        const hasAccess = await hasActiveSubscription(session.user.id);
+        const userId = session.user.id;
+
+        // Step 2: Check for Pro subscription
+        let hasAccess = false;
+        try {
+            hasAccess = await hasActiveSubscription(userId);
+        } catch (subError) {
+            logger.error('Talent pool subscription check failed:', {
+                error: subError as Error,
+                userId
+            });
+            // Return 403 on subscription check failure
+            return NextResponse.json(
+                { error: 'Subscription check failed. Please try again.' },
+                { status: 403 }
+            );
+        }
+
         if (!hasAccess) {
-            return errors.subscriptionRequired('Talent Pool');
+            return NextResponse.json(
+                { error: 'Upgrade to access Talent Pool' },
+                { status: 403 }
+            );
         }
 
-        // Fetch existing profile
+        // Step 3: Fetch existing profile
         const profile = await prisma.talentProfile.findUnique({
-            where: { userId: session.user.id },
+            where: { userId },
             include: {
                 resume: {
                     select: {
@@ -102,7 +123,11 @@ export async function GET() {
             hasAccess: true,
         });
     } catch (error) {
-        logger.error('Talent pool GET error:', { error: error as Error, });
+        const err = error as Error;
+        logger.error('Talent pool GET error:', {
+            message: err?.message,
+            stack: err?.stack,
+        });
         return NextResponse.json(
             { error: 'Failed to fetch talent profile. Please try again.' },
             { status: 500 }
@@ -119,13 +144,16 @@ export async function POST(request: NextRequest) {
         // Authenticate user
         const session = await auth();
         if (!session?.user?.id) {
-            return errors.unauthorized();
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
         // Check for Pro subscription
         const hasAccess = await hasActiveSubscription(session.user.id);
         if (!hasAccess) {
-            return errors.subscriptionRequired('Talent Pool');
+            return NextResponse.json(
+                { error: 'Upgrade to access Talent Pool' },
+                { status: 403 }
+            );
         }
 
         // Parse and validate request body
@@ -263,7 +291,7 @@ export async function DELETE() {
         // Authenticate user
         const session = await auth();
         if (!session?.user?.id) {
-            return errors.unauthorized();
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
         // Delete the profile if it exists

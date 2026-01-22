@@ -105,17 +105,28 @@ export default function TalentPoolPage() {
 
         try {
             const res = await fetch('/api/talent-pool/profile');
-            const data = await res.json();
 
+            // Handle 403 specifically (subscription required)
             if (res.status === 403) {
                 setHasAccess(false);
+                setIsLoading(false);
                 return;
             }
 
-            if (!res.ok) {
-                throw new Error(data?.error || 'Failed to load profile');
+            // Try to parse JSON response
+            let data;
+            try {
+                data = await res.json();
+            } catch {
+                // If JSON parsing fails, set a generic error
+                throw new Error(locale === 'ar' ? 'فشل في تحميل الملف الشخصي' : 'Failed to load profile');
             }
 
+            if (!res.ok) {
+                throw new Error(data?.error || (locale === 'ar' ? 'فشل في تحميل الملف الشخصي' : 'Failed to load profile'));
+            }
+
+            // Successfully loaded - update state with profile data
             if (data?.profile) {
                 const p = data.profile;
                 setProfile(p);
@@ -131,15 +142,19 @@ export default function TalentPoolPage() {
                 setNoticePeriod(p.noticePeriod || '2_weeks');
                 setPreferredLocations(p.preferredLocations || []);
                 setPreferredIndustries(p.preferredIndustries || []);
+            } else {
+                // No profile yet - that's okay, user can create one
+                setProfile(null);
             }
         } catch (err) {
-            const message = err instanceof Error ? err.message : 'Failed to load profile';
+            console.error('Talent pool load error:', err);
+            const message = err instanceof Error ? err.message : (locale === 'ar' ? 'فشل في تحميل الملف الشخصي' : 'Failed to load profile');
             setError(message);
             toast.error(message);
         } finally {
             setIsLoading(false);
         }
-    }, []);
+    }, [locale]);
 
     useEffect(() => {
         loadProfile();
