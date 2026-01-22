@@ -2,7 +2,6 @@
 // Provides consistent response format across all API endpoints
 
 import { NextResponse } from 'next/server';
-import { headers } from 'next/headers';
 import { ZodError } from 'zod';
 import { logger } from './logger';
 

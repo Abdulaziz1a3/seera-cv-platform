@@ -2,8 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db';
-import { errors } from '@/lib/api-response';
-import { hasActiveSubscription } from '@/lib/subscription';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -59,15 +57,42 @@ function extractProfileFromSnapshot(snapshot: any) {
     };
 }
 
+async function checkSubscription(userId: string): Promise<boolean> {
+    const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+            role: true,
+            subscription: {
+                select: {
+                    plan: true,
+                    status: true,
+                    currentPeriodEnd: true,
+                },
+            },
+        },
+    });
+
+    if (!user) return false;
+    if (user.role === 'SUPER_ADMIN') return true;
+
+    const subscription = user.subscription;
+    if (!subscription || subscription.plan === 'FREE') return false;
+    if (subscription.status !== 'ACTIVE' && subscription.status !== 'TRIALING') return false;
+    if (subscription.currentPeriodEnd && subscription.currentPeriodEnd < new Date()) return false;
+
+    return true;
+}
+
 export async function GET() {
     try {
         const session = await auth();
         if (!session?.user?.id) {
-            return errors.unauthorized();
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
-        const hasAccess = await hasActiveSubscription(session.user.id);
+
+        const hasAccess = await checkSubscription(session.user.id);
         if (!hasAccess) {
-            return errors.subscriptionRequired('Talent Pool');
+            return NextResponse.json({ error: 'Subscription required' }, { status: 403 });
         }
 
         const profile = await prisma.talentProfile.findUnique({
@@ -77,10 +102,7 @@ export async function GET() {
         return NextResponse.json({ profile });
     } catch (error) {
         console.error('Talent pool GET error:', error);
-        return NextResponse.json(
-            { error: 'Failed to load talent pool profile' },
-            { status: 500 }
-        );
+        return NextResponse.json({ error: 'Server error' }, { status: 500 });
     }
 }
 
@@ -88,15 +110,28 @@ export async function POST(request: NextRequest) {
     try {
         const session = await auth();
         if (!session?.user?.id) {
-            return errors.unauthorized();
-        }
-        const hasAccess = await hasActiveSubscription(session.user.id);
-        if (!hasAccess) {
-            return errors.subscriptionRequired('Talent Pool');
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        const body = await request.json();
-        const data = profileSchema.parse(body);
+        const hasAccess = await checkSubscription(session.user.id);
+        if (!hasAccess) {
+            return NextResponse.json({ error: 'Subscription required' }, { status: 403 });
+        }
+
+        let body;
+        try {
+            body = await request.json();
+        } catch {
+            return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+        }
+
+        let data;
+        try {
+            data = profileSchema.parse(body);
+        } catch (err) {
+            console.error('Validation error:', err);
+            return NextResponse.json({ error: 'Invalid data' }, { status: 400 });
+        }
 
         const resume = await prisma.resume.findFirst({
             where: { id: data.resumeId, userId: session.user.id },
@@ -164,15 +199,6 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ profile });
     } catch (error) {
         console.error('Talent pool POST error:', error);
-        if (error instanceof z.ZodError) {
-            return NextResponse.json(
-                { error: 'Invalid request data', details: error.errors },
-                { status: 400 }
-            );
-        }
-        return NextResponse.json(
-            { error: 'Failed to join talent pool' },
-            { status: 500 }
-        );
+        return NextResponse.json({ error: 'Server error' }, { status: 500 });
     }
 }
