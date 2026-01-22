@@ -35,6 +35,7 @@ export const PLANS = {
             atsDetails: false,
             interviewPrep: false,
             careerGps: false,
+            talentPool: false,
         },
     },
     pro: {
@@ -54,6 +55,7 @@ export const PLANS = {
             atsDetails: true,
             interviewPrep: true,
             careerGps: false,
+            talentPool: true,
         },
     },
     enterprise: {
@@ -73,6 +75,7 @@ export const PLANS = {
             atsDetails: true,
             interviewPrep: true,
             careerGps: true,
+            talentPool: true,
             teamMembers: true,
             analytics: true,
             customBranding: true,

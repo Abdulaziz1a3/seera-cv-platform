@@ -18,12 +18,15 @@ export async function GET() {
         },
     });
 
+    const plan = subscription?.plan || 'FREE';
     const status = subscription?.status || 'UNPAID';
-    const isActive = (status === 'ACTIVE' || status === 'TRIALING')
+    // isActive means user has an active PAID subscription (not FREE)
+    const isActive = plan !== 'FREE'
+        && (status === 'ACTIVE' || status === 'TRIALING')
         && (!subscription?.currentPeriodEnd || subscription.currentPeriodEnd >= new Date());
 
     return NextResponse.json({
-        plan: subscription?.plan || 'FREE',
+        plan,
         status,
         isActive,
         currentPeriodEnd: subscription?.currentPeriodEnd,
