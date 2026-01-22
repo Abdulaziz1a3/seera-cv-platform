@@ -3,6 +3,8 @@ import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import type { ApplicationStatus } from '@prisma/client';
 
+export const dynamic = 'force-dynamic';
+
 type UiStatus =
     | 'saved'
     | 'applied'
