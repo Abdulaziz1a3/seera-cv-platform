@@ -13,6 +13,8 @@ import {
 } from '@/lib/interview-ai';
 import type { InterviewContext } from '@/lib/interview-ai';
 
+export const dynamic = 'force-dynamic';
+
 async function enrichContextWithResume(
     userId: string,
     context: Record<string, any>

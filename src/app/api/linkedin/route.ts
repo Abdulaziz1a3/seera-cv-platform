@@ -12,6 +12,8 @@ import {
 } from '@/lib/linkedin-optimizer';
 import { normalizeResumeForAI } from '@/lib/resume-normalizer';
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(request: NextRequest) {
     const session = await auth();
     if (!session?.user?.id) {

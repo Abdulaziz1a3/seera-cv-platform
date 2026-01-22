@@ -5,6 +5,8 @@ import { prisma } from '@/lib/db';
 import { errors } from '@/lib/api-response';
 import { hasActiveSubscription } from '@/lib/subscription';
 
+export const dynamic = 'force-dynamic';
+
 const profileSchema = z.object({
     resumeId: z.string().min(1),
     isVisible: z.boolean().default(true),
