@@ -1,22 +1,43 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
+import { cookies } from 'next/headers';
 import { PrismaClient } from '@prisma/client';
+import { decode } from 'next-auth/jwt';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
-// Create a fresh Prisma client for this route to avoid any caching issues
 const prisma = new PrismaClient();
+
+async function getSession() {
+    try {
+        const cookieStore = await cookies();
+        const sessionToken = cookieStore.get('__Secure-authjs.session-token')?.value
+            || cookieStore.get('authjs.session-token')?.value;
+
+        if (!sessionToken) return null;
+
+        const secret = process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET;
+        if (!secret) return null;
+
+        const decoded = await decode({
+            token: sessionToken,
+            secret,
+        });
+
+        return decoded ? { user: { id: decoded.id as string, role: decoded.role as string } } : null;
+    } catch {
+        return null;
+    }
+}
 
 export async function GET() {
     try {
-        const session = await auth();
+        const session = await getSession();
 
         if (!session?.user?.id) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        // Check subscription inline
         const user = await prisma.user.findUnique({
             where: { id: session.user.id },
             select: {
@@ -35,7 +56,6 @@ export async function GET() {
             return NextResponse.json({ error: 'User not found' }, { status: 404 });
         }
 
-        // Check if user has access
         const isAdmin = user.role === 'SUPER_ADMIN';
         const sub = user.subscription;
         const hasActiveSub = sub &&
@@ -62,13 +82,12 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
     try {
-        const session = await auth();
+        const session = await getSession();
 
         if (!session?.user?.id) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        // Check subscription inline
         const user = await prisma.user.findUnique({
             where: { id: session.user.id },
             select: {
@@ -87,7 +106,6 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'User not found' }, { status: 404 });
         }
 
-        // Check if user has access
         const isAdmin = user.role === 'SUPER_ADMIN';
         const sub = user.subscription;
         const hasActiveSub = sub &&
@@ -99,7 +117,6 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Subscription required' }, { status: 403 });
         }
 
-        // Parse request body
         let body: any;
         try {
             body = await request.json();
@@ -112,7 +129,6 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'resumeId required' }, { status: 400 });
         }
 
-        // Find resume
         const resume = await prisma.resume.findFirst({
             where: { id: resumeId, userId: session.user.id },
             include: {
@@ -130,7 +146,6 @@ export async function POST(request: NextRequest) {
         const education = snapshot?.education?.items || [];
         const skillsList = snapshot?.skills?.simpleList || [];
 
-        // Calculate years of experience
         let yearsExp: number | null = null;
         const startDates = experience
             .map((e: any) => e?.startDate)
@@ -151,7 +166,7 @@ export async function POST(request: NextRequest) {
             location: contact.location || null,
             yearsExperience: yearsExp,
             skills: skillsList,
-            education: education[0] ? `${education[0].degree || ''} ${education[0].field ? 'in ' + education[0].field : ''}`.trim() : null,
+            education: education[0] ? `${education[0].degree || ''} ${education[0].field ? 'in ' + education[0].field : ''}`.trim() || null : null,
             summary: snapshot?.summary?.content || '',
             availabilityStatus: body.availabilityStatus || 'open_to_offers',
             desiredSalaryMin: body.desiredSalaryMin || null,
