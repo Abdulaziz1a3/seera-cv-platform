@@ -722,15 +722,16 @@ export default function TalentPoolPage() {
 
                                                 {/* Recruiter Actions */}
                                                 <div className="flex gap-3 mt-5 pt-4 border-t border-gray-100 dark:border-gray-800">
-                                                    <Button variant="outline" className="flex-1" disabled>
-                                                        <MessageSquare className="h-4 w-4 me-2" />
-                                                        {locale === 'ar' ? 'إرسال رسالة' : 'Message'}
-                                                    </Button>
                                                     <Button className="flex-1 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700" disabled>
                                                         <Eye className="h-4 w-4 me-2" />
-                                                        {locale === 'ar' ? 'عرض الملف الكامل' : 'View Full Profile'}
+                                                        {locale === 'ar' ? 'عرض السيرة الذاتية الكاملة' : 'View Full Resume'}
                                                     </Button>
                                                 </div>
+                                                <p className="text-xs text-center text-gray-400 mt-2">
+                                                    {locale === 'ar'
+                                                        ? 'عند النقر، يمكن للمجند رؤية سيرتك الذاتية الكاملة'
+                                                        : 'When clicked, recruiters can view your complete resume'}
+                                                </p>
                                             </div>
                                         </CardContent>
                                     </Card>
