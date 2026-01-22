@@ -59,97 +59,119 @@ function extractProfileFromSnapshot(snapshot: any) {
 }
 
 export async function GET() {
-    const session = await auth();
-    if (!session?.user?.id) {
-        return errors.unauthorized();
-    }
-    const hasAccess = await hasActiveSubscription(session.user.id);
-    if (!hasAccess) {
-        return errors.subscriptionRequired('Talent Pool');
-    }
+    try {
+        const session = await auth();
+        if (!session?.user?.id) {
+            return errors.unauthorized();
+        }
+        const hasAccess = await hasActiveSubscription(session.user.id);
+        if (!hasAccess) {
+            return errors.subscriptionRequired('Talent Pool');
+        }
 
-    const profile = await prisma.talentProfile.findUnique({
-        where: { userId: session.user.id },
-    });
+        const profile = await prisma.talentProfile.findUnique({
+            where: { userId: session.user.id },
+        });
 
-    return NextResponse.json({ profile });
+        return NextResponse.json({ profile });
+    } catch (error) {
+        console.error('Talent pool GET error:', error);
+        return NextResponse.json(
+            { error: 'Failed to load talent pool profile' },
+            { status: 500 }
+        );
+    }
 }
 
 export async function POST(request: NextRequest) {
-    const session = await auth();
-    if (!session?.user?.id) {
-        return errors.unauthorized();
+    try {
+        const session = await auth();
+        if (!session?.user?.id) {
+            return errors.unauthorized();
+        }
+        const hasAccess = await hasActiveSubscription(session.user.id);
+        if (!hasAccess) {
+            return errors.subscriptionRequired('Talent Pool');
+        }
+
+        const body = await request.json();
+        const data = profileSchema.parse(body);
+
+        const resume = await prisma.resume.findFirst({
+            where: { id: data.resumeId, userId: session.user.id },
+            include: {
+                versions: { orderBy: { version: 'desc' }, take: 1 },
+            },
+        });
+
+        if (!resume || resume.versions.length === 0) {
+            return NextResponse.json({ error: 'Resume not found' }, { status: 404 });
+        }
+
+        const snapshot = resume.versions[0].snapshot as any;
+        const derived = extractProfileFromSnapshot(snapshot);
+
+        const profile = await prisma.talentProfile.upsert({
+            where: { userId: session.user.id },
+            create: {
+                userId: session.user.id,
+                resumeId: data.resumeId,
+                displayName: derived.displayName,
+                currentTitle: derived.currentTitle,
+                currentCompany: derived.currentCompany,
+                location: derived.location,
+                yearsExperience: derived.yearsExperience,
+                skills: derived.skills,
+                education: derived.education,
+                summary: derived.summary,
+                availabilityStatus: data.availabilityStatus,
+                desiredSalaryMin: data.desiredSalaryMin,
+                desiredSalaryMax: data.desiredSalaryMax,
+                isVisible: data.isVisible,
+                hideCurrentEmployer: data.hideCurrentEmployer,
+                hideSalaryHistory: data.hideSalaryHistory,
+                verifiedCompaniesOnly: data.verifiedCompaniesOnly,
+                noticePeriod: data.noticePeriod,
+                preferredLocations: data.preferredLocations,
+                preferredIndustries: data.preferredIndustries,
+                desiredRoles: data.desiredRoles,
+            },
+            update: {
+                resumeId: data.resumeId,
+                displayName: derived.displayName,
+                currentTitle: derived.currentTitle,
+                currentCompany: derived.currentCompany,
+                location: derived.location,
+                yearsExperience: derived.yearsExperience,
+                skills: derived.skills,
+                education: derived.education,
+                summary: derived.summary,
+                availabilityStatus: data.availabilityStatus,
+                desiredSalaryMin: data.desiredSalaryMin,
+                desiredSalaryMax: data.desiredSalaryMax,
+                isVisible: data.isVisible,
+                hideCurrentEmployer: data.hideCurrentEmployer,
+                hideSalaryHistory: data.hideSalaryHistory,
+                verifiedCompaniesOnly: data.verifiedCompaniesOnly,
+                noticePeriod: data.noticePeriod,
+                preferredLocations: data.preferredLocations,
+                preferredIndustries: data.preferredIndustries,
+                desiredRoles: data.desiredRoles,
+            },
+        });
+
+        return NextResponse.json({ profile });
+    } catch (error) {
+        console.error('Talent pool POST error:', error);
+        if (error instanceof z.ZodError) {
+            return NextResponse.json(
+                { error: 'Invalid request data', details: error.errors },
+                { status: 400 }
+            );
+        }
+        return NextResponse.json(
+            { error: 'Failed to join talent pool' },
+            { status: 500 }
+        );
     }
-    const hasAccess = await hasActiveSubscription(session.user.id);
-    if (!hasAccess) {
-        return errors.subscriptionRequired('Talent Pool');
-    }
-
-    const body = await request.json();
-    const data = profileSchema.parse(body);
-
-    const resume = await prisma.resume.findFirst({
-        where: { id: data.resumeId, userId: session.user.id },
-        include: {
-            versions: { orderBy: { version: 'desc' }, take: 1 },
-        },
-    });
-
-    if (!resume || resume.versions.length === 0) {
-        return NextResponse.json({ error: 'Resume not found' }, { status: 404 });
-    }
-
-    const snapshot = resume.versions[0].snapshot as any;
-    const derived = extractProfileFromSnapshot(snapshot);
-
-    const profile = await prisma.talentProfile.upsert({
-        where: { userId: session.user.id },
-        create: {
-            userId: session.user.id,
-            resumeId: data.resumeId,
-            displayName: derived.displayName,
-            currentTitle: derived.currentTitle,
-            currentCompany: derived.currentCompany,
-            location: derived.location,
-            yearsExperience: derived.yearsExperience,
-            skills: derived.skills,
-            education: derived.education,
-            summary: derived.summary,
-            availabilityStatus: data.availabilityStatus,
-            desiredSalaryMin: data.desiredSalaryMin,
-            desiredSalaryMax: data.desiredSalaryMax,
-            isVisible: data.isVisible,
-            hideCurrentEmployer: data.hideCurrentEmployer,
-            hideSalaryHistory: data.hideSalaryHistory,
-            verifiedCompaniesOnly: data.verifiedCompaniesOnly,
-            noticePeriod: data.noticePeriod,
-            preferredLocations: data.preferredLocations,
-            preferredIndustries: data.preferredIndustries,
-            desiredRoles: data.desiredRoles,
-        },
-        update: {
-            resumeId: data.resumeId,
-            displayName: derived.displayName,
-            currentTitle: derived.currentTitle,
-            currentCompany: derived.currentCompany,
-            location: derived.location,
-            yearsExperience: derived.yearsExperience,
-            skills: derived.skills,
-            education: derived.education,
-            summary: derived.summary,
-            availabilityStatus: data.availabilityStatus,
-            desiredSalaryMin: data.desiredSalaryMin,
-            desiredSalaryMax: data.desiredSalaryMax,
-            isVisible: data.isVisible,
-            hideCurrentEmployer: data.hideCurrentEmployer,
-            hideSalaryHistory: data.hideSalaryHistory,
-            verifiedCompaniesOnly: data.verifiedCompaniesOnly,
-            noticePeriod: data.noticePeriod,
-            preferredLocations: data.preferredLocations,
-            preferredIndustries: data.preferredIndustries,
-            desiredRoles: data.desiredRoles,
-        },
-    });
-
-    return NextResponse.json({ profile });
 }
