@@ -56,16 +56,24 @@ function extractProfileFromSnapshot(snapshot: any) {
 }
 
 export async function GET() {
-    const session = await auth();
-    if (!session?.user?.id) {
-        return errors.unauthorized();
+    try {
+        const session = await auth();
+        if (!session?.user?.id) {
+            return errors.unauthorized();
+        }
+
+        const profile = await prisma.talentProfile.findUnique({
+            where: { userId: session.user.id },
+        });
+
+        return NextResponse.json({ profile });
+    } catch (error) {
+        console.error('Talent pool GET error:', error);
+        return NextResponse.json(
+            { error: 'Failed to fetch talent profile' },
+            { status: 500 }
+        );
     }
-
-    const profile = await prisma.talentProfile.findUnique({
-        where: { userId: session.user.id },
-    });
-
-    return NextResponse.json({ profile });
 }
 
 export async function POST(request: NextRequest) {
