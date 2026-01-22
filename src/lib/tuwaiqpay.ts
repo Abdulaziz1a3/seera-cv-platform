@@ -144,17 +144,11 @@ async function fetchWithAuth(url: string, init: RequestInit): Promise<Response> 
 async function isTokenError(response: Response): Promise<boolean> {
     if (response.status === 401) return true;
     if (response.status !== 400 && response.status !== 403) return false;
-    try {
-        const clone = response.clone();
-        const payload = await clone.json().catch(async () => {
-            const text = await clone.text();
-            return { message: text };
-        });
-        const text = JSON.stringify(payload).toLowerCase();
-        return text.includes('token') && (text.includes('expired') || text.includes('invalid'));
-    } catch {
-        return false;
-    }
+    const clone = response.clone();
+    const rawText = await clone.text().catch(() => '');
+    if (!rawText) return false;
+    const text = rawText.toLowerCase();
+    return text.includes('token') && (text.includes('expired') || text.includes('invalid'));
 }
 
 export async function createTuwaiqPayBill(params: {
