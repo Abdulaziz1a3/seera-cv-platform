@@ -44,12 +44,17 @@ export async function POST(request: Request) {
         const amountSar = interval === 'yearly' ? planConfig.priceYearly : planConfig.priceMonthly;
         const customer = await getUserPaymentProfile(session.user.id);
 
+        // Get base URL for redirects
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://seera-ai.com';
+        const returnUrl = `${baseUrl}/dashboard/billing?paymentComplete=1`;
+
         const intervalLabel = interval === 'yearly' ? 'Annual' : 'Monthly';
         const bill = await createTuwaiqPayBill({
             amountSar,
             description: `Seera AI - ${planConfig.name.en} Plan (${intervalLabel}) - ${amountSar} SAR`,
             customerName: customer.customerName,
             customerMobilePhone: customer.customerPhone,
+            returnUrl,
         });
 
         await prisma.paymentTransaction.create({

@@ -147,6 +147,8 @@ export async function createTuwaiqPayBill(params: {
     includeVat?: boolean;
     continueWithMaxCharge?: boolean;
     supportedPaymentMethods?: string[];
+    callbackUrl?: string;
+    returnUrl?: string;
 }): Promise<{
     link: string;
     transactionId?: string;
@@ -157,7 +159,7 @@ export async function createTuwaiqPayBill(params: {
 }> {
     const config = getConfig();
     const url = `${config.baseUrl}/api/v1/integration/bills`;
-    const body = {
+    const body: Record<string, unknown> = {
         actionDateInDays: params.actionDateInDays ?? 2,
         amount: Number(params.amountSar.toFixed(2)),
         currencyId: 1,
@@ -168,6 +170,21 @@ export async function createTuwaiqPayBill(params: {
         includeVat: params.includeVat ?? false,
         continueWithMaxCharge: params.continueWithMaxCharge ?? false,
     };
+
+    // Add return URL if provided - user will be redirected here after payment
+    if (params.returnUrl) {
+        body.returnUrl = params.returnUrl;
+        body.callbackUrl = params.returnUrl;
+        body.redirectUrl = params.returnUrl;
+        body.successUrl = params.returnUrl;
+        body.failureUrl = params.returnUrl;
+    }
+
+    // Add callback URL for webhooks if different
+    if (params.callbackUrl) {
+        body.callbackUrl = params.callbackUrl;
+        body.webhookUrl = params.callbackUrl;
+    }
 
     const response = await fetchWithAuth(url, {
         method: 'POST',
@@ -208,5 +225,100 @@ export function getWebhookVerificationConfig() {
     return {
         headerName: (config.webhookHeaderName || 'x-signature').toLowerCase(),
         headerValue: config.webhookHeaderValue || 'Tuwaiqpay',
+    };
+}
+
+// Check bill status from TuwaiqPay API
+export async function checkBillStatus(billId: string | number): Promise<{
+    status: string;
+    isPaid: boolean;
+    transactionId?: string;
+    paidAt?: string;
+    amount?: number;
+    rawResponse?: Record<string, unknown>;
+}> {
+    const config = getConfig();
+    const url = `${config.baseUrl}/api/v1/integration/bills/${billId}`;
+
+    const response = await fetchWithAuth(url, {
+        method: 'GET',
+    });
+
+    if (!response.ok) {
+        const payload = await response.json().catch(async () => ({
+            message: await response.text().catch(() => ''),
+        }));
+        const message = extractErrorMessage(payload, 'Failed to check TuwaiqPay bill status');
+        logger.error('TuwaiqPay check bill status failed', {
+            status: response.status,
+            billId,
+            payload,
+        });
+        throw new Error(message);
+    }
+
+    const payload = await response.json().catch(() => ({}));
+    const data = payload?.data || payload;
+
+    // Extract status - try multiple possible field names
+    const status = data?.status || data?.bill?.status || data?.transactionStatus || 'UNKNOWN';
+    const normalizedStatus = status.toUpperCase();
+
+    const isPaid = ['PAID', 'PENDING_SETTLEMENT', 'SUCCESS', 'COMPLETED', 'APPROVED', 'SETTLED'].includes(normalizedStatus);
+
+    return {
+        status: normalizedStatus,
+        isPaid,
+        transactionId: data?.transactionId || data?.bill?.transactionId,
+        paidAt: data?.paidAt || data?.paymentDate || data?.bill?.eventDate,
+        amount: data?.amount || data?.bill?.amount,
+        rawResponse: payload,
+    };
+}
+
+// Check transaction status by transaction ID
+export async function checkTransactionStatus(transactionId: string): Promise<{
+    status: string;
+    isPaid: boolean;
+    billId?: string;
+    paidAt?: string;
+    amount?: number;
+    rawResponse?: Record<string, unknown>;
+}> {
+    const config = getConfig();
+    const url = `${config.baseUrl}/api/v1/integration/transactions/${transactionId}`;
+
+    const response = await fetchWithAuth(url, {
+        method: 'GET',
+    });
+
+    if (!response.ok) {
+        const payload = await response.json().catch(async () => ({
+            message: await response.text().catch(() => ''),
+        }));
+        const message = extractErrorMessage(payload, 'Failed to check TuwaiqPay transaction status');
+        logger.error('TuwaiqPay check transaction status failed', {
+            status: response.status,
+            transactionId,
+            payload,
+        });
+        throw new Error(message);
+    }
+
+    const payload = await response.json().catch(() => ({}));
+    const data = payload?.data || payload;
+
+    const status = data?.transactionStatus || data?.status || data?.bill?.status || 'UNKNOWN';
+    const normalizedStatus = status.toUpperCase();
+
+    const isPaid = ['PAID', 'PENDING_SETTLEMENT', 'SUCCESS', 'COMPLETED', 'APPROVED', 'SETTLED'].includes(normalizedStatus);
+
+    return {
+        status: normalizedStatus,
+        isPaid,
+        billId: data?.bill?.id ? String(data.bill.id) : undefined,
+        paidAt: data?.paymentDate || data?.eventDate,
+        amount: data?.bill?.amount,
+        rawResponse: payload,
     };
 }

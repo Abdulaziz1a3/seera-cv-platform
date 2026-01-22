@@ -24,11 +24,17 @@ export async function POST(request: Request) {
 
         const customer = await getUserPaymentProfile(session.user.id);
         const credits = sarToCredits(amountSar);
+
+        // Get base URL for redirects
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://seera-ai.com';
+        const returnUrl = `${baseUrl}/dashboard/billing?paymentComplete=1&type=credits`;
+
         const bill = await createTuwaiqPayBill({
             amountSar,
             description: `Seera AI - AI Credits Top-up (${credits} credits) - ${amountSar} SAR`,
             customerName: customer.customerName,
             customerMobilePhone: customer.customerPhone,
+            returnUrl,
         });
 
         await prisma.paymentTransaction.create({

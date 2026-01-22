@@ -75,6 +75,52 @@ export default function BillingGiftsPage() {
     const [pendingGiftsLoading, setPendingGiftsLoading] = useState(false);
     const [claimingGiftId, setClaimingGiftId] = useState<string | null>(null);
     const [claimSuccess, setClaimSuccess] = useState(false);
+    const [verifyingPayment, setVerifyingPayment] = useState(false);
+    const paymentVerified = useRef(false);
+
+    // Auto-verify pending payments when user returns to billing page
+    useEffect(() => {
+        if (paymentVerified.current) return;
+
+        const verifyPendingPayment = async () => {
+            setVerifyingPayment(true);
+            try {
+                const res = await fetch('/api/billing/verify');
+                if (!res.ok) return;
+
+                const data = await res.json();
+
+                if (data.status === 'success') {
+                    paymentVerified.current = true;
+                    toast.success(
+                        locale === 'ar'
+                            ? '🎉 تم تأكيد الدفع وتفعيل الاشتراك!'
+                            : '🎉 Payment confirmed and subscription activated!'
+                    );
+
+                    // Refresh billing status
+                    const statusRes = await fetch('/api/billing/status');
+                    if (statusRes.ok) {
+                        const statusData = await statusRes.json();
+                        setBillingStatus({
+                            plan: statusData.plan || 'FREE',
+                            status: statusData.status || 'UNPAID',
+                            isActive: Boolean(statusData.isActive),
+                            currentPeriodEnd: statusData.currentPeriodEnd || null,
+                        });
+                    }
+                }
+            } catch {
+                // Silently fail - not critical
+            } finally {
+                setVerifyingPayment(false);
+            }
+        };
+
+        // Small delay to let page load
+        const timer = setTimeout(verifyPendingPayment, 1000);
+        return () => clearTimeout(timer);
+    }, [locale]);
 
     useEffect(() => {
         let mounted = true;
@@ -160,6 +206,16 @@ export default function BillingGiftsPage() {
         }
         if (params.get('giftCanceled')) {
             toast.info(locale === 'ar' ? 'تم إلغاء عملية الشراء.' : 'Gift purchase canceled.');
+        }
+        if (params.get('paymentComplete')) {
+            toast.info(
+                locale === 'ar'
+                    ? 'جاري التحقق من الدفع... يرجى الانتظار'
+                    : 'Verifying payment... please wait',
+                { duration: 5000 }
+            );
+            // Clean URL
+            window.history.replaceState({}, '', '/dashboard/billing');
         }
     }, [locale]);
 
@@ -401,6 +457,26 @@ export default function BillingGiftsPage() {
                         : 'Manage your subscription, credits, and gift access.'}
                 </p>
             </div>
+
+            {verifyingPayment && (
+                <Card className="border-blue-200 bg-blue-50/50">
+                    <CardContent className="py-4">
+                        <div className="flex items-center gap-3">
+                            <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
+                            <div>
+                                <p className="font-medium text-blue-900">
+                                    {locale === 'ar' ? 'جاري التحقق من الدفع...' : 'Verifying payment...'}
+                                </p>
+                                <p className="text-sm text-blue-700">
+                                    {locale === 'ar'
+                                        ? 'يرجى الانتظار بينما نتحقق من حالة الدفع'
+                                        : 'Please wait while we verify your payment status'}
+                                </p>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
 
             <Card>
                 {paymentProfileMissing && (
