@@ -12,6 +12,9 @@ export async function POST() {
         if (!guard.allowed) {
             return NextResponse.json({ error: guard.error }, { status: guard.status });
         }
+        if (!guard.userId) {
+            return NextResponse.json({ error: 'Recruiter not found' }, { status: 401 });
+        }
 
         const subscription = await prisma.subscription.findUnique({
             where: { userId: guard.userId },
