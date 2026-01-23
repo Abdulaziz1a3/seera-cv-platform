@@ -20,6 +20,9 @@ export async function GET() {
     if (!guard.allowed) {
         return NextResponse.json({ error: guard.error }, { status: guard.status });
     }
+    if (!guard.userId) {
+        return NextResponse.json({ error: 'Recruiter not found' }, { status: 401 });
+    }
 
     const jobs = await prisma.recruiterJob.findMany({
         where: { recruiterId: guard.userId },
@@ -43,6 +46,9 @@ export async function POST(request: NextRequest) {
     const guard = await requireEnterpriseRecruiter();
     if (!guard.allowed) {
         return NextResponse.json({ error: guard.error }, { status: guard.status });
+    }
+    if (!guard.userId) {
+        return NextResponse.json({ error: 'Recruiter not found' }, { status: 401 });
     }
 
     try {
