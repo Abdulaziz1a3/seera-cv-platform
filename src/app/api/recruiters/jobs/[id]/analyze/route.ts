@@ -5,6 +5,25 @@ import { requireEnterpriseRecruiter } from '@/lib/recruiter-auth';
 import { DegreeLevel } from '@prisma/client';
 import { analyzeRecruiterJob, passesEducationRequirements, scoreCandidate } from '@/lib/recruiter-matching';
 
+function buildCaseVariants(values: string[]) {
+    const variants = new Set<string>();
+    values
+        .map((value) => value.trim())
+        .filter(Boolean)
+        .forEach((value) => {
+            variants.add(value);
+            variants.add(value.toLowerCase());
+            variants.add(value.toUpperCase());
+            const title = value
+                .toLowerCase()
+                .split(/\s+/)
+                .map((word) => (word ? `${word[0].toUpperCase()}${word.slice(1)}` : word))
+                .join(' ');
+            variants.add(title);
+        });
+    return Array.from(variants);
+}
+
 function allowedDegreeLevels(required: DegreeLevel): DegreeLevel[] {
     const order: DegreeLevel[] = ['DIPLOMA', 'BACHELOR', 'MASTER', 'PHD'];
     const index = order.indexOf(required);
@@ -33,13 +52,16 @@ export async function POST(_: Request, { params }: { params: { id: string } }) {
         remoteAllowed: job.remoteAllowed,
     });
 
+    const locationTerm = job.location?.trim();
+    const locationVariants = locationTerm ? buildCaseVariants([locationTerm]) : [];
+
     const candidateFilters: Prisma.TalentProfileWhereInput = {
         isVisible: true,
-        ...(job.location && !job.remoteAllowed
+        ...(locationTerm && !job.remoteAllowed
             ? {
                 OR: [
-                    { location: job.location },
-                    { preferredLocations: { has: job.location } },
+                    { location: { contains: locationTerm, mode: Prisma.QueryMode.insensitive } },
+                    { preferredLocations: { hasSome: locationVariants } },
                 ],
             }
             : {}),
@@ -57,7 +79,7 @@ export async function POST(_: Request, { params }: { params: { id: string } }) {
     if (analysisData.requiredFieldsOfStudy.length > 0) {
         educationConditions.push({
             OR: analysisData.requiredFieldsOfStudy.map((field) => ({
-                normalizedFieldOfStudy: { contains: field },
+                normalizedFieldOfStudy: { contains: field, mode: Prisma.QueryMode.insensitive },
             })),
         });
     }
