@@ -55,7 +55,7 @@ export async function POST(request: Request) {
             },
             subscription: {
                 create: {
-                    plan: 'ENTERPRISE',
+                    plan: 'GROWTH',
                     status: 'UNPAID',
                 },
             },

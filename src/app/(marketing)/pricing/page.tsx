@@ -14,6 +14,22 @@ export default function PricingPage() {
     const { t, locale } = useLocale();
     const [isYearly, setIsYearly] = useState(false);
 
+    const recruiterFeatures = locale === 'ar'
+        ? [
+            '20 رصيد CV شهرياً',
+            'مطابقة ذكية مع توصيات',
+            'مرشحو أولوية',
+            'قوائم مختصرة وملاحظات',
+            'بحث متقدم بالمرشحين',
+        ]
+        : [
+            '20 CV credits per month',
+            'AI matching & recommendations',
+            'Priority candidates',
+            'Shortlists & notes',
+            'Advanced talent search',
+        ];
+
     const plans = [
         {
             name: t.landing.pricing.pro.name,
@@ -29,12 +45,14 @@ export default function PricingPage() {
             color: 'from-primary to-primary/60',
         },
         {
-            name: t.landing.pricing.enterprise.name,
-            description: t.landing.pricing.enterprise.description,
-            monthlyPrice: 249,
-            yearlyPrice: 1990,
-            features: t.landing.pricing.enterprise.features,
-            cta: t.landing.pricing.enterprise.cta,
+            name: locale === 'ar' ? 'صائد المواهب - النمو' : 'Talent Hunter - Growth',
+            description: locale === 'ar'
+                ? 'لوحة مسؤولي التوظيف مع مطابقة ذكية للمواهب'
+                : 'Recruiter dashboard with AI matching and talent insights',
+            monthlyPrice: 199,
+            yearlyPrice: 199,
+            features: recruiterFeatures,
+            cta: locale === 'ar' ? 'ابدأ كمسؤول توظيف' : 'Start hiring',
             href: '/recruiters/register',
             icon: Building2,
             popular: false,
@@ -134,28 +152,17 @@ export default function PricingPage() {
                                         ))}
                                     </ul>
 
-                                    {plan.href.startsWith('/recruiters') ? (
-                                        <Button
-                                            className={`w-full ${plan.popular ? 'shadow-lg' : ''}`}
-                                            variant={plan.popular ? 'default' : 'outline'}
-                                            size="lg"
-                                            disabled
-                                        >
-                                            {locale === 'ar' ? 'قريباً' : 'Coming soon'}
-                                        </Button>
-                                    ) : (
-                                        <Button
-                                            className={`w-full ${plan.popular ? 'shadow-lg' : ''}`}
-                                            variant={plan.popular ? 'default' : 'outline'}
-                                            size="lg"
-                                            asChild
-                                        >
-                                            <Link href={plan.href}>
-                                                {plan.cta}
-                                                <ArrowRight className="h-4 w-4 ms-2" />
-                                            </Link>
-                                        </Button>
-                                    )}
+                                    <Button
+                                        className={`w-full ${plan.popular ? 'shadow-lg' : ''}`}
+                                        variant={plan.popular ? 'default' : 'outline'}
+                                        size="lg"
+                                        asChild
+                                    >
+                                        <Link href={plan.href}>
+                                            {plan.cta}
+                                            <ArrowRight className="h-4 w-4 ms-2" />
+                                        </Link>
+                                    </Button>
 
                                     {plan.monthlyPrice > 0 && (
                                         <p className="text-xs text-muted-foreground mt-4 text-center">

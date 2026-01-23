@@ -12,6 +12,9 @@ const rateLimitConfig: Record<string, number> = {
     '/api/interview': 20,
     '/api/resume/parse': 5, // Strict limit for file uploads
     '/api/auth': 10,
+    '/api/recruiters/jobs': 30,
+    '/api/recruiters/search': 30,
+    '/api/recruiters/cv/unlock': 10,
     '/api': 100,
 };
 

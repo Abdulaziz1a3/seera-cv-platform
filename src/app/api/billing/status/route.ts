@@ -24,7 +24,7 @@ export async function GET() {
     // Auto-downgrade expired subscriptions to FREE
     if (
         subscription
-        && (subscription.plan === 'PRO' || subscription.plan === 'ENTERPRISE')
+        && (subscription.plan === 'PRO' || subscription.plan === 'ENTERPRISE' || subscription.plan === 'GROWTH')
         && subscription.status === 'ACTIVE'
         && subscription.currentPeriodEnd
         && subscription.currentPeriodEnd < now

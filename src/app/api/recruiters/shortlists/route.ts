@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requireEnterpriseRecruiter } from '@/lib/recruiter-auth';
+import { buildAnonymizedName } from '@/lib/recruiter-matching';
 import { z } from 'zod';
 
 const createSchema = z.object({
@@ -28,7 +29,36 @@ export async function GET() {
         },
     });
 
-    return NextResponse.json({ shortlists });
+    const candidateIds = shortlists.flatMap((shortlist) =>
+        shortlist.candidates.map((candidate) => candidate.talentProfileId)
+    );
+    const unlocks = await prisma.cvUnlock.findMany({
+        where: { recruiterId: guard.userId, candidateId: { in: candidateIds } },
+        select: { candidateId: true },
+    });
+    const unlockedSet = new Set(unlocks.map((unlock) => unlock.candidateId));
+
+    const sanitizedShortlists = shortlists.map((shortlist) => ({
+        ...shortlist,
+        candidates: shortlist.candidates.map((candidate) => {
+            const isUnlocked = unlockedSet.has(candidate.talentProfileId);
+            return {
+                ...candidate,
+                talentProfile: {
+                    ...candidate.talentProfile,
+                    displayName: isUnlocked
+                        ? candidate.talentProfile.displayName
+                        : buildAnonymizedName(candidate.talentProfile.displayName, candidate.talentProfile.id),
+                    currentCompany: candidate.talentProfile.hideCurrentEmployer
+                        ? null
+                        : candidate.talentProfile.currentCompany,
+                },
+                unlocked: isUnlocked,
+            };
+        }),
+    }));
+
+    return NextResponse.json({ shortlists: sanitizedShortlists });
 }
 
 export async function POST(request: NextRequest) {

@@ -29,7 +29,7 @@ export default function RecruiterLoginPage() {
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
-    const isComingSoon = true;
+    const isComingSoon = false;
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -78,7 +78,7 @@ export default function RecruiterLoginPage() {
 
                         <div className="flex items-center gap-3 mb-2">
                             <h1 className="text-3xl font-bold">Welcome Back</h1>
-                            {isComingSoon && <Badge variant="secondary">Coming soon</Badge>}
+                        {isComingSoon && <Badge variant="secondary">Coming soon</Badge>}
                         </div>
                         <p className="text-muted-foreground">
                             {isComingSoon
@@ -150,7 +150,9 @@ export default function RecruiterLoginPage() {
 
                     <p className="mt-6 text-center text-sm text-muted-foreground">
                         Don't have an account?{' '}
-                        <span className="text-muted-foreground">Recruiter sign up is coming soon.</span>
+                        <Link href="/recruiters/register" className="text-primary hover:underline">
+                            Create recruiter account
+                        </Link>
                     </p>
 
                     <div className="mt-8 pt-8 border-t">

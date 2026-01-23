@@ -16,9 +16,31 @@ export async function requireEnterpriseRecruiter() {
         return { allowed: false, status: 402, error: 'Subscription required' as const };
     }
 
-    if (subscription.plan !== 'ENTERPRISE') {
-        return { allowed: false, status: 403, error: 'Enterprise plan required' as const };
+    if (subscription.plan !== 'ENTERPRISE' && subscription.plan !== 'GROWTH') {
+        return { allowed: false, status: 403, error: 'Recruiter plan required' as const };
     }
 
     return { allowed: true, userId: session.user.id };
+}
+
+export async function requireRecruiterAccount(options?: { requireActive?: boolean }) {
+    const session = await auth();
+    if (!session?.user?.id) {
+        return { allowed: false, status: 401, error: 'Unauthorized' as const };
+    }
+
+    const subscription = await prisma.subscription.findUnique({
+        where: { userId: session.user.id },
+        select: { plan: true, status: true },
+    });
+
+    if (!subscription || (subscription.plan !== 'ENTERPRISE' && subscription.plan !== 'GROWTH')) {
+        return { allowed: false, status: 403, error: 'Recruiter account required' as const };
+    }
+
+    if (options?.requireActive && subscription.status !== 'ACTIVE') {
+        return { allowed: false, status: 402, error: 'Subscription required' as const };
+    }
+
+    return { allowed: true, userId: session.user.id, subscription };
 }

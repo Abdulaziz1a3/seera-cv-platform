@@ -38,7 +38,7 @@ export default function RecruiterRegisterPage() {
     const [step, setStep] = useState(1);
     const [showPassword, setShowPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
-    const isComingSoon = true;
+    const isComingSoon = false;
 
     // Form state
     const [formData, setFormData] = useState({
@@ -146,7 +146,7 @@ export default function RecruiterRegisterPage() {
 
                         <div className="flex items-center gap-3 mb-2">
                             <h1 className="text-3xl font-bold">Create Your Account</h1>
-                            {isComingSoon && <Badge variant="secondary">Coming soon</Badge>}
+                        {isComingSoon && <Badge variant="secondary">Coming soon</Badge>}
                         </div>
                         <p className="text-muted-foreground">
                             {isComingSoon
@@ -367,7 +367,9 @@ export default function RecruiterRegisterPage() {
 
                     <p className="mt-6 text-center text-sm text-muted-foreground">
                         Already have an account?{' '}
-                        <span className="text-muted-foreground">Recruiter sign in is coming soon.</span>
+                        <Link href="/recruiters/login" className="text-primary hover:underline">
+                            Sign in
+                        </Link>
                     </p>
 
                     <div className="mt-8 pt-8 border-t">

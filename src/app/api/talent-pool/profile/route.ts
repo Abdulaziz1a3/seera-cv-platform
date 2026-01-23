@@ -3,6 +3,10 @@ import { z } from 'zod';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { hasActiveSubscription } from '@/lib/subscription';
+import {
+    deriveEducationProfile,
+    deriveExperienceIndicators,
+} from '@/lib/education-utils';
 
 // Validation schema for profile creation/update
 const profileSchema = z.object({
@@ -48,19 +52,51 @@ function extractProfileFromSnapshot(snapshot: any) {
     const summary = snapshot?.summary?.content || '';
     const currentRole = experience[0]?.position || snapshot?.targetRole || null;
     const currentCompany = experience[0]?.company || null;
+    const yearsExperience = extractYearsExperience(experience);
     const educationText = education[0]
         ? `${education[0].degree || ''} ${education[0].field ? 'in ' + education[0].field : ''}`.trim()
         : null;
+    const educationProfile = deriveEducationProfile(education);
+    const experienceIndicators = deriveExperienceIndicators({
+        experienceItems: experience,
+        projectItems: snapshot?.projects?.items || [],
+        educationItems: education,
+        certificationItems: snapshot?.certifications?.items || [],
+        yearsExperience,
+        graduationDate: educationProfile.graduationDate,
+    });
 
     return {
         displayName: contact.fullName || 'Talent Profile',
         currentTitle: currentRole,
         currentCompany,
         location: contact.location || null,
-        yearsExperience: extractYearsExperience(experience),
+        yearsExperience,
         skills,
         education: educationText,
+        highestDegreeLevel: educationProfile.highestDegreeLevel,
+        primaryFieldOfStudy: educationProfile.primaryFieldOfStudy,
+        normalizedFieldOfStudy: educationProfile.normalizedFieldOfStudy,
+        graduationYear: educationProfile.graduationYear,
+        graduationDate: educationProfile.graduationDate,
+        experienceBand: experienceIndicators.experienceBand,
+        internshipCount: experienceIndicators.internshipCount,
+        projectCount: experienceIndicators.projectCount,
+        freelanceCount: experienceIndicators.freelanceCount,
+        trainingFlag: experienceIndicators.trainingFlag,
         summary,
+    };
+}
+
+function extractContactFromSnapshot(snapshot: any) {
+    const contact = snapshot?.contact || {};
+    return {
+        fullName: contact.fullName || null,
+        email: contact.email || null,
+        phone: contact.phone || null,
+        location: contact.location || null,
+        linkedinUrl: contact.linkedin || null,
+        websiteUrl: contact.website || null,
     };
 }
 
@@ -188,6 +224,7 @@ export async function POST(request: NextRequest) {
         // Extract profile data from resume
         const snapshot = resume.versions[0].snapshot as any;
         const derived = extractProfileFromSnapshot(snapshot);
+        const contactDetails = extractContactFromSnapshot(snapshot);
 
         // Create or update the profile
         const profile = await prisma.talentProfile.upsert({
@@ -202,6 +239,16 @@ export async function POST(request: NextRequest) {
                 yearsExperience: derived.yearsExperience,
                 skills: derived.skills,
                 education: derived.education,
+                highestDegreeLevel: derived.highestDegreeLevel,
+                primaryFieldOfStudy: derived.primaryFieldOfStudy,
+                normalizedFieldOfStudy: derived.normalizedFieldOfStudy,
+                graduationYear: derived.graduationYear,
+                graduationDate: derived.graduationDate,
+                experienceBand: derived.experienceBand,
+                internshipCount: derived.internshipCount,
+                projectCount: derived.projectCount,
+                freelanceCount: derived.freelanceCount,
+                trainingFlag: derived.trainingFlag,
                 summary: derived.summary,
                 availabilityStatus: data.availabilityStatus,
                 desiredSalaryMin: data.desiredSalaryMin ?? undefined,
@@ -214,6 +261,9 @@ export async function POST(request: NextRequest) {
                 preferredLocations: data.preferredLocations,
                 preferredIndustries: data.preferredIndustries,
                 desiredRoles: data.desiredRoles,
+                contact: {
+                    create: contactDetails,
+                },
             },
             update: {
                 resumeId: data.resumeId,
@@ -224,6 +274,16 @@ export async function POST(request: NextRequest) {
                 yearsExperience: derived.yearsExperience,
                 skills: derived.skills,
                 education: derived.education,
+                highestDegreeLevel: derived.highestDegreeLevel,
+                primaryFieldOfStudy: derived.primaryFieldOfStudy,
+                normalizedFieldOfStudy: derived.normalizedFieldOfStudy,
+                graduationYear: derived.graduationYear,
+                graduationDate: derived.graduationDate,
+                experienceBand: derived.experienceBand,
+                internshipCount: derived.internshipCount,
+                projectCount: derived.projectCount,
+                freelanceCount: derived.freelanceCount,
+                trainingFlag: derived.trainingFlag,
                 summary: derived.summary,
                 availabilityStatus: data.availabilityStatus,
                 desiredSalaryMin: data.desiredSalaryMin ?? undefined,
@@ -236,6 +296,12 @@ export async function POST(request: NextRequest) {
                 preferredLocations: data.preferredLocations,
                 preferredIndustries: data.preferredIndustries,
                 desiredRoles: data.desiredRoles,
+                contact: {
+                    upsert: {
+                        create: contactDetails,
+                        update: contactDetails,
+                    },
+                },
             },
         });
 

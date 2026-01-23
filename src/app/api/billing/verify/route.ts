@@ -9,6 +9,7 @@ import { prisma } from '@/lib/db';
 import { logger } from '@/lib/logger';
 import { checkBillStatus, checkTransactionStatus } from '@/lib/tuwaiqpay';
 import { recordAICreditTopup } from '@/lib/ai-credits';
+import { grantMonthlyCredits, purchaseCredits } from '@/lib/recruiter-credits';
 import { sendGiftSubscriptionEmail } from '@/lib/email';
 
 const GIFT_CLAIM_WINDOW_DAYS = 90;
@@ -150,6 +151,49 @@ export async function GET() {
             });
         }
 
+        if (pendingPayment.purpose === 'RECRUITER_CV_CREDITS') {
+            await prisma.$transaction(async (tx) => {
+                await tx.paymentTransaction.update({
+                    where: { id: pendingPayment.id },
+                    data: {
+                        status: 'PAID',
+                        paidAt: paymentStatus.paidAt ? new Date(paymentStatus.paidAt) : now,
+                        metadata: {
+                            ...(typeof pendingPayment.metadata === 'object' && pendingPayment.metadata !== null
+                                ? pendingPayment.metadata
+                                : {}),
+                            verifiedViaPolling: true,
+                            pollingSource: statusSource,
+                            tuwaiqpayStatus: paymentStatus.status,
+                            verifiedAt: now.toISOString(),
+                        },
+                    },
+                });
+
+                if (pendingPayment.userId && pendingPayment.credits) {
+                    await purchaseCredits({
+                        recruiterId: pendingPayment.userId,
+                        amount: Math.round(pendingPayment.credits),
+                        paymentTransactionId: pendingPayment.id,
+                        reference: pendingPayment.providerTransactionId || pendingPayment.providerBillId || pendingPayment.id,
+                        client: tx,
+                    });
+                }
+            });
+
+            logger.paymentEvent('recruiter_credits_verified_via_polling', session.user.id, pendingPayment.amountSar, {
+                credits: pendingPayment.credits,
+                statusSource,
+            });
+
+            return NextResponse.json({
+                status: 'success',
+                message: 'Payment verified and credits added',
+                credits: pendingPayment.credits,
+                amountSar: pendingPayment.amountSar,
+            });
+        }
+
         if (pendingPayment.purpose === 'SUBSCRIPTION') {
             const intervalMonths = pendingPayment.interval === 'YEARLY' ? 12 : 1;
             const plan = pendingPayment.plan || 'PRO';
@@ -187,9 +231,11 @@ export async function GET() {
                     },
                 });
 
+                let updatedSubscription = null as typeof subscription | null;
+
                 // Create or update subscription
                 if (subscription) {
-                    await tx.subscription.update({
+                    updatedSubscription = await tx.subscription.update({
                         where: { userId: session.user.id },
                         data: {
                             plan,
@@ -200,7 +246,7 @@ export async function GET() {
                         },
                     });
                 } else {
-                    await tx.subscription.create({
+                    updatedSubscription = await tx.subscription.create({
                         data: {
                             userId: session.user.id,
                             plan,
@@ -209,6 +255,15 @@ export async function GET() {
                             currentPeriodEnd: periodEnd,
                             cancelAtPeriodEnd: false,
                         },
+                    });
+                }
+
+                if (plan === 'GROWTH' && updatedSubscription) {
+                    await grantMonthlyCredits({
+                        recruiterId: session.user.id,
+                        subscriptionId: updatedSubscription.id,
+                        periodEnd: updatedSubscription.currentPeriodEnd,
+                        client: tx,
                     });
                 }
             });

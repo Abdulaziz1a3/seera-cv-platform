@@ -79,6 +79,27 @@ export const PLANS = {
             prioritySupport: true,
         },
     },
+    growth: {
+        id: 'growth',
+        name: { ar: 'النمو', en: 'Growth' },
+        priceMonthly: 199, // SAR
+        priceYearly: 0,
+        features: {
+            resumeLimit: -1,
+            downloadLimit: -1,
+            aiUsageLimit: -1,
+            premiumTemplates: true,
+            docxExport: true,
+            coverLetters: true,
+            atsDetails: true,
+            interviewPrep: true,
+            careerGps: true,
+            teamMembers: true,
+            analytics: true,
+            customBranding: true,
+            prioritySupport: true,
+        },
+    },
 } as const;
 
 export type PlanId = keyof typeof PLANS;

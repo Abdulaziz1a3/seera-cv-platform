@@ -43,6 +43,9 @@ model User {
     talentProfile TalentProfile?
     recruiterShortlists RecruiterShortlist[]
     recruiterSavedSearches RecruiterSavedSearch[]
+    recruiterJobs RecruiterJob[]
+    recruiterCreditLedger RecruiterCreditLedger[]
+    cvUnlocks CvUnlock[]
   giftSubscriptionsSent GiftSubscription[] @relation("GiftSubscriptionsSent")
   giftSubscriptionsRedeemed GiftSubscription[] @relation("GiftSubscriptionsRedeemed")
   paymentTransactions PaymentTransaction[]
@@ -203,6 +206,16 @@ model TalentProfile {
   yearsExperience      Int?
   skills               String[]
   education            String?
+  highestDegreeLevel   DegreeLevel?
+  primaryFieldOfStudy  String?
+  normalizedFieldOfStudy String?
+  graduationYear       Int?
+  graduationDate       DateTime?
+  experienceBand       ExperienceBand?
+  internshipCount      Int?
+  projectCount         Int?
+  freelanceCount       Int?
+  trainingFlag         Boolean?
   summary              String?
   availabilityStatus   String   @default("open_to_offers")
   desiredSalaryMin     Int?
@@ -222,11 +235,35 @@ model TalentProfile {
   updatedAt            DateTime @updatedAt
 
   shortlistedBy        RecruiterShortlistCandidate[]
+  contact              TalentProfileContact?
+  cvUnlocks            CvUnlock[]
+  jobRecommendations   RecruiterJobRecommendation[]
 
   @@index([resumeId])
   @@index([location])
   @@index([availabilityStatus])
   @@index([yearsExperience])
+  @@index([highestDegreeLevel])
+  @@index([normalizedFieldOfStudy])
+  @@index([graduationYear])
+  @@index([experienceBand])
+  @@index([highestDegreeLevel, normalizedFieldOfStudy])
+}
+
+model TalentProfileContact {
+  id              String        @id @default(cuid())
+  talentProfileId String        @unique
+  talentProfile   TalentProfile @relation(fields: [talentProfileId], references: [id], onDelete: Cascade)
+  fullName        String?
+  email           String?
+  phone           String?
+  location        String?
+  linkedinUrl     String?
+  websiteUrl      String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([talentProfileId])
 }
 
 model RecruiterShortlist {
@@ -267,6 +304,148 @@ model RecruiterSavedSearch {
   updatedAt   DateTime @updatedAt
 
   @@index([recruiterId])
+}
+
+// ==========================================
+// RECRUITER JOBS & MATCHING
+// ==========================================
+
+model RecruiterJob {
+  id             String                @id @default(cuid())
+  recruiterId    String
+  recruiter      User                  @relation(fields: [recruiterId], references: [id], onDelete: Cascade)
+  orgId          String?
+  title          String
+  location       String?
+  remoteAllowed  Boolean               @default(false)
+  employmentType String?
+  seniority      String?
+  salaryMin      Int?
+  salaryMax      Int?
+  jdText         String                @db.Text
+  status         RecruiterJobStatus    @default(DRAFT)
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+
+  analyses        RecruiterJobAnalysis[]
+  recommendations RecruiterJobRecommendation[]
+
+  @@index([recruiterId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+enum RecruiterJobStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
+enum DegreeLevel {
+  DIPLOMA
+  BACHELOR
+  MASTER
+  PHD
+}
+
+enum ExperienceBand {
+  STUDENT_FRESH
+  JUNIOR
+  MID
+  SENIOR
+}
+
+model RecruiterJobAnalysis {
+  id               String     @id @default(cuid())
+  jobId            String
+  job              RecruiterJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  mustHaveSkills   String[]
+  niceToHaveSkills String[]
+  roleKeywords     String[]
+  yearsExpMin      Int?
+  yearsExpMax      Int?
+  languages        String[]
+  responsibilities String[]
+  redFlags         String[]
+  summary          String?    @db.Text
+  requiredDegreeLevel DegreeLevel?
+  preferredDegreeLevels DegreeLevel[] @default([])
+  requiredFieldsOfStudy String[] @default([])
+  preferredFieldsOfStudy String[] @default([])
+  weights          Json?
+  modelInfo        Json?
+  createdAt        DateTime   @default(now())
+
+  recommendations RecruiterJobRecommendation[]
+
+  @@index([jobId])
+  @@index([createdAt])
+}
+
+model RecruiterJobRecommendation {
+  id           String     @id @default(cuid())
+  jobId        String
+  job          RecruiterJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  analysisId   String
+  analysis     RecruiterJobAnalysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+  candidateId  String
+  candidate    TalentProfile @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  rank         Int
+  matchScore   Int
+  reasons      Json
+  gaps         Json
+  isPriority   Boolean    @default(false)
+  createdAt    DateTime   @default(now())
+
+  @@unique([jobId, candidateId])
+  @@index([jobId])
+  @@index([analysisId])
+  @@index([candidateId])
+}
+
+// ==========================================
+// RECRUITER CREDITS & UNLOCKS
+// ==========================================
+
+model RecruiterCreditLedger {
+  id                   String              @id @default(cuid())
+  recruiterId          String
+  recruiter            User                @relation(fields: [recruiterId], references: [id], onDelete: Cascade)
+  type                 RecruiterCreditType
+  amount               Int
+  subscriptionId       String?
+  subscription         Subscription?       @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+  paymentTransactionId String?
+  paymentTransaction   PaymentTransaction? @relation(fields: [paymentTransactionId], references: [id], onDelete: SetNull)
+  cvUnlockId           String?             @unique
+  cvUnlock             CvUnlock?           @relation(fields: [cvUnlockId], references: [id], onDelete: SetNull)
+  reference            String?
+  metadata             Json?
+  createdAt            DateTime            @default(now())
+
+  @@index([recruiterId])
+  @@index([type])
+  @@index([createdAt])
+  @@unique([type, reference])
+}
+
+enum RecruiterCreditType {
+  PERIOD_GRANT
+  PURCHASE
+  SPEND_UNLOCK
+  ADJUSTMENT
+}
+
+model CvUnlock {
+  id          String        @id @default(cuid())
+  recruiterId String
+  recruiter   User          @relation(fields: [recruiterId], references: [id], onDelete: Cascade)
+  candidateId String
+  candidate   TalentProfile @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  createdAt   DateTime      @default(now())
+
+  @@unique([recruiterId, candidateId])
+  @@index([candidateId])
 }
 
 model ResumeVersion {
@@ -524,6 +703,7 @@ model Subscription {
   currentPeriodStart DateTime?
   currentPeriodEnd   DateTime?
   cancelAtPeriodEnd  Boolean @default(false)
+  recruiterCreditLedger RecruiterCreditLedger[]
 
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
@@ -620,6 +800,7 @@ model PaymentTransaction {
 
   giftId                 String?
   giftSubscription       GiftSubscription? @relation(fields: [giftId], references: [id], onDelete: SetNull)
+  recruiterCreditLedger  RecruiterCreditLedger[]
 
   createdAt              DateTime        @default(now())
   updatedAt              DateTime        @updatedAt
@@ -634,6 +815,7 @@ model PaymentTransaction {
 enum PlanType {
   FREE
   PRO
+  GROWTH
   ENTERPRISE
 }
 
@@ -663,6 +845,7 @@ enum PaymentStatus {
 enum PaymentPurpose {
   SUBSCRIPTION
   AI_CREDITS
+  RECRUITER_CV_CREDITS
   GIFT
 }
 
