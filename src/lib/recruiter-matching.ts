@@ -79,8 +79,10 @@ function degreeRank(level: DegreeLevel): number {
 
 function fieldsMatch(candidateField: string, targetField: string): boolean {
     if (!candidateField || !targetField) return false;
-    if (candidateField === targetField) return true;
-    return candidateField.includes(targetField) || targetField.includes(candidateField);
+    const candidateValue = candidateField.toLowerCase();
+    const targetValue = targetField.toLowerCase();
+    if (candidateValue === targetValue) return true;
+    return candidateValue.includes(targetValue) || targetValue.includes(candidateValue);
 }
 
 function parseDegreeLevel(value: unknown): DegreeLevel | null {

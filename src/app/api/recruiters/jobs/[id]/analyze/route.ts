@@ -52,15 +52,17 @@ export async function POST(_: Request, { params }: { params: { id: string } }) {
         remoteAllowed: job.remoteAllowed,
     });
 
-    const locationTerm = job.location?.trim();
-    const locationVariants = locationTerm ? buildCaseVariants([locationTerm]) : [];
+    const locationTerm = job.location?.trim() || '';
+    const locationCore = locationTerm.split(',')[0]?.trim() || '';
+    const locationVariants = buildCaseVariants([locationTerm, locationCore].filter(Boolean));
 
     const candidateFilters: Prisma.TalentProfileWhereInput = {
         isVisible: true,
-        ...(locationTerm && !job.remoteAllowed
+        ...(locationVariants.length > 0 && !job.remoteAllowed
             ? {
                 OR: [
                     { location: { contains: locationTerm, mode: Prisma.QueryMode.insensitive } },
+                    { location: { contains: locationCore, mode: Prisma.QueryMode.insensitive } },
                     { preferredLocations: { hasSome: locationVariants } },
                 ],
             }
