@@ -6,8 +6,18 @@ import { logger } from '@/lib/logger';
 import { RECRUITER_GROWTH_PLAN } from '@/lib/recruiter-billing';
 import { requireRecruiterAccount } from '@/lib/recruiter-auth';
 
-export async function POST() {
+export async function POST(request: Request) {
     try {
+        const payload = await request.json().catch(() => ({}));
+        const intervalValue = typeof payload?.interval === 'string'
+            ? payload.interval.toUpperCase()
+            : 'MONTHLY';
+        const interval = intervalValue === 'YEARLY' ? 'YEARLY' : 'MONTHLY';
+        const amountSar = interval === 'YEARLY'
+            ? RECRUITER_GROWTH_PLAN.priceYearlySar
+            : RECRUITER_GROWTH_PLAN.priceMonthlySar;
+        const intervalLabel = interval === 'YEARLY' ? 'Yearly' : 'Monthly';
+
         const guard = await requireRecruiterAccount();
         if (!guard.allowed) {
             return NextResponse.json({ error: guard.error }, { status: guard.status });
@@ -37,8 +47,8 @@ export async function POST() {
         const returnUrl = `${baseUrl}/recruiters/billing?paymentComplete=1`;
 
         const bill = await createTuwaiqPayBill({
-            amountSar: RECRUITER_GROWTH_PLAN.priceMonthlySar,
-            description: `Seera AI - ${RECRUITER_GROWTH_PLAN.name} (Monthly) - ${RECRUITER_GROWTH_PLAN.priceMonthlySar} SAR`,
+            amountSar,
+            description: `Seera AI - ${RECRUITER_GROWTH_PLAN.name} (${intervalLabel}) - ${amountSar} SAR`,
             customerName: customer.customerName,
             customerMobilePhone: customer.customerPhone,
             returnUrl,
@@ -50,9 +60,9 @@ export async function POST() {
                 status: 'PENDING',
                 purpose: 'SUBSCRIPTION',
                 userId: guard.userId,
-                amountSar: RECRUITER_GROWTH_PLAN.priceMonthlySar,
+                amountSar,
                 plan: 'GROWTH',
-                interval: 'MONTHLY',
+                interval,
                 providerTransactionId: bill.transactionId,
                 providerBillId: bill.billId ? bill.billId.toString() : undefined,
                 providerReference: bill.merchantTransactionId,
@@ -64,7 +74,7 @@ export async function POST() {
             },
         });
 
-        logger.paymentEvent('tuwaiqpay_recruiter_growth_created', guard.userId, RECRUITER_GROWTH_PLAN.priceMonthlySar, {
+        logger.paymentEvent('tuwaiqpay_recruiter_growth_created', guard.userId, amountSar, {
             plan: 'growth',
             billId: bill.billId,
         });

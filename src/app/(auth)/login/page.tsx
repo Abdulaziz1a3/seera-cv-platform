@@ -31,12 +31,15 @@ function LoginForm() {
                 email,
                 password,
                 redirect: false,
+                portal: 'jobseeker',
             });
 
             if (result?.error) {
                 // Show friendly error message based on error type
                 if (result.error === 'CredentialsSignin') {
                     toast.error('Invalid email or password');
+                } else if (result.error === 'RECRUITER_PORTAL_ONLY') {
+                    toast.error('This email is registered for Talent Hunter. Please use recruiter login.');
                 } else if (result.error.includes('verify your email')) {
                     toast.error('Please verify your email before signing in');
                 } else if (result.error.includes('deleted')) {

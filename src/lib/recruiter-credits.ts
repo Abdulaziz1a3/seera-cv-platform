@@ -1,7 +1,8 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db';
+import { RECRUITER_GROWTH_PLAN } from '@/lib/recruiter-billing';
 
-const DEFAULT_MONTHLY_CREDITS = 20;
+const DEFAULT_MONTHLY_CREDITS = RECRUITER_GROWTH_PLAN.monthlyCredits;
 
 type TxClient = Prisma.TransactionClient | typeof prisma;
 

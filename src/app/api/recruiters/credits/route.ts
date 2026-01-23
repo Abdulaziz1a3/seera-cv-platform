@@ -23,6 +23,7 @@ export async function GET() {
     return NextResponse.json({
         balance,
         monthlyCredits: RECRUITER_GROWTH_PLAN.monthlyCredits,
+        yearlyCredits: RECRUITER_GROWTH_PLAN.yearlyCredits,
         packs: RECRUITER_CREDIT_PACKS,
         ledger,
     });

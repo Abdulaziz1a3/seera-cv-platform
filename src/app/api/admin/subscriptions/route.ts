@@ -5,6 +5,8 @@ import { PLANS } from '@/lib/stripe';
 import { createTuwaiqPayBill } from '@/lib/tuwaiqpay';
 import { getUserPaymentProfile } from '@/lib/payments';
 import { isEmailConfigured, sendPaymentLinkEmail } from '@/lib/email';
+import { grantMonthlyCredits } from '@/lib/recruiter-credits';
+import { RECRUITER_GROWTH_PLAN } from '@/lib/recruiter-billing';
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
@@ -73,17 +75,21 @@ export async function GET(request: NextRequest) {
             activeCount,
             proCount,
             enterpriseCount,
+            growthCount,
             canceledThisMonth,
             newThisMonth
         ] = await Promise.all([
             prisma.subscription.count({
-                where: { status: 'ACTIVE', plan: { in: ['PRO', 'ENTERPRISE'] } }
+                where: { status: 'ACTIVE', plan: { in: ['PRO', 'ENTERPRISE', 'GROWTH'] } }
             }),
             prisma.subscription.count({
                 where: { status: 'ACTIVE', plan: 'PRO' }
             }),
             prisma.subscription.count({
                 where: { status: 'ACTIVE', plan: 'ENTERPRISE' }
+            }),
+            prisma.subscription.count({
+                where: { status: 'ACTIVE', plan: 'GROWTH' }
             }),
             prisma.subscription.count({
                 where: {
@@ -94,13 +100,13 @@ export async function GET(request: NextRequest) {
             prisma.subscription.count({
                 where: {
                     createdAt: { gte: startOfMonth },
-                    plan: { in: ['PRO', 'ENTERPRISE'] }
+                    plan: { in: ['PRO', 'ENTERPRISE', 'GROWTH'] }
                 }
             })
         ]);
 
         // Calculate revenue
-        const monthlyRevenue = (proCount * 39) + (enterpriseCount * 249);
+        const monthlyRevenue = (proCount * 39) + (enterpriseCount * 249) + (growthCount * 199);
         const arpu = activeCount > 0 ? monthlyRevenue / activeCount : 0;
         const churnRate = activeCount > 0 ? ((canceledThisMonth / activeCount) * 100) : 0;
 
@@ -115,7 +121,7 @@ export async function GET(request: NextRequest) {
             },
             plan: sub.plan,
             status: sub.status,
-            amount: sub.plan === 'PRO' ? 39 : sub.plan === 'ENTERPRISE' ? 249 : 0,
+            amount: sub.plan === 'PRO' ? 39 : sub.plan === 'ENTERPRISE' ? 249 : sub.plan === 'GROWTH' ? 199 : 0,
             currentPeriodStart: sub.currentPeriodStart,
             currentPeriodEnd: sub.currentPeriodEnd,
             cancelAtPeriodEnd: sub.cancelAtPeriodEnd,
@@ -199,7 +205,7 @@ export async function PUT(request: NextRequest) {
                 // Admin-initiated full subscription activation
                 const { plan: activatePlan, duration, note } = data || {};
                 
-                if (!activatePlan || !['PRO', 'ENTERPRISE'].includes(activatePlan)) {
+                if (!activatePlan || !['PRO', 'GROWTH'].includes(activatePlan)) {
                     return NextResponse.json({ error: 'Invalid plan specified' }, { status: 400 });
                 }
                 
@@ -244,6 +250,31 @@ export async function PUT(request: NextRequest) {
                         user: { select: { email: true, name: true } }
                     }
                 });
+
+                if (activatePlan === 'GROWTH') {
+                    const durationMonths = duration === '1_month'
+                        ? 1
+                        : duration === '3_months'
+                            ? 3
+                            : duration === '6_months'
+                                ? 6
+                                : duration === '1_year'
+                                    ? 12
+                                    : duration === 'lifetime'
+                                        ? 12
+                                        : 1;
+                    const credits = durationMonths === 12
+                        ? RECRUITER_GROWTH_PLAN.yearlyCredits
+                        : RECRUITER_GROWTH_PLAN.monthlyCredits * durationMonths;
+
+                    await grantMonthlyCredits({
+                        recruiterId: result.userId,
+                        subscriptionId: result.id,
+                        periodEnd,
+                        amount: credits,
+                        reference: `admin_activate:${result.id}:${duration}:${periodEnd.toISOString()}`,
+                    });
+                }
                 
                 // Enhanced audit log with activation details
                 await prisma.auditLog.create({

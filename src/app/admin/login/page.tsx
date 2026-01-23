@@ -37,11 +37,14 @@ function AdminLoginForm() {
                 email,
                 password,
                 redirect: false,
+                portal: 'admin',
             });
 
             if (result?.error) {
                 setAttempts(prev => prev + 1);
-                if (result.error === 'CredentialsSignin') {
+                if (result.error === 'ADMIN_PORTAL_ONLY') {
+                    toast.error('Access denied. Admin privileges required.');
+                } else if (result.error === 'CredentialsSignin') {
                     toast.error('Invalid admin credentials');
                 } else {
                     toast.error('Authentication failed. Please try again.');

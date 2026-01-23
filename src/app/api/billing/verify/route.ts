@@ -10,6 +10,7 @@ import { logger } from '@/lib/logger';
 import { checkBillStatus, checkTransactionStatus } from '@/lib/tuwaiqpay';
 import { recordAICreditTopup } from '@/lib/ai-credits';
 import { grantMonthlyCredits, purchaseCredits } from '@/lib/recruiter-credits';
+import { RECRUITER_GROWTH_PLAN } from '@/lib/recruiter-billing';
 import { sendGiftSubscriptionEmail } from '@/lib/email';
 
 const GIFT_CLAIM_WINDOW_DAYS = 90;
@@ -259,10 +260,14 @@ export async function GET() {
                 }
 
                 if (plan === 'GROWTH' && updatedSubscription) {
+                    const periodCredits = pendingPayment.interval === 'YEARLY'
+                        ? RECRUITER_GROWTH_PLAN.yearlyCredits
+                        : RECRUITER_GROWTH_PLAN.monthlyCredits;
                     await grantMonthlyCredits({
                         recruiterId: session.user.id,
                         subscriptionId: updatedSubscription.id,
                         periodEnd: updatedSubscription.currentPeriodEnd,
+                        amount: periodCredits,
                         client: tx,
                     });
                 }

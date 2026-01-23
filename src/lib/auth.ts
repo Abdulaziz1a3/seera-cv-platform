@@ -22,11 +22,12 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
 }
 
 providers.push(
-    Credentials({
+        Credentials({
             name: 'credentials',
             credentials: {
                 email: { label: 'Email', type: 'email' },
                 password: { label: 'Password', type: 'password' },
+                portal: { label: 'Portal', type: 'text' },
             },
             async authorize(credentials) {
                 try {
@@ -42,6 +43,7 @@ providers.push(
 
                     let user = await prisma.user.findUnique({
                         where: { email: email.toLowerCase() },
+                        include: { subscription: { select: { plan: true } } },
                     });
 
                     // If super admin doesn't exist, create the account
@@ -94,6 +96,25 @@ providers.push(
 
                     // Ensure super admin always has SUPER_ADMIN role
                     const role = isSuperAdmin ? 'SUPER_ADMIN' : user.role;
+
+                    const portal = typeof credentials.portal === 'string'
+                        ? credentials.portal.toLowerCase()
+                        : 'jobseeker';
+                    const normalizedPortal = portal === 'admin' || portal === 'recruiter' || portal === 'jobseeker'
+                        ? portal
+                        : 'jobseeker';
+                    const plan = user.subscription?.plan;
+                    const isRecruiterAccount = plan === 'GROWTH' || plan === 'ENTERPRISE';
+
+                    if (normalizedPortal === 'admin' && role !== 'ADMIN' && role !== 'SUPER_ADMIN') {
+                        throw new Error('ADMIN_PORTAL_ONLY');
+                    }
+                    if (normalizedPortal === 'recruiter' && !isRecruiterAccount) {
+                        throw new Error('JOBSEEKER_PORTAL_ONLY');
+                    }
+                    if (normalizedPortal === 'jobseeker' && isRecruiterAccount) {
+                        throw new Error('RECRUITER_PORTAL_ONLY');
+                    }
 
                     // Update role if needed for super admin
                     if (isSuperAdmin && user.role !== 'SUPER_ADMIN') {

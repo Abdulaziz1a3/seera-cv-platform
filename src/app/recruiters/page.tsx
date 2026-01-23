@@ -144,7 +144,7 @@ export default function RecruiterPortalPage() {
                     <CardTitle>Talent Hunter - Growth</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-3 text-sm">
-                        <p>20 CV credits every month with AI matching and priority candidates.</p>
+                        <p>Up to 240 CV credits per year with AI matching and priority candidates.</p>
                         <Button asChild variant="secondary" className="w-full">
                             <Link href="/recruiters/billing">Manage subscription</Link>
                         </Button>

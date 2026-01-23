@@ -5,6 +5,7 @@ import { logger } from '@/lib/logger';
 import { getWebhookVerificationConfig } from '@/lib/tuwaiqpay';
 import { recordAICreditTopup } from '@/lib/ai-credits';
 import { grantMonthlyCredits, purchaseCredits } from '@/lib/recruiter-credits';
+import { RECRUITER_GROWTH_PLAN } from '@/lib/recruiter-billing';
 import { sendGiftSubscriptionEmail, sendPaymentReceiptEmail } from '@/lib/email';
 
 export const dynamic = 'force-dynamic';
@@ -487,10 +488,14 @@ export async function POST(request: Request) {
             }
 
             if (plan === 'GROWTH' && updatedSubscription) {
+                const periodCredits = payment.interval === 'YEARLY'
+                    ? RECRUITER_GROWTH_PLAN.yearlyCredits
+                    : RECRUITER_GROWTH_PLAN.monthlyCredits;
                 await grantMonthlyCredits({
                     recruiterId: payment.userId,
                     subscriptionId: updatedSubscription.id,
                     periodEnd: updatedSubscription.currentPeriodEnd,
+                    amount: periodCredits,
                     client: tx,
                 });
             }

@@ -47,7 +47,6 @@ import {
     Loader2,
     CheckCircle,
     Zap,
-    Crown,
     Calendar,
     Sparkles,
 } from 'lucide-react';
@@ -115,7 +114,7 @@ function AdminSubscriptionsContent() {
     const [activateDialog, setActivateDialog] = useState<{
         open: boolean;
         subscription: Subscription | null;
-        plan: 'PRO' | 'ENTERPRISE';
+        plan: 'PRO' | 'GROWTH';
         duration: string;
         note: string;
     }>({
@@ -421,7 +420,7 @@ function AdminSubscriptionsContent() {
                                                             onClick={() => setActivateDialog({
                                                                 open: true,
                                                                 subscription: sub,
-                                                                plan: sub.plan === 'ENTERPRISE' ? 'ENTERPRISE' : 'PRO',
+                                                                plan: sub.plan === 'GROWTH' ? 'GROWTH' : 'PRO',
                                                                 duration: '1_month',
                                                                 note: '',
                                                             })}
@@ -589,18 +588,18 @@ function AdminSubscriptionsContent() {
 
                                 <button
                                     type="button"
-                                    onClick={() => setActivateDialog(prev => ({ ...prev, plan: 'ENTERPRISE' }))}
-                                    className={`relative p-4 rounded-xl border-2 transition-all ${activateDialog.plan === 'ENTERPRISE'
+                                    onClick={() => setActivateDialog(prev => ({ ...prev, plan: 'GROWTH' }))}
+                                    className={`relative p-4 rounded-xl border-2 transition-all ${activateDialog.plan === 'GROWTH'
                                             ? 'border-amber-500 bg-amber-500/5 ring-2 ring-amber-500/20'
                                             : 'border-border hover:border-amber-500/50'
                                         }`}
                                 >
                                     <div className="flex items-center gap-2">
-                                        <Crown className="h-5 w-5 text-amber-500" />
-                                        <span className="font-semibold">ENTERPRISE</span>
+                                        <Search className="h-5 w-5 text-amber-500" />
+                                        <span className="font-semibold">GROWTH</span>
                                     </div>
-                                    <p className="text-sm text-muted-foreground mt-1">249 SAR/mo</p>
-                                    {activateDialog.plan === 'ENTERPRISE' && (
+                                    <p className="text-sm text-muted-foreground mt-1">199 SAR/mo</p>
+                                    {activateDialog.plan === 'GROWTH' && (
                                         <CheckCircle className="absolute top-2 right-2 h-4 w-4 text-amber-500" />
                                     )}
                                 </button>

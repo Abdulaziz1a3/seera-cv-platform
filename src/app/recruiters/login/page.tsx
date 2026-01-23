@@ -48,9 +48,14 @@ export default function RecruiterLoginPage() {
                 redirect: false,
                 email,
                 password,
+                portal: 'recruiter',
             });
             if (result?.error) {
-                toast.error('Invalid credentials');
+                if (result.error === 'JOBSEEKER_PORTAL_ONLY') {
+                    toast.error('This email is registered as a job seeker. Please use job seeker login.');
+                } else {
+                    toast.error('Invalid credentials');
+                }
                 return;
             }
             toast.success('Welcome back!');

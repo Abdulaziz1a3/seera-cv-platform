@@ -83,7 +83,7 @@ export const PLANS = {
         id: 'growth',
         name: { ar: 'النمو', en: 'Growth' },
         priceMonthly: 199, // SAR
-        priceYearly: 0,
+        priceYearly: 1650, // SAR
         features: {
             resumeLimit: -1,
             downloadLimit: -1,

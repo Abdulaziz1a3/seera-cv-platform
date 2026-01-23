@@ -7,6 +7,7 @@ import { RecruiterShell } from "@/components/recruiter/recruiter-shell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { RECRUITER_GROWTH_PLAN } from "@/lib/recruiter-billing";
 
 type SubscriptionInfo = {
     plan: string;
@@ -27,6 +28,7 @@ export default function RecruiterBillingPage() {
     const [balance, setBalance] = useState(0);
     const [ledger, setLedger] = useState<CreditLedgerEntry[]>([]);
     const [packs, setPacks] = useState<Record<string, { credits: number; amountSar: number }>>({});
+    const [billingInterval, setBillingInterval] = useState<"MONTHLY" | "YEARLY">("MONTHLY");
 
     const loadBilling = async () => {
         const [subRes, creditsRes] = await Promise.all([
@@ -48,7 +50,11 @@ export default function RecruiterBillingPage() {
     }, []);
 
     const startSubscription = async () => {
-        const res = await fetch("/api/recruiters/billing/checkout", { method: "POST" });
+        const res = await fetch("/api/recruiters/billing/checkout", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ interval: billingInterval }),
+        });
         const data = await res.json();
         if (!res.ok || !data?.url) {
             toast.error(data?.error || "Failed to start checkout");
@@ -85,6 +91,32 @@ export default function RecruiterBillingPage() {
                         <div className="flex flex-wrap items-center gap-3">
                             <Badge variant="secondary">{subscription?.plan || "GROWTH"}</Badge>
                             <Badge>{subscription?.status || "UNPAID"}</Badge>
+                        </div>
+                        <div className="space-y-2">
+                            <p className="text-sm text-muted-foreground">Billing cycle</p>
+                            <div className="flex flex-wrap gap-2">
+                                <Button
+                                    type="button"
+                                    size="sm"
+                                    variant={billingInterval === "MONTHLY" ? "default" : "outline"}
+                                    onClick={() => setBillingInterval("MONTHLY")}
+                                >
+                                    Monthly {RECRUITER_GROWTH_PLAN.priceMonthlySar} SAR
+                                </Button>
+                                <Button
+                                    type="button"
+                                    size="sm"
+                                    variant={billingInterval === "YEARLY" ? "default" : "outline"}
+                                    onClick={() => setBillingInterval("YEARLY")}
+                                >
+                                    Yearly {RECRUITER_GROWTH_PLAN.priceYearlySar} SAR
+                                </Button>
+                            </div>
+                            <p className="text-sm text-muted-foreground">
+                                {billingInterval === "YEARLY"
+                                    ? `Includes ${RECRUITER_GROWTH_PLAN.yearlyCredits} CV credits per year.`
+                                    : `Includes ${RECRUITER_GROWTH_PLAN.monthlyCredits} CV credits per month.`}
+                            </p>
                         </div>
                         <div className="text-sm text-muted-foreground">
                             Renewal date: {subscription?.currentPeriodEnd ? new Date(subscription.currentPeriodEnd).toLocaleDateString() : "Not active"}

@@ -14,16 +14,20 @@ export default function PricingPage() {
     const { t, locale } = useLocale();
     const [isYearly, setIsYearly] = useState(false);
 
+    const recruiterCreditsLabel = isYearly
+        ? (locale === 'ar' ? '240 رصيد CV سنوياً' : '240 CV credits per year')
+        : (locale === 'ar' ? '20 رصيد CV شهرياً' : '20 CV credits per month');
+
     const recruiterFeatures = locale === 'ar'
         ? [
-            '20 رصيد CV شهرياً',
+            recruiterCreditsLabel,
             'مطابقة ذكية مع توصيات',
             'مرشحو أولوية',
             'قوائم مختصرة وملاحظات',
             'بحث متقدم بالمرشحين',
         ]
         : [
-            '20 CV credits per month',
+            recruiterCreditsLabel,
             'AI matching & recommendations',
             'Priority candidates',
             'Shortlists & notes',
@@ -50,7 +54,7 @@ export default function PricingPage() {
                 ? 'لوحة مسؤولي التوظيف مع مطابقة ذكية للمواهب'
                 : 'Recruiter dashboard with AI matching and talent insights',
             monthlyPrice: 199,
-            yearlyPrice: 199,
+            yearlyPrice: 1650,
             features: recruiterFeatures,
             cta: locale === 'ar' ? 'ابدأ كمسؤول توظيف' : 'Start hiring',
             href: '/recruiters/register',

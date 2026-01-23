@@ -2,7 +2,9 @@ export const RECRUITER_GROWTH_PLAN = {
     id: 'growth',
     name: 'Talent Hunter - Growth',
     priceMonthlySar: 199,
+    priceYearlySar: 1650,
     monthlyCredits: 20,
+    yearlyCredits: 240,
 };
 
 export const RECRUITER_CREDIT_PACKS = {

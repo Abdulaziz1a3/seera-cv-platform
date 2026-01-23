@@ -101,10 +101,17 @@ export default function RecruiterRegisterPage() {
                 return;
             }
 
+            if (result?.requiresVerification) {
+                toast.success(result?.message || 'Account created. Please verify your email.');
+                router.push('/recruiters/login');
+                return;
+            }
+
             const login = await signIn('credentials', {
                 redirect: false,
                 email: formData.email,
                 password: formData.password,
+                portal: 'recruiter',
             });
 
             if (login?.error) {
