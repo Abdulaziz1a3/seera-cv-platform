@@ -120,9 +120,7 @@ export async function POST(request: NextRequest) {
         const locationVariants = buildCaseVariants(filters.locations);
         whereConditions.push({
             OR: [
-                ...filters.locations.map((loc) => ({
-                    location: { contains: loc, mode: 'insensitive' },
-                })),
+                { location: { in: locationVariants } },
                 { preferredLocations: { hasSome: locationVariants } },
             ],
         });
