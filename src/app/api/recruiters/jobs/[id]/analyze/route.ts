@@ -119,8 +119,8 @@ export async function POST(_: Request, { params }: { params: { id: string } }) {
                 preferredDegreeLevels: analysisData.preferredDegreeLevels,
                 requiredFieldsOfStudy: analysisData.requiredFieldsOfStudy,
                 preferredFieldsOfStudy: analysisData.preferredFieldsOfStudy,
-                weights: analysisData.weights,
-                modelInfo: analysisData.modelInfo,
+                weights: analysisData.weights as Prisma.InputJsonValue,
+                modelInfo: analysisData.modelInfo as Prisma.InputJsonValue,
             },
         });
 
