@@ -70,6 +70,12 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
                 { status: 400 }
             );
         }
+        if ((error as { code?: string }).code === 'P2021') {
+            return NextResponse.json(
+                { error: 'Database schema is missing required tables. Please run migrations.' },
+                { status: 500 }
+            );
+        }
         if ((error as { code?: string }).code === 'P2002') {
             return NextResponse.json({ error: 'Candidate already in shortlist' }, { status: 409 });
         }

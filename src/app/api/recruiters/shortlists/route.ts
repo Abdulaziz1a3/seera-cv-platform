@@ -18,47 +18,63 @@ export async function GET() {
         return NextResponse.json({ error: 'Recruiter not found' }, { status: 401 });
     }
 
-    const shortlists = await prisma.recruiterShortlist.findMany({
-        where: { recruiterId: guard.userId },
-        orderBy: { updatedAt: 'desc' },
-        include: {
-            candidates: {
-                include: { talentProfile: true },
-                orderBy: { addedAt: 'desc' },
-            },
-        },
-    });
-
-    const candidateIds = shortlists.flatMap((shortlist) =>
-        shortlist.candidates.map((candidate) => candidate.talentProfileId)
-    );
-    const unlocks = await prisma.cvUnlock.findMany({
-        where: { recruiterId: guard.userId, candidateId: { in: candidateIds } },
-        select: { candidateId: true },
-    });
-    const unlockedSet = new Set(unlocks.map((unlock) => unlock.candidateId));
-
-    const sanitizedShortlists = shortlists.map((shortlist) => ({
-        ...shortlist,
-        candidates: shortlist.candidates.map((candidate) => {
-            const isUnlocked = unlockedSet.has(candidate.talentProfileId);
-            return {
-                ...candidate,
-                talentProfile: {
-                    ...candidate.talentProfile,
-                    displayName: isUnlocked
-                        ? candidate.talentProfile.displayName
-                        : buildAnonymizedName(candidate.talentProfile.displayName, candidate.talentProfile.id),
-                    currentCompany: candidate.talentProfile.hideCurrentEmployer
-                        ? null
-                        : candidate.talentProfile.currentCompany,
+    try {
+        const shortlists = await prisma.recruiterShortlist.findMany({
+            where: { recruiterId: guard.userId },
+            orderBy: { updatedAt: 'desc' },
+            include: {
+                candidates: {
+                    include: { talentProfile: true },
+                    orderBy: { addedAt: 'desc' },
                 },
-                unlocked: isUnlocked,
-            };
-        }),
-    }));
+            },
+        });
 
-    return NextResponse.json({ shortlists: sanitizedShortlists });
+        const candidateIds = shortlists.flatMap((shortlist) =>
+            shortlist.candidates.map((candidate) => candidate.talentProfileId)
+        );
+        const unlocks = await prisma.cvUnlock.findMany({
+            where: { recruiterId: guard.userId, candidateId: { in: candidateIds } },
+            select: { candidateId: true },
+        });
+        const unlockedSet = new Set(unlocks.map((unlock) => unlock.candidateId));
+
+        const sanitizedShortlists = shortlists.map((shortlist) => ({
+            ...shortlist,
+            candidates: shortlist.candidates.map((candidate) => {
+                const isUnlocked = unlockedSet.has(candidate.talentProfileId);
+                return {
+                    ...candidate,
+                    talentProfile: {
+                        ...candidate.talentProfile,
+                        displayName: isUnlocked
+                            ? candidate.talentProfile.displayName
+                            : buildAnonymizedName(candidate.talentProfile.displayName, candidate.talentProfile.id),
+                        currentCompany: candidate.talentProfile.hideCurrentEmployer
+                            ? null
+                            : candidate.talentProfile.currentCompany,
+                    },
+                    unlocked: isUnlocked,
+                };
+            }),
+        }));
+
+        return NextResponse.json({ shortlists: sanitizedShortlists });
+    } catch (error) {
+        if (error instanceof z.ZodError) {
+            return NextResponse.json(
+                { error: 'Validation failed', details: error.flatten().fieldErrors },
+                { status: 400 }
+            );
+        }
+        if ((error as { code?: string }).code === 'P2021') {
+            return NextResponse.json(
+                { error: 'Database schema is missing required tables. Please run migrations.' },
+                { status: 500 }
+            );
+        }
+        return NextResponse.json({ error: 'Failed to load shortlists' }, { status: 500 });
+    }
 }
 
 export async function POST(request: NextRequest) {
@@ -101,6 +117,12 @@ export async function POST(request: NextRequest) {
             return NextResponse.json(
                 { error: 'Validation failed', details: error.flatten().fieldErrors },
                 { status: 400 }
+            );
+        }
+        if ((error as { code?: string }).code === 'P2021') {
+            return NextResponse.json(
+                { error: 'Database schema is missing required tables. Please run migrations.' },
+                { status: 500 }
             );
         }
         return NextResponse.json({ error: 'Failed to create shortlist' }, { status: 500 });
