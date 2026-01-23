@@ -40,7 +40,6 @@ import {
     Building2,
     CheckCircle2,
     TrendingUp,
-    MessageSquare,
     Settings2,
     Sparkles,
     Loader2,
@@ -51,6 +50,7 @@ import {
     GraduationCap,
     Clock,
     DollarSign,
+    Download,
     RefreshCw,
     Info,
     Star,
@@ -85,6 +85,13 @@ type TalentProfile = {
     summary?: string | null;
 };
 
+type TalentPoolStats = {
+    profileViews: number;
+    unlocks: number;
+    searchAppearances: number;
+    cvDownloads: number;
+};
+
 export default function TalentPoolPage() {
     const { locale } = useLocale();
     const { resumes, isLoading: resumesLoading } = useResumes();
@@ -96,6 +103,13 @@ export default function TalentPoolPage() {
     const [isLeaving, setIsLeaving] = useState(false);
     const [hasAccess, setHasAccess] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [stats, setStats] = useState<TalentPoolStats>({
+        profileViews: 0,
+        unlocks: 0,
+        searchAppearances: 0,
+        cvDownloads: 0,
+    });
+    const [statsLoading, setStatsLoading] = useState(false);
 
     // Form state
     const [selectedResumeId, setSelectedResumeId] = useState<string>('');
@@ -176,6 +190,41 @@ export default function TalentPoolPage() {
     useEffect(() => {
         loadProfile();
     }, [loadProfile]);
+
+    const loadStats = useCallback(async () => {
+        setStatsLoading(true);
+        try {
+            const res = await fetch('/api/talent-pool/stats');
+            if (res.status === 403) {
+                setStatsLoading(false);
+                return;
+            }
+
+            const data = await res.json();
+            if (!res.ok) {
+                throw new Error(data?.error || 'Failed to load stats');
+            }
+
+            if (data?.stats) {
+                setStats({
+                    profileViews: data.stats.profileViews ?? 0,
+                    unlocks: data.stats.unlocks ?? 0,
+                    searchAppearances: data.stats.searchAppearances ?? 0,
+                    cvDownloads: data.stats.cvDownloads ?? 0,
+                });
+            }
+        } catch (err) {
+            console.error('Talent pool stats error:', err);
+        } finally {
+            setStatsLoading(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        if (isJoined) {
+            loadStats();
+        }
+    }, [isJoined, loadStats]);
 
     // Join or update profile
     const handleSave = async () => {
@@ -370,7 +419,7 @@ export default function TalentPoolPage() {
                                         { icon: Building2, title: locale === 'ar' ? '500+ شركة' : '500+ Companies', desc: locale === 'ar' ? 'تبحث عن مواهب' : 'Actively hiring' },
                                         { icon: Eye, title: locale === 'ar' ? 'ظهور للشركات' : 'Get Discovered', desc: locale === 'ar' ? 'بدون رسوم إضافية' : 'Included in Pro' },
                                         { icon: Shield, title: locale === 'ar' ? 'خصوصية تامة' : 'Full Privacy', desc: locale === 'ar' ? 'تحكم في ما يظهر' : 'Control what shows' },
-                                        { icon: MessageSquare, title: locale === 'ar' ? 'تواصل مباشر' : 'Direct Messages', desc: locale === 'ar' ? 'من مسؤولي التوظيف' : 'From recruiters' },
+                                        { icon: Download, title: locale === 'ar' ? 'تحميل السيرة الذاتية' : 'CV Downloads', desc: locale === 'ar' ? 'يمكن لمسؤولي التوظيف تحميل سيرتك' : 'Recruiters can download your CV' },
                                     ].map((item) => (
                                         <div key={item.title} className="flex items-center gap-3 p-3 rounded-lg bg-muted">
                                             <item.icon className="h-5 w-5 text-purple-500" />
@@ -457,10 +506,10 @@ export default function TalentPoolPage() {
                         {/* Stats */}
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                             {[
-                                { icon: Eye, label: locale === 'ar' ? 'مشاهدات الملف' : 'Profile Views', value: 0, color: 'text-blue-500' },
-                                { icon: Users, label: locale === 'ar' ? 'فتح الملف' : 'Unlocks', value: 0, color: 'text-green-500' },
-                                { icon: MessageSquare, label: locale === 'ar' ? 'رسائل' : 'Messages', value: 0, color: 'text-purple-500' },
-                                { icon: TrendingUp, label: locale === 'ar' ? 'ظهور في البحث' : 'Search Appearances', value: 0, color: 'text-amber-500' },
+                                { icon: Eye, label: locale === 'ar' ? 'مشاهدات الملف' : 'Profile Views', value: stats.profileViews, color: 'text-blue-500' },
+                                { icon: Users, label: locale === 'ar' ? 'فتح الملف' : 'Unlocks', value: stats.unlocks, color: 'text-green-500' },
+                                { icon: TrendingUp, label: locale === 'ar' ? 'ظهور في البحث' : 'Search Appearances', value: stats.searchAppearances, color: 'text-amber-500' },
+                                { icon: Download, label: locale === 'ar' ? 'تحميلات السيرة الذاتية' : 'CV Downloads', value: stats.cvDownloads, color: 'text-purple-500' },
                             ].map((stat) => (
                                 <Card key={stat.label}>
                                     <CardContent className="pt-4 pb-4">
@@ -469,7 +518,7 @@ export default function TalentPoolPage() {
                                                 <stat.icon className="h-5 w-5" />
                                             </div>
                                             <div>
-                                                <p className="text-2xl font-bold">{stat.value}</p>
+                                                <p className="text-2xl font-bold">{statsLoading ? '...' : stat.value}</p>
                                                 <p className="text-xs text-muted-foreground">{stat.label}</p>
                                             </div>
                                         </div>

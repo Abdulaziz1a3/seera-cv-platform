@@ -449,6 +449,32 @@ model CvUnlock {
   @@index([candidateId])
 }
 
+model TalentProfileView {
+  id          String        @id @default(cuid())
+  recruiterId String
+  recruiter   User          @relation(fields: [recruiterId], references: [id], onDelete: Cascade)
+  candidateId String
+  candidate   TalentProfile @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  createdAt   DateTime      @default(now())
+
+  @@unique([recruiterId, candidateId])
+  @@index([candidateId])
+  @@index([recruiterId])
+}
+
+model TalentProfileDownload {
+  id          String        @id @default(cuid())
+  recruiterId String
+  recruiter   User          @relation(fields: [recruiterId], references: [id], onDelete: Cascade)
+  candidateId String
+  candidate   TalentProfile @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  createdAt   DateTime      @default(now())
+
+  @@unique([recruiterId, candidateId])
+  @@index([candidateId])
+  @@index([recruiterId])
+}
+
 model ResumeVersion {
   id        String   @id @default(cuid())
   resumeId  String

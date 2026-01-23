@@ -41,6 +41,15 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
         return NextResponse.json({ error: 'Candidate not found' }, { status: 404 });
     }
 
+    try {
+        await prisma.talentProfileView.createMany({
+            data: [{ recruiterId: guard.userId, candidateId: candidate.id }],
+            skipDuplicates: true,
+        });
+    } catch (error) {
+        console.error('Failed to record talent profile view:', error);
+    }
+
     const unlock = await prisma.cvUnlock.findUnique({
         where: {
             recruiterId_candidateId: {

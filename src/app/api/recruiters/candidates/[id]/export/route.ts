@@ -138,6 +138,15 @@ export async function GET(request: Request, { params }: { params: { id: string }
             ? Buffer.byteLength(exportResult.data, 'utf-8')
             : exportResult.data.length;
 
+    try {
+        await prisma.talentProfileDownload.createMany({
+            data: [{ recruiterId: guard.userId, candidateId: candidate.id }],
+            skipDuplicates: true,
+        });
+    } catch (error) {
+        console.error('Failed to record talent profile download:', error);
+    }
+
     return new NextResponse(body, {
         headers: {
             'Content-Type': exportResult.contentType,
