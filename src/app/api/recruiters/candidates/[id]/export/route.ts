@@ -28,6 +28,26 @@ function buildResumeSnapshotFromSections(resume?: {
     return snapshot;
 }
 
+function hasResumeContent(snapshot?: any) {
+    if (!snapshot) return false;
+    const summary = snapshot.summary?.content;
+    const experienceCount = snapshot.experience?.items?.length || 0;
+    const educationCount = snapshot.education?.items?.length || 0;
+    const projectCount = snapshot.projects?.items?.length || 0;
+    const certificationsCount = snapshot.certifications?.items?.length || 0;
+    const languagesCount = snapshot.languages?.items?.length || 0;
+    const skillsCount = snapshot.skills?.simpleList?.length || 0;
+    const skillsCategoriesCount = snapshot.skills?.categories?.length || 0;
+    return Boolean(summary) ||
+        experienceCount > 0 ||
+        educationCount > 0 ||
+        projectCount > 0 ||
+        certificationsCount > 0 ||
+        languagesCount > 0 ||
+        skillsCount > 0 ||
+        skillsCategoriesCount > 0;
+}
+
 export async function GET(request: Request, { params }: { params: { id: string } }) {
     const guard = await requireEnterpriseRecruiter();
     if (!guard.allowed) {
@@ -75,10 +95,43 @@ export async function GET(request: Request, { params }: { params: { id: string }
 
     const resumeSnapshot = candidate.resume?.versions[0]?.snapshot as any;
     const fallbackSnapshot = buildResumeSnapshotFromSections(candidate.resume || undefined);
-    const snapshot =
+    let snapshot =
         resumeSnapshot && Object.keys(resumeSnapshot).length > 0
             ? resumeSnapshot
             : fallbackSnapshot;
+
+    if (!hasResumeContent(snapshot)) {
+        const latestResume = await prisma.resume.findFirst({
+            where: { userId: candidate.userId, deletedAt: null },
+            orderBy: { updatedAt: 'desc' },
+            include: {
+                versions: {
+                    orderBy: { version: 'desc' },
+                    take: 1,
+                    select: { snapshot: true },
+                },
+                sections: {
+                    orderBy: { order: 'asc' },
+                    select: { type: true, content: true },
+                },
+            },
+        });
+        if (latestResume) {
+            const latestSnapshot = latestResume.versions[0]?.snapshot as any;
+            const latestFallback = buildResumeSnapshotFromSections(latestResume || undefined);
+            const nextSnapshot =
+                latestSnapshot && Object.keys(latestSnapshot).length > 0
+                    ? latestSnapshot
+                    : latestFallback;
+            if (hasResumeContent(nextSnapshot)) {
+                snapshot = nextSnapshot;
+            }
+        }
+    }
+
+    if (!hasResumeContent(snapshot)) {
+        return NextResponse.json({ error: 'Resume data not available yet' }, { status: 404 });
+    }
 
     const { searchParams } = new URL(request.url);
     const format = (searchParams.get('format') || 'docx').toLowerCase();
