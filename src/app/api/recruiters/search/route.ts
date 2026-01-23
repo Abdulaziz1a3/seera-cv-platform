@@ -36,6 +36,25 @@ function computeFitScore(skills: string[], queryTokens: string[]): number {
     return Math.max(60, Math.min(98, Math.round(60 + ratio * 38)));
 }
 
+function buildCaseVariants(values: string[]) {
+    const variants = new Set<string>();
+    values
+        .map((value) => value.trim())
+        .filter(Boolean)
+        .forEach((value) => {
+            variants.add(value);
+            variants.add(value.toLowerCase());
+            variants.add(value.toUpperCase());
+            const title = value
+                .toLowerCase()
+                .split(/\s+/)
+                .map((word) => (word ? `${word[0].toUpperCase()}${word.slice(1)}` : word))
+                .join(' ');
+            variants.add(title);
+        });
+    return Array.from(variants);
+}
+
 function withinLast12Months(date?: Date | string | null) {
     if (!date) return false;
     const value = new Date(date);
@@ -77,29 +96,34 @@ export async function POST(request: NextRequest) {
 
     if (filters.query && filters.query.trim()) {
         const searchTerm = filters.query.trim();
+        const searchVariants = buildCaseVariants([searchTerm]);
         whereConditions.push({
             OR: [
                 { displayName: { contains: searchTerm, mode: 'insensitive' } },
                 { currentTitle: { contains: searchTerm, mode: 'insensitive' } },
                 { currentCompany: { contains: searchTerm, mode: 'insensitive' } },
                 { summary: { contains: searchTerm, mode: 'insensitive' } },
-                { skills: { hasSome: [searchTerm] } },
-                { desiredRoles: { hasSome: [searchTerm] } },
+                { skills: { hasSome: searchVariants } },
+                { desiredRoles: { hasSome: searchVariants } },
             ],
         });
     }
 
     if (filters.skills && filters.skills.length > 0) {
+        const skillVariants = buildCaseVariants(filters.skills);
         whereConditions.push({
-            skills: { hasSome: filters.skills },
+            skills: { hasSome: skillVariants },
         });
     }
 
     if (filters.locations && filters.locations.length > 0) {
+        const locationVariants = buildCaseVariants(filters.locations);
         whereConditions.push({
             OR: [
-                { location: { in: filters.locations } },
-                { preferredLocations: { hasSome: filters.locations } },
+                ...filters.locations.map((loc) => ({
+                    location: { contains: loc, mode: 'insensitive' },
+                })),
+                { preferredLocations: { hasSome: locationVariants } },
             ],
         });
     }
@@ -149,8 +173,9 @@ export async function POST(request: NextRequest) {
     }
 
     if (filters.noticePeriod && filters.noticePeriod.length > 0) {
+        const noticeVariants = buildCaseVariants(filters.noticePeriod);
         whereConditions.push({
-            noticePeriod: { in: filters.noticePeriod },
+            noticePeriod: { in: noticeVariants },
         });
     }
 
