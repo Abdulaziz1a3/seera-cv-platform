@@ -69,6 +69,9 @@ providers.push(
                                     },
                                 },
                             },
+                            include: {
+                                subscription: { select: { plan: true } },
+                            },
                         });
                         // Return immediately for first-time super admin creation
                         return {
