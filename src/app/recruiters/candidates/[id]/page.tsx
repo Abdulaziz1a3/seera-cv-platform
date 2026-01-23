@@ -1,12 +1,21 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useParams } from "next/navigation";
 import { Mail, Phone, Globe, Linkedin, Lock } from "lucide-react";
 import { RecruiterShell } from "@/components/recruiter/recruiter-shell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 import { toast } from "sonner";
 
 const DEGREE_LABELS: Record<string, string> = {
@@ -41,11 +50,24 @@ type CandidateResponse = {
     candidate: any;
 };
 
+type Shortlist = {
+    id: string;
+    name: string;
+    candidates?: Array<{
+        talentProfileId?: string;
+        talentProfile?: { id: string };
+    }>;
+};
+
 export default function RecruiterCandidatePage() {
     const params = useParams();
     const candidateId = params?.id as string;
     const [candidate, setCandidate] = useState<CandidateResponse | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [shortlists, setShortlists] = useState<Shortlist[]>([]);
+    const [selectedShortlistId, setSelectedShortlistId] = useState("");
+    const [shortlistNote, setShortlistNote] = useState("");
+    const [isAddingShortlist, setIsAddingShortlist] = useState(false);
 
     const loadCandidate = async () => {
         setIsLoading(true);
@@ -59,6 +81,17 @@ export default function RecruiterCandidatePage() {
             setCandidate(data);
         } finally {
             setIsLoading(false);
+        }
+    };
+
+    const loadShortlists = async () => {
+        const res = await fetch("/api/recruiters/shortlists");
+        if (!res.ok) return;
+        const data = await res.json();
+        const list = data.shortlists || [];
+        setShortlists(list);
+        if (!selectedShortlistId && list.length > 0) {
+            setSelectedShortlistId(list[0].id);
         }
     };
 
@@ -80,6 +113,7 @@ export default function RecruiterCandidatePage() {
     useEffect(() => {
         if (!candidateId) return;
         loadCandidate().catch(() => null);
+        loadShortlists().catch(() => null);
     }, [candidateId]);
 
     if (isLoading) {
@@ -148,6 +182,47 @@ export default function RecruiterCandidatePage() {
     const missingItems = completenessItems.filter((item) => !item.present).map((item) => item.label);
     const exportBaseUrl = `/api/recruiters/candidates/${candidateId}/export`;
     const hasExportData = Boolean(details.resume || summaryText || combinedSkills.length > 0);
+    const selectedShortlist = shortlists.find((list) => list.id === selectedShortlistId);
+    const isAlreadyShortlisted = Boolean(
+        selectedShortlist?.candidates?.some(
+            (entry) =>
+                entry.talentProfileId === candidateId ||
+                entry.talentProfile?.id === candidateId
+        )
+    );
+
+    const addToShortlist = async () => {
+        if (!selectedShortlistId) {
+            toast.error("Create a shortlist first");
+            return;
+        }
+        setIsAddingShortlist(true);
+        try {
+            const res = await fetch(`/api/recruiters/shortlists/${selectedShortlistId}/candidates`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    talentProfileId: candidateId,
+                    note: shortlistNote.trim() || undefined,
+                }),
+            });
+            let data: any = null;
+            try {
+                data = await res.json();
+            } catch {
+                data = null;
+            }
+            if (!res.ok) {
+                toast.error(data?.error || "Failed to add to shortlist");
+                return;
+            }
+            toast.success("Added to shortlist");
+            setShortlistNote("");
+            await loadShortlists();
+        } finally {
+            setIsAddingShortlist(false);
+        }
+    };
 
     return (
         <RecruiterShell>
@@ -233,6 +308,49 @@ export default function RecruiterCandidatePage() {
                             <p className="text-sm text-muted-foreground">
                                 CV file is not available yet for this candidate.
                             </p>
+                        )}
+                    </div>
+
+                    <div className="rounded-lg border p-4 space-y-3">
+                        <div className="flex items-center justify-between">
+                            <p className="text-sm font-semibold">Shortlists</p>
+                            <Button asChild variant="outline" size="sm">
+                                <Link href="/recruiters/shortlists">Manage</Link>
+                            </Button>
+                        </div>
+                        {shortlists.length === 0 ? (
+                            <p className="text-sm text-muted-foreground">
+                                Create a shortlist to organize unlocked candidates.
+                            </p>
+                        ) : (
+                            <div className="grid gap-3 md:grid-cols-[1fr_1fr_auto]">
+                                <Select
+                                    value={selectedShortlistId}
+                                    onValueChange={setSelectedShortlistId}
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Select shortlist" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {shortlists.map((list) => (
+                                            <SelectItem key={list.id} value={list.id}>
+                                                {list.name}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                <Input
+                                    placeholder="Note (optional)"
+                                    value={shortlistNote}
+                                    onChange={(event) => setShortlistNote(event.target.value)}
+                                />
+                                <Button
+                                    onClick={addToShortlist}
+                                    disabled={isAddingShortlist || isAlreadyShortlisted}
+                                >
+                                    {isAlreadyShortlisted ? "Already added" : isAddingShortlist ? "Adding..." : "Add"}
+                                </Button>
+                            </div>
                         )}
                     </div>
 

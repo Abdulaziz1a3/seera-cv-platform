@@ -70,16 +70,39 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Recruiter not found' }, { status: 401 });
     }
 
-    const body = await request.json();
-    const data = createSchema.parse(body);
+    let body: unknown;
+    try {
+        body = await request.json();
+    } catch {
+        return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+    }
 
-    const shortlist = await prisma.recruiterShortlist.create({
-        data: {
-            recruiterId: guard.userId,
-            name: data.name,
-            description: data.description,
-        },
-    });
+    const parseResult = createSchema.safeParse(body);
+    if (!parseResult.success) {
+        return NextResponse.json(
+            { error: 'Validation failed', details: parseResult.error.flatten().fieldErrors },
+            { status: 400 }
+        );
+    }
 
-    return NextResponse.json({ shortlist }, { status: 201 });
+    try {
+        const data = parseResult.data;
+        const shortlist = await prisma.recruiterShortlist.create({
+            data: {
+                recruiterId: guard.userId,
+                name: data.name,
+                description: data.description,
+            },
+        });
+
+        return NextResponse.json({ shortlist }, { status: 201 });
+    } catch (error) {
+        if (error instanceof z.ZodError) {
+            return NextResponse.json(
+                { error: 'Validation failed', details: error.flatten().fieldErrors },
+                { status: 400 }
+            );
+        }
+        return NextResponse.json({ error: 'Failed to create shortlist' }, { status: 500 });
+    }
 }

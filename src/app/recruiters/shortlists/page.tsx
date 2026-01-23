@@ -50,9 +50,14 @@ export default function RecruiterShortlistsPage() {
             const res = await fetch("/api/recruiters/shortlists", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ name, description: description || undefined }),
+                body: JSON.stringify({ name: name.trim(), description: description.trim() || undefined }),
             });
-            const data = await res.json();
+            let data: any = null;
+            try {
+                data = await res.json();
+            } catch {
+                data = null;
+            }
             if (!res.ok) {
                 toast.error(data?.error || "Failed to create shortlist");
                 return;
@@ -61,6 +66,8 @@ export default function RecruiterShortlistsPage() {
             setName("");
             setDescription("");
             await loadShortlists();
+        } catch {
+            toast.error("Failed to create shortlist");
         } finally {
             setIsSubmitting(false);
         }
@@ -82,6 +89,7 @@ export default function RecruiterShortlistsPage() {
                             value={name}
                             onChange={(event) => setName(event.target.value)}
                             required
+                            minLength={2}
                         />
                         <Input
                             placeholder="Description (optional)"

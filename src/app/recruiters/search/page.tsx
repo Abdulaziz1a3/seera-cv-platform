@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Search, Filter, Lock, Plus, X } from "lucide-react";
 import { toast } from "sonner";
@@ -12,6 +12,13 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 
 const DEGREE_LEVELS = [
     { value: "DIPLOMA", label: "Diploma" },
@@ -72,6 +79,15 @@ type Candidate = {
     trainingFlag?: boolean | null;
 };
 
+type Shortlist = {
+    id: string;
+    name: string;
+    candidates?: Array<{
+        talentProfileId?: string;
+        talentProfile?: { id: string };
+    }>;
+};
+
 export default function RecruiterSearchPage() {
     const [query, setQuery] = useState("");
     const [location, setLocation] = useState("");
@@ -88,6 +104,9 @@ export default function RecruiterSearchPage() {
     const [experienceBands, setExperienceBands] = useState<string[]>([]);
     const [candidates, setCandidates] = useState<Candidate[]>([]);
     const [isSearching, setIsSearching] = useState(false);
+    const [shortlists, setShortlists] = useState<Shortlist[]>([]);
+    const [selectedShortlistId, setSelectedShortlistId] = useState("");
+    const [addingCandidateId, setAddingCandidateId] = useState<string | null>(null);
 
     const toggleListValue = (
         value: string,
@@ -189,6 +208,60 @@ export default function RecruiterSearchPage() {
             setCandidates(data.candidates || []);
         } finally {
             setIsSearching(false);
+        }
+    };
+
+    const loadShortlists = async () => {
+        const res = await fetch("/api/recruiters/shortlists");
+        if (!res.ok) return;
+        const data = await res.json();
+        const list = data.shortlists || [];
+        setShortlists(list);
+        if (!selectedShortlistId && list.length > 0) {
+            setSelectedShortlistId(list[0].id);
+        }
+    };
+
+    useEffect(() => {
+        loadShortlists().catch(() => null);
+    }, []);
+
+    const isCandidateShortlisted = (candidateId: string, shortlistId?: string) => {
+        const shortlist = shortlists.find((list) => list.id === shortlistId);
+        if (!shortlist?.candidates?.length) return false;
+        return shortlist.candidates.some(
+            (entry) =>
+                entry.talentProfileId === candidateId ||
+                entry.talentProfile?.id === candidateId
+        );
+    };
+
+    const addToShortlist = async (candidateId: string) => {
+        if (!selectedShortlistId) {
+            toast.error("Select a shortlist first");
+            return;
+        }
+        setAddingCandidateId(candidateId);
+        try {
+            const res = await fetch(`/api/recruiters/shortlists/${selectedShortlistId}/candidates`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ talentProfileId: candidateId }),
+            });
+            let data: any = null;
+            try {
+                data = await res.json();
+            } catch {
+                data = null;
+            }
+            if (!res.ok) {
+                toast.error(data?.error || "Failed to add to shortlist");
+                return;
+            }
+            toast.success("Added to shortlist");
+            await loadShortlists();
+        } finally {
+            setAddingCandidateId(null);
         }
     };
 
@@ -413,6 +486,34 @@ export default function RecruiterSearchPage() {
             </Card>
 
             <section className="grid gap-4">
+                <Card>
+                    <CardContent className="flex flex-wrap items-center gap-3 py-4">
+                        <p className="text-sm font-semibold">Shortlist</p>
+                        {shortlists.length === 0 ? (
+                            <Button asChild variant="outline" size="sm">
+                                <Link href="/recruiters/shortlists">Create shortlist</Link>
+                            </Button>
+                        ) : (
+                            <div className="min-w-[220px]">
+                                <Select value={selectedShortlistId} onValueChange={setSelectedShortlistId}>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Select shortlist" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {shortlists.map((list) => (
+                                            <SelectItem key={list.id} value={list.id}>
+                                                {list.name}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        )}
+                        <p className="text-xs text-muted-foreground">
+                            Add only unlocked candidates.
+                        </p>
+                    </CardContent>
+                </Card>
                 {candidates.length === 0 ? (
                     <Card>
                         <CardContent className="py-10 text-center text-muted-foreground">
@@ -499,9 +600,26 @@ export default function RecruiterSearchPage() {
                                 </div>
                                 <div className="flex flex-wrap gap-2">
                                     {candidate.unlocked ? (
-                                        <Button asChild variant="outline">
-                                            <Link href={`/recruiters/candidates/${candidate.id}`}>View full CV</Link>
-                                        </Button>
+                                        <>
+                                            <Button asChild variant="outline">
+                                                <Link href={`/recruiters/candidates/${candidate.id}`}>View full CV</Link>
+                                            </Button>
+                                            <Button
+                                                variant="secondary"
+                                                onClick={() => addToShortlist(candidate.id)}
+                                                disabled={
+                                                    !selectedShortlistId ||
+                                                    isCandidateShortlisted(candidate.id, selectedShortlistId) ||
+                                                    addingCandidateId === candidate.id
+                                                }
+                                            >
+                                                {isCandidateShortlisted(candidate.id, selectedShortlistId)
+                                                    ? "Already in shortlist"
+                                                    : addingCandidateId === candidate.id
+                                                        ? "Adding..."
+                                                        : "Add to shortlist"}
+                                            </Button>
+                                        </>
                                     ) : (
                                         <Button onClick={() => unlockCv(candidate.id)}>
                                             <Lock className="h-4 w-4 me-2" />
