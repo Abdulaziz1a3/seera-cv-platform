@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requireEnterpriseRecruiter } from '@/lib/recruiter-auth';
-import { exportResume } from '@/lib/export';
+import { exportResume } from '@/lib/export/index';
 import { createEmptyResume } from '@/lib/resume-schema';
 
 function buildResumeSnapshotFromSections(resume?: {
