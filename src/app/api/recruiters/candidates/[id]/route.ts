@@ -8,6 +8,9 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
     if (!guard.allowed) {
         return NextResponse.json({ error: guard.error }, { status: guard.status });
     }
+    if (!guard.userId) {
+        return NextResponse.json({ error: 'Recruiter not found' }, { status: 401 });
+    }
 
     const candidate = await prisma.talentProfile.findUnique({
         where: { id: params.id },
