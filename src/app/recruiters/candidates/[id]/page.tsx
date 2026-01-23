@@ -146,6 +146,8 @@ export default function RecruiterCandidatePage() {
     const completedCount = completenessItems.filter((item) => item.present).length;
     const completeness = Math.round((completedCount / completenessItems.length) * 100);
     const missingItems = completenessItems.filter((item) => !item.present).map((item) => item.label);
+    const exportBaseUrl = `/api/recruiters/candidates/${candidateId}/export`;
+    const hasExportData = Boolean(details.resume || summaryText || combinedSkills.length > 0);
 
     return (
         <RecruiterShell>
@@ -200,20 +202,39 @@ export default function RecruiterCandidatePage() {
                         )}
                     </div>
 
-                    {details.cvFileUrl && (
-                        <div className="flex flex-wrap gap-2">
-                            <Button asChild variant="outline">
-                                <a href={details.cvFileUrl} target="_blank" rel="noreferrer">
-                                    Preview CV PDF
-                                </a>
-                            </Button>
-                            <Button asChild>
-                                <a href={details.cvFileUrl} download>
-                                    Download CV
-                                </a>
-                            </Button>
-                        </div>
-                    )}
+                    <div className="flex flex-wrap gap-2">
+                        {details.cvFileUrl ? (
+                            <>
+                                <Button asChild variant="outline">
+                                    <a href={details.cvFileUrl} target="_blank" rel="noreferrer">
+                                        Preview CV PDF
+                                    </a>
+                                </Button>
+                                <Button asChild>
+                                    <a href={details.cvFileUrl} download>
+                                        Download CV
+                                    </a>
+                                </Button>
+                            </>
+                        ) : hasExportData ? (
+                            <>
+                                <Button asChild>
+                                    <a href={`${exportBaseUrl}?format=docx`}>
+                                        Download CV (DOCX)
+                                    </a>
+                                </Button>
+                                <Button asChild variant="outline">
+                                    <a href={`${exportBaseUrl}?format=txt`}>
+                                        Download CV (TXT)
+                                    </a>
+                                </Button>
+                            </>
+                        ) : (
+                            <p className="text-sm text-muted-foreground">
+                                CV file is not available yet for this candidate.
+                            </p>
+                        )}
+                    </div>
 
                     <div className="grid gap-3 md:grid-cols-3 text-sm">
                         <div className="rounded-lg border p-3">

@@ -3,6 +3,30 @@ import { prisma } from '@/lib/db';
 import { requireEnterpriseRecruiter } from '@/lib/recruiter-auth';
 import { buildAnonymizedName } from '@/lib/recruiter-matching';
 
+function buildResumeSnapshotFromSections(resume?: {
+    title?: string | null;
+    language?: string | null;
+    template?: string | null;
+    theme?: string | null;
+    fontFamily?: string | null;
+    targetRole?: string | null;
+    sections?: Array<{ type: string; content: any }>;
+}) {
+    if (!resume?.sections?.length) return null;
+    const snapshot: Record<string, any> = {
+        title: resume.title || undefined,
+        language: resume.language || undefined,
+        template: resume.template || undefined,
+        theme: resume.theme || undefined,
+        fontFamily: resume.fontFamily || undefined,
+        targetRole: resume.targetRole || undefined,
+    };
+    resume.sections.forEach((section) => {
+        snapshot[section.type.toLowerCase()] = section.content;
+    });
+    return snapshot;
+}
+
 export async function GET(_: Request, { params }: { params: { id: string } }) {
     const guard = await requireEnterpriseRecruiter();
     if (!guard.allowed) {
@@ -21,6 +45,10 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
                         orderBy: { version: 'desc' },
                         take: 1,
                         select: { snapshot: true },
+                    },
+                    sections: {
+                        orderBy: { order: 'asc' },
+                        select: { type: true, content: true },
                     },
                 },
             },
@@ -69,6 +97,22 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
     }
 
     const resumeSnapshot = candidate.resume?.versions[0]?.snapshot as any;
+    const fallbackSnapshot = buildResumeSnapshotFromSections(candidate.resume || undefined);
+    const snapshot =
+        resumeSnapshot && Object.keys(resumeSnapshot).length > 0
+            ? resumeSnapshot
+            : fallbackSnapshot;
+    const resumeContact = snapshot?.contact || {};
+    const mergedContact = candidate.contact || resumeContact
+        ? {
+            fullName: candidate.contact?.fullName || resumeContact.fullName || null,
+            email: candidate.contact?.email || resumeContact.email || null,
+            phone: candidate.contact?.phone || resumeContact.phone || null,
+            location: candidate.contact?.location || resumeContact.location || null,
+            linkedin: candidate.contact?.linkedinUrl || resumeContact.linkedin || null,
+            website: candidate.contact?.websiteUrl || resumeContact.website || null,
+        }
+        : null;
     const cvProfile = await prisma.seeraProfile.findFirst({
         where: {
             userId: candidate.userId,
@@ -109,21 +153,12 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
             preferredIndustries: candidate.preferredIndustries,
             desiredRoles: candidate.desiredRoles,
             cvFileUrl: cvProfile?.cvFileUrl || null,
-            contact: candidate.contact
+            contact: mergedContact,
+            resume: snapshot
                 ? {
-                    fullName: candidate.contact.fullName,
-                    email: candidate.contact.email,
-                    phone: candidate.contact.phone,
-                    location: candidate.contact.location,
-                    linkedin: candidate.contact.linkedinUrl,
-                    website: candidate.contact.websiteUrl,
-                }
-                : null,
-            resume: resumeSnapshot
-                ? {
-                    summary: resumeSnapshot.summary?.content,
-                    experience: resumeSnapshot.experience?.items?.map((exp: any) => ({
-                        company: candidate.hideCurrentEmployer && exp === resumeSnapshot.experience?.items[0]
+                    summary: snapshot.summary?.content,
+                    experience: snapshot.experience?.items?.map((exp: any) => ({
+                        company: candidate.hideCurrentEmployer && exp === snapshot.experience?.items[0]
                             ? 'Confidential'
                             : exp.company,
                         position: exp.position,
@@ -135,17 +170,17 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
                             ? exp.bullets.map((bullet: any) => bullet.content).filter(Boolean)
                             : exp.highlights,
                     })),
-                    education: resumeSnapshot.education?.items?.map((edu: any) => ({
+                    education: snapshot.education?.items?.map((edu: any) => ({
                         institution: edu.institution,
                         degree: edu.degree,
                         field: edu.field,
-                        graduationDate: edu.graduationDate,
+                        graduationDate: edu.graduationDate || edu.endDate,
                         gpa: edu.gpa,
                     })),
-                    skills: resumeSnapshot.skills?.simpleList || [],
-                    certifications: resumeSnapshot.certifications?.items,
-                    projects: resumeSnapshot.projects?.items,
-                    languages: resumeSnapshot.languages?.items,
+                    skills: snapshot.skills?.simpleList || [],
+                    certifications: snapshot.certifications?.items,
+                    projects: snapshot.projects?.items,
+                    languages: snapshot.languages?.items,
                 }
                 : null,
         },
