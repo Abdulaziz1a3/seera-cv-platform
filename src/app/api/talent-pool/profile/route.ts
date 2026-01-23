@@ -7,6 +7,11 @@ import {
     deriveEducationProfile,
     deriveExperienceIndicators,
 } from '@/lib/education-utils';
+import {
+    buildResumeSnapshotFromSections,
+    hasResumeContent,
+    normalizeResumeSnapshot,
+} from '@/lib/resume-snapshot';
 
 // Validation schema for profile creation/update
 const profileSchema = z.object({
@@ -48,7 +53,9 @@ function extractProfileFromSnapshot(snapshot: any) {
     const contact = snapshot?.contact || {};
     const experience = snapshot?.experience?.items || [];
     const education = snapshot?.education?.items || [];
-    const skills = snapshot?.skills?.simpleList || [];
+    const skills = snapshot?.skills?.simpleList
+        || snapshot?.skills?.categories?.flatMap((category: { skills?: string[] }) => category.skills || [])
+        || [];
     const summary = snapshot?.summary?.content || '';
     const currentRole = experience[0]?.position || snapshot?.targetRole || null;
     const currentCompany = experience[0]?.company || null;
@@ -204,6 +211,10 @@ export async function POST(request: NextRequest) {
                     take: 1,
                     select: { snapshot: true },
                 },
+                sections: {
+                    orderBy: { order: 'asc' },
+                    select: { type: true, content: true },
+                },
             },
         });
 
@@ -214,17 +225,30 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        if (resume.versions.length === 0) {
+        const versionSnapshot = resume.versions[0]?.snapshot as any;
+        const sectionSnapshot = buildResumeSnapshotFromSections(resume || undefined);
+        const initialSnapshot =
+            versionSnapshot && Object.keys(versionSnapshot).length > 0
+                ? versionSnapshot
+                : sectionSnapshot;
+        let normalizedResume = normalizeResumeSnapshot(initialSnapshot, resume.title);
+
+        if (!hasResumeContent(normalizedResume) && sectionSnapshot) {
+            const normalizedSections = normalizeResumeSnapshot(sectionSnapshot, resume.title);
+            if (hasResumeContent(normalizedSections)) {
+                normalizedResume = normalizedSections;
+            }
+        }
+
+        if (!hasResumeContent(normalizedResume)) {
             return NextResponse.json(
-                { error: 'Resume has no saved versions. Please save your resume first.' },
+                { error: 'Resume has no saved content. Please save your resume first.' },
                 { status: 400 }
             );
         }
 
-        // Extract profile data from resume
-        const snapshot = resume.versions[0].snapshot as any;
-        const derived = extractProfileFromSnapshot(snapshot);
-        const contactDetails = extractContactFromSnapshot(snapshot);
+        const derived = extractProfileFromSnapshot(normalizedResume);
+        const contactDetails = extractContactFromSnapshot(normalizedResume);
 
         // Create or update the profile
         const profile = await prisma.talentProfile.upsert({

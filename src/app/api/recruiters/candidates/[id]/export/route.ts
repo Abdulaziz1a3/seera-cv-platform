@@ -63,6 +63,13 @@ export async function GET(request: Request, { params }: { params: { id: string }
             : fallbackSnapshot;
     let normalizedResume = normalizeResumeSnapshot(initialSnapshot, candidate.resume?.title);
 
+    if (!hasResumeContent(normalizedResume) && fallbackSnapshot) {
+        const fallbackNormalized = normalizeResumeSnapshot(fallbackSnapshot, candidate.resume?.title);
+        if (hasResumeContent(fallbackNormalized)) {
+            normalizedResume = fallbackNormalized;
+        }
+    }
+
     if (!hasResumeContent(normalizedResume)) {
         const latestResume = await prisma.resume.findFirst({
             where: { userId: candidate.userId, deletedAt: null },
@@ -82,13 +89,14 @@ export async function GET(request: Request, { params }: { params: { id: string }
         if (latestResume) {
             const latestSnapshot = latestResume.versions[0]?.snapshot as any;
             const latestFallback = buildResumeSnapshotFromSections(latestResume || undefined);
-            const nextSnapshot =
-                latestSnapshot && Object.keys(latestSnapshot).length > 0
-                    ? latestSnapshot
-                    : latestFallback;
-            const latestNormalized = normalizeResumeSnapshot(nextSnapshot, latestResume.title);
+            const latestNormalized = normalizeResumeSnapshot(latestSnapshot, latestResume.title);
+            const latestFallbackNormalized = latestFallback
+                ? normalizeResumeSnapshot(latestFallback, latestResume.title)
+                : null;
             if (hasResumeContent(latestNormalized)) {
                 normalizedResume = latestNormalized;
+            } else if (hasResumeContent(latestFallbackNormalized)) {
+                normalizedResume = latestFallbackNormalized;
             }
         }
     }
