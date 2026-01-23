@@ -104,10 +104,11 @@ export default function DashboardLayout({
     }, []);
 
     const isSubscriptionActive = Boolean(subscriptionState?.isActive && subscriptionState?.plan !== 'FREE');
+    const isSuperAdmin = session?.user?.role === 'SUPER_ADMIN';
 
     const billingHref = '/dashboard/billing';
 
-    const navigation = [
+    const baseNavigation = [
         { name: t.nav.dashboard, href: '/dashboard', icon: LayoutDashboard, isPro: false },
         { name: t.nav.myResumes, href: '/dashboard/resumes', icon: FileText, isPro: false },
         { name: t.nav.seeraLink, href: '/dashboard/seera-link', icon: PenTool, isPro: true },
@@ -118,6 +119,15 @@ export default function DashboardLayout({
         { name: locale === 'ar' ? 'وضع التخفي' : 'Stealth Mode', href: '/dashboard/stealth', icon: Shield, isPro: true },
         { name: t.nav.billing, href: billingHref, icon: CreditCard, isPro: false },
     ];
+
+    // Add Talent Hunter for super admin only
+    const navigation = isSuperAdmin
+        ? [
+            ...baseNavigation.slice(0, 7), // Up to Talent Pool
+            { name: locale === 'ar' ? 'صائد المواهب' : 'Talent Hunter', href: '/dashboard/talent-hunter', icon: Search, isPro: false, isAdmin: true },
+            ...baseNavigation.slice(7), // Rest of the navigation
+        ]
+        : baseNavigation;
 
     const secondaryNav = [
         { name: t.nav.settings, href: '/dashboard/settings', icon: Settings },
@@ -182,6 +192,11 @@ export default function DashboardLayout({
                                     {item.isPro && (
                                         <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
                                             PRO
+                                        </Badge>
+                                    )}
+                                    {'isAdmin' in item && item.isAdmin && (
+                                        <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400">
+                                            ADMIN
                                         </Badge>
                                     )}
                                 </span>

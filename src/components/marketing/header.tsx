@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useSession } from 'next-auth/react';
-import { Menu, X, FileText, Moon, Sun, Building2, User, ChevronDown } from 'lucide-react';
+import { Menu, X, FileText, Moon, Sun, Building2, User, ChevronDown, Search } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -41,6 +41,9 @@ export function MarketingHeader() {
     const recruiterLabel = locale === 'ar' ? 'للشركات' : 'For Recruiters';
     const comingSoonLabel = locale === 'ar' ? 'قريباً' : 'Coming soon';
 
+    // Check if user is super admin (has access to Talent Hunter)
+    const isSuperAdmin = session?.user?.role === 'SUPER_ADMIN';
+
     return (
         <header
             className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isScrolled || isMobileMenuOpen
@@ -71,10 +74,20 @@ export function MarketingHeader() {
                                 {link.label}
                             </Link>
                         ))}
-                        <div className="px-4 py-2 text-sm font-medium rounded-lg text-muted-foreground cursor-not-allowed flex items-center gap-2">
-                            <span>{recruiterLabel}</span>
-                            <Badge variant="secondary">{comingSoonLabel}</Badge>
-                        </div>
+                        {isSuperAdmin ? (
+                            <Link
+                                href="/dashboard/talent-hunter"
+                                className="px-4 py-2 text-sm font-medium transition-colors rounded-lg text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 flex items-center gap-2"
+                            >
+                                <Search className="h-4 w-4" />
+                                <span>{locale === 'ar' ? 'صائد المواهب' : 'Talent Hunter'}</span>
+                            </Link>
+                        ) : (
+                            <div className="px-4 py-2 text-sm font-medium rounded-lg text-muted-foreground cursor-not-allowed flex items-center gap-2">
+                                <span>{recruiterLabel}</span>
+                                <Badge variant="secondary">{comingSoonLabel}</Badge>
+                            </div>
+                        )}
                     </div>
 
                     {/* Desktop Actions */}
@@ -221,10 +234,21 @@ export function MarketingHeader() {
                                 {link.label}
                             </Link>
                         ))}
-                        <div className="px-4 py-3 text-sm font-medium rounded-lg text-muted-foreground cursor-not-allowed flex items-center gap-2">
-                            <span>{recruiterLabel}</span>
-                            <Badge variant="secondary">{comingSoonLabel}</Badge>
-                        </div>
+                        {isSuperAdmin ? (
+                            <Link
+                                href="/dashboard/talent-hunter"
+                                onClick={() => setIsMobileMenuOpen(false)}
+                                className="px-4 py-3 text-sm font-medium rounded-lg text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 flex items-center gap-2"
+                            >
+                                <Search className="h-4 w-4" />
+                                <span>{locale === 'ar' ? 'صائد المواهب' : 'Talent Hunter'}</span>
+                            </Link>
+                        ) : (
+                            <div className="px-4 py-3 text-sm font-medium rounded-lg text-muted-foreground cursor-not-allowed flex items-center gap-2">
+                                <span>{recruiterLabel}</span>
+                                <Badge variant="secondary">{comingSoonLabel}</Badge>
+                            </div>
+                        )}
                         <div className="h-px bg-border my-2" />
 
                         {/* Mobile - Separate buttons */}
