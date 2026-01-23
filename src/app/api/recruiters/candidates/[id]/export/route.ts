@@ -34,8 +34,8 @@ export async function GET(request: Request, { params }: { params: { id: string }
                     },
                 },
             },
+            contact: true,
         },
-        contact: true,
     });
 
     if (!candidate || !candidate.isVisible) {
