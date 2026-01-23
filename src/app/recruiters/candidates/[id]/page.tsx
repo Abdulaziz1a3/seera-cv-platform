@@ -133,6 +133,19 @@ export default function RecruiterCandidatePage() {
     const salaryRange = details.desiredSalaryMin || details.desiredSalaryMax
         ? `${details.desiredSalaryMin || "N/A"} - ${details.desiredSalaryMax || "N/A"} SAR`
         : null;
+    const completenessItems = [
+        { label: "Summary", present: Boolean(summaryText) },
+        { label: "Skills", present: combinedSkills.length > 0 },
+        { label: "Contact", present: Boolean(contact?.email || contact?.phone || contact?.linkedin || contact?.website) },
+        { label: "Experience", present: (details.resume?.experience?.length || 0) > 0 },
+        { label: "Education", present: (details.resume?.education?.length || 0) > 0 },
+        { label: "Projects", present: (details.resume?.projects?.length || 0) > 0 },
+        { label: "Certifications", present: (details.resume?.certifications?.length || 0) > 0 },
+        { label: "Languages", present: (details.resume?.languages?.length || 0) > 0 },
+    ];
+    const completedCount = completenessItems.filter((item) => item.present).length;
+    const completeness = Math.round((completedCount / completenessItems.length) * 100);
+    const missingItems = completenessItems.filter((item) => !item.present).map((item) => item.label);
 
     return (
         <RecruiterShell>
@@ -166,6 +179,42 @@ export default function RecruiterCandidatePage() {
                     )}
                 </CardHeader>
                 <CardContent className="space-y-6">
+                    <div className="rounded-lg border p-4 space-y-2">
+                        <div className="flex items-center justify-between text-sm">
+                            <span className="text-muted-foreground">Profile completeness</span>
+                            <span className="font-semibold">{completeness}%</span>
+                        </div>
+                        <div className="h-2 w-full rounded-full bg-muted">
+                            <div
+                                className="h-2 rounded-full bg-primary"
+                                style={{ width: `${completeness}%` }}
+                            />
+                        </div>
+                        {missingItems.length > 0 ? (
+                            <p className="text-xs text-muted-foreground">
+                                Missing: {missingItems.slice(0, 4).join(", ")}
+                                {missingItems.length > 4 ? "…" : ""}
+                            </p>
+                        ) : (
+                            <p className="text-xs text-muted-foreground">Profile looks complete.</p>
+                        )}
+                    </div>
+
+                    {details.cvFileUrl && (
+                        <div className="flex flex-wrap gap-2">
+                            <Button asChild variant="outline">
+                                <a href={details.cvFileUrl} target="_blank" rel="noreferrer">
+                                    Preview CV PDF
+                                </a>
+                            </Button>
+                            <Button asChild>
+                                <a href={details.cvFileUrl} download>
+                                    Download CV
+                                </a>
+                            </Button>
+                        </div>
+                    )}
+
                     <div className="grid gap-3 md:grid-cols-3 text-sm">
                         <div className="rounded-lg border p-3">
                             <p className="text-xs text-muted-foreground">Experience</p>
@@ -293,6 +342,15 @@ export default function RecruiterCandidatePage() {
                                             <ul className="mt-2 list-disc ps-5 text-sm text-muted-foreground">
                                                 {exp.highlights.map((item: string, highlightIndex: number) => (
                                                     <li key={`${exp.company}-highlight-${highlightIndex}`}>{item}</li>
+                                                ))}
+                                            </ul>
+                                        )}
+                                        {!exp.highlights && Array.isArray(exp.bullets) && exp.bullets.length > 0 && (
+                                            <ul className="mt-2 list-disc ps-5 text-sm text-muted-foreground">
+                                                {exp.bullets.map((item: any, highlightIndex: number) => (
+                                                    <li key={`${exp.company}-bullet-${highlightIndex}`}>
+                                                        {typeof item === "string" ? item : item?.content}
+                                                    </li>
                                                 ))}
                                             </ul>
                                         )}

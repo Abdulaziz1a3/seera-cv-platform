@@ -69,6 +69,15 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
     }
 
     const resumeSnapshot = candidate.resume?.versions[0]?.snapshot as any;
+    const cvProfile = await prisma.seeraProfile.findFirst({
+        where: {
+            userId: candidate.userId,
+            cvFileUrl: { not: null },
+            status: 'PUBLISHED',
+        },
+        orderBy: { updatedAt: 'desc' },
+        select: { cvFileUrl: true },
+    });
 
     return NextResponse.json({
         unlocked: true,
@@ -99,6 +108,7 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
             preferredLocations: candidate.preferredLocations,
             preferredIndustries: candidate.preferredIndustries,
             desiredRoles: candidate.desiredRoles,
+            cvFileUrl: cvProfile?.cvFileUrl || null,
             contact: candidate.contact
                 ? {
                     fullName: candidate.contact.fullName,
@@ -121,7 +131,9 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
                         startDate: exp.startDate,
                         endDate: exp.endDate,
                         description: exp.description,
-                        highlights: exp.highlights,
+                        highlights: Array.isArray(exp.bullets)
+                            ? exp.bullets.map((bullet: any) => bullet.content).filter(Boolean)
+                            : exp.highlights,
                     })),
                     education: resumeSnapshot.education?.items?.map((edu: any) => ({
                         institution: edu.institution,

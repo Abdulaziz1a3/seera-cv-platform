@@ -139,6 +139,19 @@ export default function RecruiterSearchPage() {
         return `${min || "N/A"} - ${max || "N/A"} SAR`;
     };
 
+    const getCompleteness = (candidate: Candidate) => {
+        const checks = [
+            Boolean(candidate.summary),
+            (candidate.skills || []).length > 0,
+            Boolean(candidate.currentTitle),
+            Boolean(candidate.location),
+            typeof candidate.yearsExperience === "number",
+            Boolean(candidate.highestDegreeLevel || candidate.primaryFieldOfStudy),
+        ];
+        const completed = checks.filter(Boolean).length;
+        return Math.round((completed / checks.length) * 100);
+    };
+
     const isRecentGraduate = (candidate: Candidate) => {
         if (candidate.graduatedWithin12Months !== undefined) {
             return candidate.graduatedWithin12Months;
@@ -415,6 +428,7 @@ export default function RecruiterSearchPage() {
                                     {candidate.matchScore && (
                                         <Badge variant="outline">Match {candidate.matchScore}%</Badge>
                                     )}
+                                    <Badge variant="secondary">Profile {getCompleteness(candidate)}%</Badge>
                                     {typeof candidate.yearsExperience === "number" && (
                                         <Badge variant="secondary">{candidate.yearsExperience} yrs</Badge>
                                     )}
