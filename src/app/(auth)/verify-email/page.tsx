@@ -13,6 +13,7 @@ function VerifyEmailForm() {
     const token = searchParams.get('token');
     const [status, setStatus] = useState<VerificationStatus>('loading');
     const [errorMessage, setErrorMessage] = useState<string>('');
+    const [loginHref, setLoginHref] = useState('/login');
 
     useEffect(() => {
         if (!token) {
@@ -35,6 +36,10 @@ function VerifyEmailForm() {
                     setStatus('error');
                     setErrorMessage(data.error || 'Verification failed');
                     return;
+                }
+
+                if (data?.portal === 'recruiter') {
+                    setLoginHref('/recruiters/login');
                 }
 
                 if (data.alreadyVerified) {
@@ -93,7 +98,7 @@ function VerifyEmailForm() {
                         </p>
                     </div>
                     <Button asChild className="w-full">
-                        <Link href="/login">Sign in to your account</Link>
+                        <Link href={loginHref}>Sign in to your account</Link>
                     </Button>
                 </>
             )}
@@ -113,7 +118,7 @@ function VerifyEmailForm() {
                         </p>
                     </div>
                     <Button asChild className="w-full">
-                        <Link href="/login">Sign in to your account</Link>
+                        <Link href={loginHref}>Sign in to your account</Link>
                     </Button>
                 </>
             )}
@@ -135,7 +140,7 @@ function VerifyEmailForm() {
                             The verification link may have expired. You can request a new one after signing in.
                         </p>
                         <Button asChild className="w-full">
-                            <Link href="/login">Go to sign in</Link>
+                            <Link href={loginHref}>Go to sign in</Link>
                         </Button>
                         <Button variant="outline" asChild className="w-full">
                             <Link href="/register">Create a new account</Link>

@@ -176,7 +176,8 @@ export async function sendBillingPortalEmail(
 export async function sendVerificationEmail(
     email: string,
     token: string,
-    name?: string
+    name?: string,
+    options?: { portal?: 'jobseeker' | 'recruiter' }
 ): Promise<EmailResult> {
     if (!resend) {
         logger.warn('Email service not configured - skipping verification email', { email });
@@ -185,12 +186,16 @@ export async function sendVerificationEmail(
 
     const verifyUrl = `${APP_URL}/verify-email?token=${token}`;
     const greeting = name ? `Hi ${name.split(' ')[0]},` : 'Hi there,';
+    const portal = options?.portal === 'recruiter' ? 'recruiter' : 'jobseeker';
+    const intro = portal === 'recruiter'
+        ? `Thanks for signing up for ${APP_NAME}! Please verify your email address to get started with finding the best talents.`
+        : `Thanks for signing up for ${APP_NAME}! Please verify your email address to get started with building your professional resume.`;
 
     const content = `
         <h1 style="margin: 0 0 16px 0; font-size: 24px; font-weight: 700; color: #18181b;">Verify your email address</h1>
         <p style="margin: 0 0 24px 0; font-size: 16px; color: #3f3f46; line-height: 1.6;">
             ${greeting}<br><br>
-            Thanks for signing up for ${APP_NAME}! Please verify your email address to get started with building your professional resume.
+            ${intro}
         </p>
         <div style="text-align: center; margin: 32px 0;">
             <a href="${verifyUrl}" style="${getButtonStyle()}">Verify Email Address</a>

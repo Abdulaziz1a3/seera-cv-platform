@@ -46,11 +46,17 @@ type Candidate = {
     id: string;
     displayName: string;
     currentTitle?: string | null;
+    currentCompany?: string | null;
     location?: string | null;
     yearsExperience?: number | null;
     skills: string[];
     summary?: string | null;
     availabilityStatus?: string;
+    desiredSalaryMin?: number | null;
+    desiredSalaryMax?: number | null;
+    noticePeriod?: string | null;
+    preferredLocations?: string[] | null;
+    desiredRoles?: string[] | null;
     matchScore?: number;
     unlocked?: boolean;
     highestDegreeLevel?: "DIPLOMA" | "BACHELOR" | "MASTER" | "PHD" | null;
@@ -116,6 +122,21 @@ export default function RecruiterSearchPage() {
     const formatExperienceBand = (value?: string | null) => {
         const entry = EXPERIENCE_BANDS.find((item) => item.value === value);
         return entry?.label;
+    };
+
+    const formatAvailability = (value?: string | null) => {
+        if (!value) return null;
+        const labels: Record<string, string> = {
+            actively_looking: "Actively looking",
+            open_to_offers: "Open to offers",
+            not_looking: "Not looking",
+        };
+        return labels[value] || value;
+    };
+
+    const formatSalaryRange = (min?: number | null, max?: number | null) => {
+        if (!min && !max) return null;
+        return `${min || "N/A"} - ${max || "N/A"} SAR`;
     };
 
     const isRecentGraduate = (candidate: Candidate) => {
@@ -394,6 +415,12 @@ export default function RecruiterSearchPage() {
                                     {candidate.matchScore && (
                                         <Badge variant="outline">Match {candidate.matchScore}%</Badge>
                                     )}
+                                    {typeof candidate.yearsExperience === "number" && (
+                                        <Badge variant="secondary">{candidate.yearsExperience} yrs</Badge>
+                                    )}
+                                    {candidate.availabilityStatus && (
+                                        <Badge variant="secondary">{formatAvailability(candidate.availabilityStatus)}</Badge>
+                                    )}
                                     {candidate.experienceBand && (
                                         <Badge variant="secondary">
                                             {formatExperienceBand(candidate.experienceBand)}
@@ -401,7 +428,9 @@ export default function RecruiterSearchPage() {
                                     )}
                                 </div>
                                 <p className="text-sm text-muted-foreground">
-                                    {candidate.currentTitle || "Role not specified"} · {candidate.location || "Location flexible"}
+                                    {candidate.currentTitle || "Role not specified"}
+                                    {candidate.currentCompany ? ` · ${candidate.currentCompany}` : ""}
+                                    {" · "}{candidate.location || "Location flexible"}
                                 </p>
                                 {(candidate.highestDegreeLevel || candidate.primaryFieldOfStudy) && (
                                     <p className="text-sm text-muted-foreground">
@@ -416,6 +445,25 @@ export default function RecruiterSearchPage() {
                                         {isRecentGraduate(candidate) && (
                                             <Badge className="ms-2" variant="secondary">Recent graduate</Badge>
                                         )}
+                                    </p>
+                                )}
+                                {candidate.summary && (
+                                    <p className="text-sm text-muted-foreground">
+                                        {candidate.summary.length > 180
+                                            ? `${candidate.summary.slice(0, 177)}...`
+                                            : candidate.summary}
+                                    </p>
+                                )}
+                                {(candidate.desiredRoles?.length || candidate.preferredLocations?.length || candidate.noticePeriod) && (
+                                    <p className="text-xs text-muted-foreground">
+                                        {candidate.desiredRoles?.length ? `Desired roles: ${candidate.desiredRoles.join(", ")}` : null}
+                                        {candidate.preferredLocations?.length ? ` · Preferred: ${candidate.preferredLocations.join(", ")}` : null}
+                                        {candidate.noticePeriod ? ` · Notice: ${candidate.noticePeriod}` : null}
+                                    </p>
+                                )}
+                                {formatSalaryRange(candidate.desiredSalaryMin, candidate.desiredSalaryMax) && (
+                                    <p className="text-xs text-muted-foreground">
+                                        Expected salary: {formatSalaryRange(candidate.desiredSalaryMin, candidate.desiredSalaryMax)}
                                     </p>
                                 )}
                                 {(candidate.internshipCount || candidate.projectCount || candidate.freelanceCount || candidate.trainingFlag) && (

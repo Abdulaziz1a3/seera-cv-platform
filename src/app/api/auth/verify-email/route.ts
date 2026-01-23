@@ -49,6 +49,7 @@ export async function POST(request: Request) {
         const identifier = verificationToken.identifier.trim().toLowerCase();
         const user = await prisma.user.findFirst({
             where: { email: { equals: identifier, mode: 'insensitive' } },
+            include: { subscription: { select: { plan: true } } },
         });
 
         if (!user) {
@@ -59,6 +60,10 @@ export async function POST(request: Request) {
         }
 
         // Check if already verified
+        const portal = user.subscription?.plan === 'GROWTH' || user.subscription?.plan === 'ENTERPRISE'
+            ? 'recruiter'
+            : 'jobseeker';
+
         if (user.emailVerified) {
             // Clean up token
             await prisma.verificationToken.delete({
@@ -66,7 +71,7 @@ export async function POST(request: Request) {
             });
 
             return NextResponse.json(
-                { message: 'Email already verified', alreadyVerified: true },
+                { message: 'Email already verified', alreadyVerified: true, portal },
                 { status: 200 }
             );
         }
@@ -98,7 +103,7 @@ export async function POST(request: Request) {
         logger.info('Email verified successfully', { userId: user.id, email: user.email });
 
         return NextResponse.json(
-            { message: 'Email verified successfully' },
+            { message: 'Email verified successfully', portal },
             { status: 200 }
         );
     } catch (error) {
@@ -151,6 +156,7 @@ export async function GET(request: Request) {
         const identifier = verificationToken.identifier.trim().toLowerCase();
         const user = await prisma.user.findFirst({
             where: { email: { equals: identifier, mode: 'insensitive' } },
+            include: { subscription: { select: { plan: true } } },
         });
 
         if (!user) {
@@ -159,6 +165,10 @@ export async function GET(request: Request) {
             );
         }
 
+        const loginPath = user.subscription?.plan === 'GROWTH' || user.subscription?.plan === 'ENTERPRISE'
+            ? '/recruiters/login'
+            : '/login';
+
         // Check if already verified
         if (user.emailVerified) {
             await prisma.verificationToken.delete({
@@ -166,7 +176,7 @@ export async function GET(request: Request) {
             });
 
             return NextResponse.redirect(
-                new URL('/login?verified=already', request.url)
+                new URL(`${loginPath}?verified=already`, request.url)
             );
         }
 
@@ -197,7 +207,7 @@ export async function GET(request: Request) {
         logger.info('Email verified via link', { userId: user.id, email: user.email });
 
         return NextResponse.redirect(
-            new URL('/login?verified=success', request.url)
+            new URL(`${loginPath}?verified=success`, request.url)
         );
     } catch (error) {
         logger.error('Email verification link error', { error: error as Error });

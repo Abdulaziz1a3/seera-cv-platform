@@ -23,6 +23,12 @@ const EXPERIENCE_LABELS: Record<string, string> = {
     SENIOR: "Senior",
 };
 
+const AVAILABILITY_LABELS: Record<string, string> = {
+    actively_looking: "Actively looking",
+    open_to_offers: "Open to offers",
+    not_looking: "Not looking",
+};
+
 function isRecentGraduate(date?: string | null) {
     if (!date) return false;
     const parsed = new Date(date);
@@ -118,6 +124,15 @@ export default function RecruiterCandidatePage() {
 
     const details = candidate.candidate;
     const contact = details.contact;
+    const availabilityLabel = details.availabilityStatus
+        ? AVAILABILITY_LABELS[details.availabilityStatus] || details.availabilityStatus
+        : null;
+    const summaryText = details.summary || details.resume?.summary || null;
+    const resumeSkills = Array.isArray(details.resume?.skills) ? details.resume.skills : [];
+    const combinedSkills = Array.from(new Set([...(details.skills || []), ...resumeSkills])).filter(Boolean);
+    const salaryRange = details.desiredSalaryMin || details.desiredSalaryMax
+        ? `${details.desiredSalaryMin || "N/A"} - ${details.desiredSalaryMax || "N/A"} SAR`
+        : null;
 
     return (
         <RecruiterShell>
@@ -126,6 +141,7 @@ export default function RecruiterCandidatePage() {
                     <CardTitle>{details.displayName}</CardTitle>
                     <div className="flex flex-wrap gap-2 text-sm text-muted-foreground">
                         <span>{details.currentTitle || "Role not specified"}</span>
+                        {details.currentCompany && <span>· {details.currentCompany}</span>}
                         <Badge variant="secondary">{details.location || "Location flexible"}</Badge>
                         {details.experienceBand && (
                             <Badge variant="secondary">
@@ -149,7 +165,26 @@ export default function RecruiterCandidatePage() {
                         </p>
                     )}
                 </CardHeader>
-                <CardContent className="space-y-4">
+                <CardContent className="space-y-6">
+                    <div className="grid gap-3 md:grid-cols-3 text-sm">
+                        <div className="rounded-lg border p-3">
+                            <p className="text-xs text-muted-foreground">Experience</p>
+                            <p className="font-medium">
+                                {typeof details.yearsExperience === "number"
+                                    ? `${details.yearsExperience} years`
+                                    : "Not specified"}
+                            </p>
+                        </div>
+                        <div className="rounded-lg border p-3">
+                            <p className="text-xs text-muted-foreground">Availability</p>
+                            <p className="font-medium">{availabilityLabel || "Not specified"}</p>
+                        </div>
+                        <div className="rounded-lg border p-3">
+                            <p className="text-xs text-muted-foreground">Notice period</p>
+                            <p className="font-medium">{details.noticePeriod || "Not specified"}</p>
+                        </div>
+                    </div>
+
                     {contact && (
                         <div className="grid gap-3 md:grid-cols-2 text-sm">
                             {contact.email && (
@@ -178,6 +213,9 @@ export default function RecruiterCandidatePage() {
                             )}
                         </div>
                     )}
+                    {!contact && (
+                        <p className="text-sm text-muted-foreground">No contact details shared yet.</p>
+                    )}
 
                     {(details.internshipCount || details.projectCount || details.freelanceCount || details.trainingFlag) && (
                         <p className="text-xs text-muted-foreground">
@@ -190,10 +228,51 @@ export default function RecruiterCandidatePage() {
                         </p>
                     )}
 
-                    {details.summary && (
+                    {summaryText && (
                         <div>
                             <h3 className="text-sm font-semibold">Summary</h3>
-                            <p className="text-sm text-muted-foreground">{details.summary}</p>
+                            <p className="text-sm text-muted-foreground">{summaryText}</p>
+                        </div>
+                    )}
+
+                    {combinedSkills.length > 0 && (
+                        <div>
+                            <h3 className="text-sm font-semibold">Skills</h3>
+                            <div className="flex flex-wrap gap-2">
+                                {combinedSkills.map((skill: string) => (
+                                    <Badge key={skill} variant="secondary">
+                                        {skill}
+                                    </Badge>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {(details.desiredRoles?.length || details.preferredLocations?.length || details.preferredIndustries?.length) && (
+                        <div className="space-y-2 text-sm">
+                            <h3 className="text-sm font-semibold">Preferences</h3>
+                            {details.desiredRoles?.length > 0 && (
+                                <p className="text-muted-foreground">
+                                    Desired roles: {details.desiredRoles.join(", ")}
+                                </p>
+                            )}
+                            {details.preferredLocations?.length > 0 && (
+                                <p className="text-muted-foreground">
+                                    Preferred locations: {details.preferredLocations.join(", ")}
+                                </p>
+                            )}
+                            {details.preferredIndustries?.length > 0 && (
+                                <p className="text-muted-foreground">
+                                    Preferred industries: {details.preferredIndustries.join(", ")}
+                                </p>
+                            )}
+                        </div>
+                    )}
+
+                    {salaryRange && (
+                        <div className="text-sm">
+                            <h3 className="text-sm font-semibold">Compensation</h3>
+                            <p className="text-muted-foreground">Expected salary: {salaryRange}</p>
                         </div>
                     )}
 
@@ -207,11 +286,79 @@ export default function RecruiterCandidatePage() {
                                         <p className="text-sm text-muted-foreground">
                                             {exp.company} · {exp.startDate} - {exp.endDate}
                                         </p>
-                                        <p className="text-sm text-muted-foreground">{exp.description}</p>
+                                        {exp.description && (
+                                            <p className="text-sm text-muted-foreground">{exp.description}</p>
+                                        )}
+                                        {Array.isArray(exp.highlights) && exp.highlights.length > 0 && (
+                                            <ul className="mt-2 list-disc ps-5 text-sm text-muted-foreground">
+                                                {exp.highlights.map((item: string, highlightIndex: number) => (
+                                                    <li key={`${exp.company}-highlight-${highlightIndex}`}>{item}</li>
+                                                ))}
+                                            </ul>
+                                        )}
                                     </div>
                                 ))}
                             </div>
                         </div>
+                    )}
+
+                    {details.resume?.education?.length > 0 && (
+                        <div>
+                            <h3 className="text-sm font-semibold">Education</h3>
+                            <div className="space-y-2 text-sm text-muted-foreground">
+                                {details.resume.education.map((edu: any, index: number) => (
+                                    <p key={`${edu.institution}-${index}`}>
+                                        {edu.institution} · {edu.degree || "Degree"} {edu.field ? `(${edu.field})` : ""}
+                                        {edu.graduationDate ? ` · ${edu.graduationDate}` : ""}
+                                    </p>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {details.resume?.projects?.length > 0 && (
+                        <div>
+                            <h3 className="text-sm font-semibold">Projects</h3>
+                            <div className="space-y-2 text-sm text-muted-foreground">
+                                {details.resume.projects.map((project: any, index: number) => (
+                                    <p key={`${project.name || project.title}-${index}`}>
+                                        {project.name || project.title} {project.description ? `- ${project.description}` : ""}
+                                    </p>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {details.resume?.certifications?.length > 0 && (
+                        <div>
+                            <h3 className="text-sm font-semibold">Certifications</h3>
+                            <div className="space-y-1 text-sm text-muted-foreground">
+                                {details.resume.certifications.map((cert: any, index: number) => (
+                                    <p key={`${cert.name || cert.title}-${index}`}>
+                                        {cert.name || cert.title} {cert.issuer ? `· ${cert.issuer}` : ""}
+                                    </p>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {details.resume?.languages?.length > 0 && (
+                        <div>
+                            <h3 className="text-sm font-semibold">Languages</h3>
+                            <div className="flex flex-wrap gap-2">
+                                {details.resume.languages.map((lang: any, index: number) => (
+                                    <Badge key={`${lang.name || lang.language}-${index}`} variant="secondary">
+                                        {lang.name || lang.language}
+                                    </Badge>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {!details.resume && !summaryText && combinedSkills.length === 0 && (
+                        <p className="text-sm text-muted-foreground">
+                            This candidate has not shared additional resume details yet.
+                        </p>
                     )}
                 </CardContent>
             </Card>

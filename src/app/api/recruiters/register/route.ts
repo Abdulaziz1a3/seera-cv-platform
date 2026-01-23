@@ -68,7 +68,9 @@ export async function POST(request: Request) {
 
     if (!shouldAutoVerify) {
         const token = await generateVerificationToken(normalizedEmail, 'EMAIL_VERIFICATION');
-        const emailResult = await sendVerificationEmail(normalizedEmail, token, data.fullName);
+        const emailResult = await sendVerificationEmail(normalizedEmail, token, data.fullName, {
+            portal: 'recruiter',
+        });
 
         if (!emailResult.success) {
             logger.warn('Failed to send recruiter verification email', {
