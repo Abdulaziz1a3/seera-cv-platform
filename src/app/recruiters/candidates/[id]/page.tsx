@@ -16,6 +16,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
+import { mapResumeRecordToResumeData } from "@/lib/resume-normalizer";
 import { toast } from "sonner";
 
 const DEGREE_LABELS: Record<string, string> = {
@@ -68,6 +69,7 @@ export default function RecruiterCandidatePage() {
     const [selectedShortlistId, setSelectedShortlistId] = useState("");
     const [shortlistNote, setShortlistNote] = useState("");
     const [isAddingShortlist, setIsAddingShortlist] = useState(false);
+    const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
 
     const loadCandidate = async () => {
         setIsLoading(true);
@@ -224,6 +226,25 @@ export default function RecruiterCandidatePage() {
         }
     };
 
+    const downloadPdf = async () => {
+        setIsDownloadingPdf(true);
+        try {
+            const res = await fetch(`/api/recruiters/candidates/${candidateId}/cv`);
+            if (!res.ok) {
+                const data = await res.json().catch(() => null);
+                toast.error(data?.error || "Failed to load resume");
+                return;
+            }
+            const payload = await res.json();
+            const resumeRecord = payload.data || payload;
+            const resumeData = mapResumeRecordToResumeData(resumeRecord);
+            const { downloadPDF } = await import("@/lib/templates/renderer");
+            await downloadPDF(resumeData);
+        } finally {
+            setIsDownloadingPdf(false);
+        }
+    };
+
     return (
         <RecruiterShell>
             <Card>
@@ -293,6 +314,9 @@ export default function RecruiterCandidatePage() {
                             </>
                         ) : hasExportData ? (
                             <>
+                                <Button onClick={downloadPdf} disabled={isDownloadingPdf}>
+                                    {isDownloadingPdf ? "Preparing PDF..." : "Download CV (PDF)"}
+                                </Button>
                                 <Button asChild>
                                     <a href={`${exportBaseUrl}?format=docx`}>
                                         Download CV (DOCX)
