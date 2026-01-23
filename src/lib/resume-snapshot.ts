@@ -99,25 +99,23 @@ function normalizeExperience(experience: unknown): ExperienceItem[] {
             ? (experience as { items: unknown[] }).items
             : [];
 
-    return items
-        .map((item) => {
-            if (!item || typeof item !== 'object') return null;
-            const record = item as Record<string, any>;
-            const bullets = normalizeBullets(record.bullets || record.highlights || record.achievements);
-            return {
-                id: record.id || crypto.randomUUID(),
-                company: record.company || '',
-                position: record.position || record.role || '',
-                location: record.location || '',
-                startDate: record.startDate || '',
-                endDate: record.endDate || '',
-                isCurrent: Boolean(record.isCurrent ?? record.current),
-                description: record.description || '',
-                bullets,
-                skills: normalizeStringArray(record.skills),
-            };
-        })
-        .filter((item): item is ExperienceItem => Boolean(item));
+    return items.flatMap((item) => {
+        if (!item || typeof item !== 'object') return [];
+        const record = item as Record<string, any>;
+        const bullets = normalizeBullets(record.bullets || record.highlights || record.achievements);
+        return [{
+            id: record.id || crypto.randomUUID(),
+            company: record.company || '',
+            position: record.position || record.role || '',
+            location: record.location || '',
+            startDate: record.startDate || '',
+            endDate: record.endDate || '',
+            isCurrent: Boolean(record.isCurrent ?? record.current),
+            description: record.description || '',
+            bullets,
+            skills: normalizeStringArray(record.skills),
+        }];
+    });
 }
 
 function normalizeEducation(education: unknown): EducationItem[] {
