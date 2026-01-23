@@ -44,8 +44,10 @@ model User {
     recruiterShortlists RecruiterShortlist[]
     recruiterSavedSearches RecruiterSavedSearch[]
     recruiterJobs RecruiterJob[]
-    recruiterCreditLedger RecruiterCreditLedger[]
-    cvUnlocks CvUnlock[]
+  recruiterCreditLedger RecruiterCreditLedger[]
+  cvUnlocks CvUnlock[]
+  talentProfileViews TalentProfileView[]
+  talentProfileDownloads TalentProfileDownload[]
   giftSubscriptionsSent GiftSubscription[] @relation("GiftSubscriptionsSent")
   giftSubscriptionsRedeemed GiftSubscription[] @relation("GiftSubscriptionsRedeemed")
   paymentTransactions PaymentTransaction[]
@@ -237,6 +239,8 @@ model TalentProfile {
   shortlistedBy        RecruiterShortlistCandidate[]
   contact              TalentProfileContact?
   cvUnlocks            CvUnlock[]
+  profileViews         TalentProfileView[]
+  profileDownloads     TalentProfileDownload[]
   jobRecommendations   RecruiterJobRecommendation[]
 
   @@index([resumeId])
