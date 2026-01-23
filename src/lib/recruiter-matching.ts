@@ -247,7 +247,9 @@ ${params.jdText}`;
             };
         }
     } catch (error) {
-        logger.warn('Recruiter JD analysis failed, falling back to heuristic', { error });
+        logger.warn('Recruiter JD analysis failed, falling back to heuristic', {
+            error: error instanceof Error ? error : new Error('Unknown error'),
+        });
     }
 
     const tokens = normalizeTokens(params.jdText);
