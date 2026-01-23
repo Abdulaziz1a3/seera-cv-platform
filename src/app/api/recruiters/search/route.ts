@@ -99,10 +99,10 @@ export async function POST(request: NextRequest) {
         const searchVariants = buildCaseVariants([searchTerm]);
         whereConditions.push({
             OR: [
-                { displayName: { contains: searchTerm, mode: 'insensitive' } },
-                { currentTitle: { contains: searchTerm, mode: 'insensitive' } },
-                { currentCompany: { contains: searchTerm, mode: 'insensitive' } },
-                { summary: { contains: searchTerm, mode: 'insensitive' } },
+                { displayName: { contains: searchTerm, mode: Prisma.QueryMode.insensitive } },
+                { currentTitle: { contains: searchTerm, mode: Prisma.QueryMode.insensitive } },
+                { currentCompany: { contains: searchTerm, mode: Prisma.QueryMode.insensitive } },
+                { summary: { contains: searchTerm, mode: Prisma.QueryMode.insensitive } },
                 { skills: { hasSome: searchVariants } },
                 { desiredRoles: { hasSome: searchVariants } },
             ],
@@ -120,7 +120,9 @@ export async function POST(request: NextRequest) {
         const locationVariants = buildCaseVariants(filters.locations);
         whereConditions.push({
             OR: [
-                { location: { in: locationVariants } },
+                ...filters.locations.map((loc) => ({
+                    location: { contains: loc, mode: Prisma.QueryMode.insensitive },
+                })),
                 { preferredLocations: { hasSome: locationVariants } },
             ],
         });
@@ -210,7 +212,7 @@ export async function POST(request: NextRequest) {
         if (normalizedFields.length > 0) {
             whereConditions.push({
                 OR: normalizedFields.map((field) => ({
-                    normalizedFieldOfStudy: { contains: field },
+                    normalizedFieldOfStudy: { contains: field, mode: Prisma.QueryMode.insensitive },
                 })),
             });
         }

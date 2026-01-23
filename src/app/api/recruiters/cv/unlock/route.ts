@@ -3,6 +3,11 @@ import { z } from 'zod';
 import { prisma } from '@/lib/db';
 import { requireEnterpriseRecruiter } from '@/lib/recruiter-auth';
 import { unlockCandidateCV } from '@/lib/recruiter-credits';
+import {
+    buildResumeSnapshotFromSections,
+    hasResumeContent,
+    normalizeResumeSnapshot,
+} from '@/lib/resume-snapshot';
 
 const requestSchema = z.object({
     candidateId: z.string().min(1),
@@ -24,18 +29,22 @@ export async function POST(request: Request) {
         const candidate = await prisma.talentProfile.findUnique({
             where: { id: candidateId },
             include: {
-                resume: {
-                    include: {
-                        versions: {
-                            orderBy: { version: 'desc' },
-                            take: 1,
-                            select: { snapshot: true },
-                        },
+            resume: {
+                include: {
+                    versions: {
+                        orderBy: { version: 'desc' },
+                        take: 1,
+                        select: { snapshot: true },
+                    },
+                    sections: {
+                        orderBy: { order: 'asc' },
+                        select: { type: true, content: true },
                     },
                 },
-                contact: true,
             },
-        });
+            contact: true,
+        },
+    });
 
         if (!candidate || !candidate.isVisible) {
             return NextResponse.json({ error: 'Candidate not found' }, { status: 404 });
@@ -69,6 +78,60 @@ export async function POST(request: Request) {
         }
 
         const resumeSnapshot = candidate.resume?.versions[0]?.snapshot as any;
+        const fallbackSnapshot = buildResumeSnapshotFromSections(candidate.resume || undefined);
+        const initialSnapshot =
+            resumeSnapshot && Object.keys(resumeSnapshot).length > 0
+                ? resumeSnapshot
+                : fallbackSnapshot;
+        let normalizedResume = normalizeResumeSnapshot(initialSnapshot, candidate.resume?.title);
+
+        if (!hasResumeContent(normalizedResume)) {
+            const latestResume = await prisma.resume.findFirst({
+                where: { userId: candidate.userId, deletedAt: null },
+                orderBy: { updatedAt: 'desc' },
+                include: {
+                    versions: {
+                        orderBy: { version: 'desc' },
+                        take: 1,
+                        select: { snapshot: true },
+                    },
+                    sections: {
+                        orderBy: { order: 'asc' },
+                        select: { type: true, content: true },
+                    },
+                },
+            });
+            if (latestResume) {
+                const latestSnapshot = latestResume.versions[0]?.snapshot as any;
+                const latestFallback = buildResumeSnapshotFromSections(latestResume || undefined);
+                const nextSnapshot =
+                    latestSnapshot && Object.keys(latestSnapshot).length > 0
+                        ? latestSnapshot
+                        : latestFallback;
+                const latestNormalized = normalizeResumeSnapshot(nextSnapshot, latestResume.title);
+                if (hasResumeContent(latestNormalized)) {
+                    normalizedResume = latestNormalized;
+                }
+            }
+        }
+        const resumeSkills = normalizedResume?.skills?.simpleList?.length
+            ? normalizedResume.skills.simpleList
+            : normalizedResume?.skills?.categories?.flatMap((category) => category.skills || []) || [];
+
+        const resumeContact = normalizedResume?.contact || {};
+        const mergedContact = candidate.contact || normalizedResume?.contact
+            ? {
+                fullName: candidate.contact?.fullName || resumeContact.fullName || null,
+                email: candidate.contact?.email || resumeContact.email || null,
+                phone: candidate.contact?.phone || resumeContact.phone || null,
+                location: candidate.contact?.location || resumeContact.location || null,
+                linkedin: candidate.contact?.linkedinUrl || resumeContact.linkedin || null,
+                website: candidate.contact?.websiteUrl || resumeContact.website || null,
+            }
+            : null;
+        const contactPayload = mergedContact && Object.values(mergedContact).some((value) => Boolean(value))
+            ? mergedContact
+            : null;
 
         const response = {
             id: candidate.id,
@@ -97,21 +160,12 @@ export async function POST(request: Request) {
             preferredLocations: candidate.preferredLocations,
             preferredIndustries: candidate.preferredIndustries,
             desiredRoles: candidate.desiredRoles,
-            contact: candidate.contact
+            contact: contactPayload,
+            resume: hasResumeContent(normalizedResume)
                 ? {
-                    fullName: candidate.contact.fullName,
-                    email: candidate.contact.email,
-                    phone: candidate.contact.phone,
-                    location: candidate.contact.location,
-                    linkedin: candidate.contact.linkedinUrl,
-                    website: candidate.contact.websiteUrl,
-                }
-                : null,
-            resume: resumeSnapshot
-                ? {
-                    summary: resumeSnapshot.summary?.content,
-                    experience: resumeSnapshot.experience?.items?.map((exp: any) => ({
-                        company: candidate.hideCurrentEmployer && exp === resumeSnapshot.experience?.items[0]
+                    summary: normalizedResume?.summary?.content,
+                    experience: normalizedResume?.experience?.items?.map((exp: any, index: number) => ({
+                        company: candidate.hideCurrentEmployer && index === 0
                             ? 'Confidential'
                             : exp.company,
                         position: exp.position,
@@ -119,19 +173,25 @@ export async function POST(request: Request) {
                         startDate: exp.startDate,
                         endDate: exp.endDate,
                         description: exp.description,
-                        highlights: exp.highlights,
+                        highlights: Array.isArray(exp.bullets)
+                            ? exp.bullets.map((bullet: any) => bullet.content).filter(Boolean)
+                            : [],
                     })),
-                    education: resumeSnapshot.education?.items?.map((edu: any) => ({
+                    education: normalizedResume?.education?.items?.map((edu: any) => ({
                         institution: edu.institution,
                         degree: edu.degree,
                         field: edu.field,
-                        graduationDate: edu.graduationDate,
+                        graduationDate: edu.endDate || edu.graduationDate,
                         gpa: edu.gpa,
                     })),
-                    skills: resumeSnapshot.skills?.simpleList || [],
-                    certifications: resumeSnapshot.certifications?.items,
-                    projects: resumeSnapshot.projects?.items,
-                    languages: resumeSnapshot.languages?.items,
+                    skills: resumeSkills,
+                    certifications: normalizedResume?.certifications?.items,
+                    projects: normalizedResume?.projects?.items,
+                    languages: normalizedResume?.languages?.items?.map((lang: any) => ({
+                        language: lang.language || lang.name,
+                        name: lang.name || lang.language,
+                        proficiency: lang.proficiency,
+                    })),
                 }
                 : null,
         };

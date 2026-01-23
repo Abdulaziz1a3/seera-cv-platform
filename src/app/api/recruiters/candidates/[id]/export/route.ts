@@ -3,50 +3,11 @@ import { prisma } from '@/lib/db';
 import { requireEnterpriseRecruiter } from '@/lib/recruiter-auth';
 import { exportResume } from '@/lib/export/index';
 import { createEmptyResume } from '@/lib/resume-schema';
-
-function buildResumeSnapshotFromSections(resume?: {
-    title?: string | null;
-    language?: string | null;
-    template?: string | null;
-    theme?: string | null;
-    fontFamily?: string | null;
-    targetRole?: string | null;
-    sections?: Array<{ type: string; content: any }>;
-}) {
-    if (!resume?.sections?.length) return null;
-    const snapshot: Record<string, any> = {
-        title: resume.title || undefined,
-        language: resume.language || undefined,
-        template: resume.template || undefined,
-        theme: resume.theme || undefined,
-        fontFamily: resume.fontFamily || undefined,
-        targetRole: resume.targetRole || undefined,
-    };
-    resume.sections.forEach((section) => {
-        snapshot[section.type.toLowerCase()] = section.content;
-    });
-    return snapshot;
-}
-
-function hasResumeContent(snapshot?: any) {
-    if (!snapshot) return false;
-    const summary = snapshot.summary?.content;
-    const experienceCount = snapshot.experience?.items?.length || 0;
-    const educationCount = snapshot.education?.items?.length || 0;
-    const projectCount = snapshot.projects?.items?.length || 0;
-    const certificationsCount = snapshot.certifications?.items?.length || 0;
-    const languagesCount = snapshot.languages?.items?.length || 0;
-    const skillsCount = snapshot.skills?.simpleList?.length || 0;
-    const skillsCategoriesCount = snapshot.skills?.categories?.length || 0;
-    return Boolean(summary) ||
-        experienceCount > 0 ||
-        educationCount > 0 ||
-        projectCount > 0 ||
-        certificationsCount > 0 ||
-        languagesCount > 0 ||
-        skillsCount > 0 ||
-        skillsCategoriesCount > 0;
-}
+import {
+    buildResumeSnapshotFromSections,
+    hasResumeContent,
+    normalizeResumeSnapshot,
+} from '@/lib/resume-snapshot';
 
 export async function GET(request: Request, { params }: { params: { id: string } }) {
     const guard = await requireEnterpriseRecruiter();
@@ -74,6 +35,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
                 },
             },
         },
+        contact: true,
     });
 
     if (!candidate || !candidate.isVisible) {
@@ -95,12 +57,13 @@ export async function GET(request: Request, { params }: { params: { id: string }
 
     const resumeSnapshot = candidate.resume?.versions[0]?.snapshot as any;
     const fallbackSnapshot = buildResumeSnapshotFromSections(candidate.resume || undefined);
-    let snapshot =
+    const initialSnapshot =
         resumeSnapshot && Object.keys(resumeSnapshot).length > 0
             ? resumeSnapshot
             : fallbackSnapshot;
+    let normalizedResume = normalizeResumeSnapshot(initialSnapshot, candidate.resume?.title);
 
-    if (!hasResumeContent(snapshot)) {
+    if (!hasResumeContent(normalizedResume)) {
         const latestResume = await prisma.resume.findFirst({
             where: { userId: candidate.userId, deletedAt: null },
             orderBy: { updatedAt: 'desc' },
@@ -123,13 +86,14 @@ export async function GET(request: Request, { params }: { params: { id: string }
                 latestSnapshot && Object.keys(latestSnapshot).length > 0
                     ? latestSnapshot
                     : latestFallback;
-            if (hasResumeContent(nextSnapshot)) {
-                snapshot = nextSnapshot;
+            const latestNormalized = normalizeResumeSnapshot(nextSnapshot, latestResume.title);
+            if (hasResumeContent(latestNormalized)) {
+                normalizedResume = latestNormalized;
             }
         }
     }
 
-    if (!hasResumeContent(snapshot)) {
+    if (!hasResumeContent(normalizedResume)) {
         return NextResponse.json({ error: 'Resume data not available yet' }, { status: 404 });
     }
 
@@ -140,12 +104,20 @@ export async function GET(request: Request, { params }: { params: { id: string }
     }
 
     const baseResume = createEmptyResume(candidate.resume?.title || 'Resume');
+    const resumeForExport = normalizedResume || baseResume;
     const exportPayload = {
         ...baseResume,
-        ...snapshot,
-        language: snapshot?.language || baseResume.language,
-        template: snapshot?.template || baseResume.template,
-        contact: snapshot?.contact || baseResume.contact,
+        ...resumeForExport,
+        contact: {
+            ...baseResume.contact,
+            ...resumeForExport.contact,
+            fullName: candidate.contact?.fullName || resumeForExport.contact.fullName || baseResume.contact.fullName,
+            email: candidate.contact?.email || resumeForExport.contact.email || baseResume.contact.email,
+            phone: candidate.contact?.phone || resumeForExport.contact.phone || baseResume.contact.phone,
+            location: candidate.contact?.location || resumeForExport.contact.location || baseResume.contact.location,
+            linkedin: candidate.contact?.linkedinUrl || resumeForExport.contact.linkedin || baseResume.contact.linkedin,
+            website: candidate.contact?.websiteUrl || resumeForExport.contact.website || baseResume.contact.website,
+        },
     };
 
     const exportResult = await exportResume(exportPayload, format as 'docx' | 'txt', exportPayload.template);
