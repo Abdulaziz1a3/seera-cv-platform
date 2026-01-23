@@ -12,7 +12,7 @@ export async function requireEnterpriseRecruiter() {
         select: { plan: true, status: true },
     });
 
-    if (!subscription || subscription.status !== 'ACTIVE') {
+    if (!subscription || (subscription.status !== 'ACTIVE' && subscription.status !== 'TRIALING')) {
         return { allowed: false, status: 402, error: 'Subscription required' as const };
     }
 
@@ -38,7 +38,7 @@ export async function requireRecruiterAccount(options?: { requireActive?: boolea
         return { allowed: false, status: 403, error: 'Recruiter account required' as const };
     }
 
-    if (options?.requireActive && subscription.status !== 'ACTIVE') {
+    if (options?.requireActive && subscription.status !== 'ACTIVE' && subscription.status !== 'TRIALING') {
         return { allowed: false, status: 402, error: 'Subscription required' as const };
     }
 

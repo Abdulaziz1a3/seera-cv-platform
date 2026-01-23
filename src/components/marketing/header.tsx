@@ -43,6 +43,8 @@ export function MarketingHeader() {
 
     // Check if user is super admin (has access to Talent Hunter)
     const isSuperAdmin = session?.user?.role === 'SUPER_ADMIN';
+    const isRecruiterPlan = session?.user?.plan === 'GROWTH' || session?.user?.plan === 'ENTERPRISE';
+    const dashboardHref = isRecruiterPlan ? '/recruiters' : '/dashboard';
 
     return (
         <header
@@ -109,7 +111,7 @@ export function MarketingHeader() {
 
                         {session ? (
                             <Button asChild>
-                                <Link href="/dashboard">{t.nav.dashboard}</Link>
+                                <Link href={dashboardHref}>{t.nav.dashboard}</Link>
                             </Button>
                         ) : (
                             <>
@@ -254,7 +256,7 @@ export function MarketingHeader() {
                         {/* Mobile - Separate buttons */}
                         {session ? (
                             <Button asChild className="w-full">
-                                <Link href="/dashboard">{t.nav.dashboard}</Link>
+                                <Link href={dashboardHref}>{t.nav.dashboard}</Link>
                             </Button>
                         ) : (
                             <>

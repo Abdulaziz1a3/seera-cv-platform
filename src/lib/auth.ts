@@ -80,6 +80,7 @@ providers.push(
                             name: user.name,
                             image: user.image,
                             role: 'SUPER_ADMIN',
+                            plan: 'ENTERPRISE',
                         };
                     }
 
@@ -133,6 +134,7 @@ providers.push(
                         name: user.name,
                         image: user.image,
                         role: role,
+                        plan: plan || 'FREE',
                     };
                 } catch (error) {
                     console.error('Auth error:', error);
@@ -149,6 +151,36 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     // because it uses Prisma, which is not available in auth.config (Edge)
     callbacks: {
         ...authConfig.callbacks,
+        async jwt({ token, user, trigger, session }) {
+            if (user) {
+                token.id = user.id as string;
+                token.role = user.role || 'USER';
+                token.plan = (user as { plan?: string }).plan || token.plan;
+            }
+
+            if (trigger === 'update' && session) {
+                if (session.role) token.role = session.role;
+                if ((session as { plan?: string }).plan) token.plan = (session as { plan?: string }).plan;
+            }
+
+            if (!token.plan && token.id) {
+                const subscription = await prisma.subscription.findUnique({
+                    where: { userId: token.id as string },
+                    select: { plan: true },
+                });
+                token.plan = subscription?.plan || 'FREE';
+            }
+
+            return token;
+        },
+        async session({ session, token }) {
+            if (token && session.user) {
+                session.user.id = token.id as string;
+                session.user.role = token.role as string;
+                session.user.plan = token.plan as string | undefined;
+            }
+            return session;
+        },
         async signIn({ user, account }) {
             // For OAuth providers, create user profile and subscription if needed
             if (account?.provider === 'google' && user?.email) {
