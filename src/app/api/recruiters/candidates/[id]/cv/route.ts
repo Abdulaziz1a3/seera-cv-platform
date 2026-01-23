@@ -42,7 +42,7 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
         return NextResponse.json({ error: 'Unlock required' }, { status: 402 });
     }
 
-    let resume = candidate.resume;
+    let resume: typeof candidate.resume | null = candidate.resume ?? null;
     if (!resume) {
         resume = await prisma.resume.findFirst({
             where: { userId: candidate.userId, deletedAt: null },
