@@ -95,7 +95,7 @@ export default function RecruiterJobsPage() {
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                         <PlusCircle className="h-5 w-5" />
-                        Create a new job
+                        Find Top Candidates
                     </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -187,7 +187,7 @@ export default function RecruiterJobsPage() {
                         </div>
 
                         <Button type="submit" disabled={isSubmitting}>
-                            {isSubmitting ? 'Creating...' : 'Create job'}
+                            {isSubmitting ? 'Finding...' : 'Find Talents'}
                         </Button>
                     </form>
                 </CardContent>

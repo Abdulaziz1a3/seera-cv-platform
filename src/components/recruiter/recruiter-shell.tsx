@@ -89,7 +89,7 @@ export function RecruiterShell({ children }: { children: React.ReactNode }) {
                             </div>
                             <div className="flex items-center gap-3">
                                 <Button asChild variant="outline">
-                                    <Link href="/recruiters/jobs">Create Job</Link>
+                                    <Link href="/recruiters/jobs">Find Talents</Link>
                                 </Button>
                                 <div className="flex items-center gap-2 rounded-full border px-3 py-1.5">
                                     <Avatar className="h-7 w-7">
