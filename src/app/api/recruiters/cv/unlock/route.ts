@@ -118,15 +118,15 @@ export async function POST(request: Request) {
             ? normalizedResume.skills.simpleList
             : normalizedResume?.skills?.categories?.flatMap((category) => category.skills || []) || [];
 
-        const resumeContact = normalizedResume?.contact || {};
-        const mergedContact = candidate.contact || normalizedResume?.contact
+        const resumeContact = normalizedResume?.contact;
+        const mergedContact = candidate.contact || resumeContact
             ? {
-                fullName: candidate.contact?.fullName || resumeContact.fullName || null,
-                email: candidate.contact?.email || resumeContact.email || null,
-                phone: candidate.contact?.phone || resumeContact.phone || null,
-                location: candidate.contact?.location || resumeContact.location || null,
-                linkedin: candidate.contact?.linkedinUrl || resumeContact.linkedin || null,
-                website: candidate.contact?.websiteUrl || resumeContact.website || null,
+                fullName: candidate.contact?.fullName || resumeContact?.fullName || null,
+                email: candidate.contact?.email || resumeContact?.email || null,
+                phone: candidate.contact?.phone || resumeContact?.phone || null,
+                location: candidate.contact?.location || resumeContact?.location || null,
+                linkedin: candidate.contact?.linkedinUrl || resumeContact?.linkedin || null,
+                website: candidate.contact?.websiteUrl || resumeContact?.website || null,
             }
             : null;
         const contactPayload = mergedContact && Object.values(mergedContact).some((value) => Boolean(value))
