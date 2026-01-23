@@ -125,25 +125,23 @@ function normalizeEducation(education: unknown): EducationItem[] {
             ? (education as { items: unknown[] }).items
             : [];
 
-    return items
-        .map((item) => {
-            if (!item || typeof item !== 'object') return null;
-            const record = item as Record<string, any>;
-            return {
-                id: record.id || crypto.randomUUID(),
-                institution: record.institution || record.school || '',
-                degree: record.degree || '',
-                field: record.field || record.major || '',
-                location: record.location || '',
-                startDate: record.startDate || '',
-                endDate: record.endDate || record.graduationDate || record.graduationYear || '',
-                gpa: record.gpa || '',
-                honors: record.honors || '',
-                coursework: normalizeStringArray(record.coursework),
-                activities: normalizeStringArray(record.activities),
-            };
-        })
-        .filter((item): item is EducationItem => Boolean(item));
+    return items.flatMap((item) => {
+        if (!item || typeof item !== 'object') return [];
+        const record = item as Record<string, any>;
+        return [{
+            id: record.id || crypto.randomUUID(),
+            institution: record.institution || record.school || '',
+            degree: record.degree || '',
+            field: record.field || record.major || '',
+            location: record.location || '',
+            startDate: record.startDate || '',
+            endDate: record.endDate || record.graduationDate || record.graduationYear || '',
+            gpa: record.gpa || '',
+            honors: record.honors || '',
+            coursework: normalizeStringArray(record.coursework),
+            activities: normalizeStringArray(record.activities),
+        }];
+    });
 }
 
 function normalizeProjects(projects: unknown): ProjectItem[] {
@@ -153,23 +151,21 @@ function normalizeProjects(projects: unknown): ProjectItem[] {
             ? (projects as { items: unknown[] }).items
             : [];
 
-    return items
-        .map((item) => {
-            if (!item || typeof item !== 'object') return null;
-            const record = item as Record<string, any>;
-            return {
-                id: record.id || crypto.randomUUID(),
-                name: record.name || record.title || '',
-                role: record.role || '',
-                url: record.url || '',
-                startDate: record.startDate || '',
-                endDate: record.endDate || '',
-                description: record.description || '',
-                bullets: normalizeBullets(record.bullets || record.highlights),
-                technologies: normalizeStringArray(record.technologies || record.techStack),
-            };
-        })
-        .filter((item): item is ProjectItem => Boolean(item));
+    return items.flatMap((item) => {
+        if (!item || typeof item !== 'object') return [];
+        const record = item as Record<string, any>;
+        return [{
+            id: record.id || crypto.randomUUID(),
+            name: record.name || record.title || '',
+            role: record.role || '',
+            url: record.url || '',
+            startDate: record.startDate || '',
+            endDate: record.endDate || '',
+            description: record.description || '',
+            bullets: normalizeBullets(record.bullets || record.highlights),
+            technologies: normalizeStringArray(record.technologies || record.techStack),
+        }];
+    });
 }
 
 function normalizeCertifications(certifications: unknown): CertificationItem[] {
@@ -179,21 +175,19 @@ function normalizeCertifications(certifications: unknown): CertificationItem[] {
             ? (certifications as { items: unknown[] }).items
             : [];
 
-    return items
-        .map((item) => {
-            if (!item || typeof item !== 'object') return null;
-            const record = item as Record<string, any>;
-            return {
-                id: record.id || crypto.randomUUID(),
-                name: record.name || record.title || '',
-                issuer: record.issuer || record.organization || '',
-                issueDate: record.issueDate || record.date || '',
-                expirationDate: record.expirationDate || '',
-                credentialId: record.credentialId || '',
-                credentialUrl: record.credentialUrl || record.url || '',
-            };
-        })
-        .filter((item): item is CertificationItem => Boolean(item));
+    return items.flatMap((item) => {
+        if (!item || typeof item !== 'object') return [];
+        const record = item as Record<string, any>;
+        return [{
+            id: record.id || crypto.randomUUID(),
+            name: record.name || record.title || '',
+            issuer: record.issuer || record.organization || '',
+            issueDate: record.issueDate || record.date || '',
+            expirationDate: record.expirationDate || '',
+            credentialId: record.credentialId || '',
+            credentialUrl: record.credentialUrl || record.url || '',
+        }];
+    });
 }
 
 function normalizeLanguages(languages: unknown): LanguageItem[] {
@@ -203,22 +197,20 @@ function normalizeLanguages(languages: unknown): LanguageItem[] {
             ? (languages as { items: unknown[] }).items
             : [];
 
-    return items
-        .map((item) => {
-            if (!item || typeof item !== 'object') return null;
-            const record = item as Record<string, any>;
-            const raw = (record.proficiency || '').toString().toLowerCase();
-            const proficiency = (['native', 'fluent', 'professional', 'intermediate', 'basic'] as const)
-                .includes(raw as any)
-                ? raw
-                : 'intermediate';
-            return {
-                id: record.id || crypto.randomUUID(),
-                language: record.language || record.name || '',
-                proficiency,
-            };
-        })
-        .filter((item): item is LanguageItem => Boolean(item));
+    return items.flatMap((item) => {
+        if (!item || typeof item !== 'object') return [];
+        const record = item as Record<string, any>;
+        const raw = (record.proficiency || '').toString().toLowerCase();
+        const proficiency = (['native', 'fluent', 'professional', 'intermediate', 'basic'] as const)
+            .includes(raw as any)
+            ? raw
+            : 'intermediate';
+        return [{
+            id: record.id || crypto.randomUUID(),
+            language: record.language || record.name || '',
+            proficiency,
+        }];
+    });
 }
 
 function normalizeSkills(skills: unknown): SkillsSection | null {
