@@ -174,7 +174,9 @@ async function isTokenError(response: Response): Promise<boolean> {
     if (response.status !== 400 && response.status !== 403) return false;
     const clone = response.clone();
     const rawText = await clone.text().catch(() => '');
-    if (!rawText) return false;
+    if (!rawText) {
+        return response.status === 403;
+    }
     const text = rawText.toLowerCase();
     return text.includes('token') && (text.includes('expired') || text.includes('invalid'));
 }
