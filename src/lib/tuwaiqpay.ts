@@ -28,6 +28,20 @@ const TOKEN_TTL_MS = 25 * 60 * 1000;
 
 let cachedToken: { value: string; expiresAt: number } | null = null;
 
+function normalizeWebhookUrl(url: string | undefined, appUrl: string): string | undefined {
+    const baseAppUrl = appUrl.trim().replace(/\/+$/, '');
+    const defaultUrl = `${baseAppUrl}/api/webhooks/tuwaiqpay-payment`;
+
+    if (!url) return defaultUrl;
+
+    const trimmed = url.trim().replace(/\/+$/, '');
+    if (trimmed === baseAppUrl) return defaultUrl;
+    if (trimmed.endsWith('/api/webhooks/tuwaiqpay')) {
+        return `${trimmed.replace(/\/api\/webhooks\/tuwaiqpay$/, '')}/api/webhooks/tuwaiqpay-payment`;
+    }
+    return trimmed;
+}
+
 function extractErrorMessage(payload: unknown, fallback: string): string {
     if (!payload || typeof payload !== 'object') return fallback;
     const maybe = payload as { message?: string; error?: string; errors?: string[] };
@@ -58,12 +72,14 @@ function getConfig() {
     if (!config.username || !config.password) {
         throw new Error('TuwaiqPay credentials are not configured');
     }
+    const appUrl = env.app.url || 'https://seera-ai.com';
+    const webhookUrl = normalizeWebhookUrl(config.webhookUrl, appUrl);
     const rawType = (config.userNameType || 'MOBILE').trim().toUpperCase();
     const userNameType = rawType === 'EMAIL' || rawType === 'MOBILE' ? rawType : 'MOBILE';
     return {
         ...config,
         baseUrl: config.baseUrl.trim().replace(/\/+$/, ''),
-        webhookUrl: config.webhookUrl?.trim(),
+        webhookUrl,
         username: config.username.trim(),
         userNameType,
     };
