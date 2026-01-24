@@ -100,7 +100,6 @@ const CITIZENSHIP_OPTIONS = [
     { value: 'KUWAIT', label: { en: 'Kuwaiti', ar: 'كويتي' } },
     { value: 'OMAN', label: { en: 'Omani', ar: 'عماني' } },
     { value: 'OTHER', label: { en: 'Other', ar: 'أخرى' } },
-    { value: 'PREFER_NOT_TO_SAY', label: { en: 'Prefer not to say', ar: 'أفضل عدم الإفصاح' } },
 ];
 
 export default function TalentPoolPage() {
