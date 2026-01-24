@@ -251,7 +251,8 @@ export default function BillingGiftsPage() {
                 throw new Error(payload?.error || 'Failed to start checkout');
             }
             if (payload?.url) {
-                window.location.href = payload.url;
+                window.open(payload.url, '_blank');
+                toast.success(locale === 'ar' ? 'تم فتح صفحة الدفع في تبويب جديد' : 'Payment page opened in a new tab');
                 return;
             }
             throw new Error(locale === 'ar' ? 'رابط الدفع غير متوفر' : 'Checkout URL missing');
@@ -296,7 +297,8 @@ export default function BillingGiftsPage() {
             }
 
             if (payload?.url) {
-                window.location.href = payload.url;
+                window.open(payload.url, '_blank');
+                toast.success(locale === 'ar' ? 'تم فتح صفحة الدفع في تبويب جديد' : 'Payment page opened in a new tab');
                 return;
             }
 

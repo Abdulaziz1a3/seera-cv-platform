@@ -87,7 +87,9 @@ export function PaywallModal({ isOpen, onClose, feature }: PaywallModalProps) {
             if (!payload?.url) {
                 throw new Error(locale === 'ar' ? 'رابط الدفع غير متوفر' : 'Checkout URL missing');
             }
-            window.location.href = payload.url;
+            window.open(payload.url, '_blank');
+            toast.success(locale === 'ar' ? 'تم فتح صفحة الدفع في تبويب جديد' : 'Payment page opened in a new tab');
+            onClose();
         } catch (error) {
             console.error('Upgrade error:', error);
             const message = error instanceof Error ? error.message : 'Upgrade failed';

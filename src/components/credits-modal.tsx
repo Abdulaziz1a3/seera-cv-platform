@@ -112,7 +112,9 @@ export function CreditsModal({ isOpen, onClose, initialCredits }: CreditsModalPr
             if (!res.ok) {
                 throw new Error(payload?.error || 'Failed to start recharge');
             }
-            window.location.href = payload.url;
+            window.open(payload.url, '_blank');
+            toast.success(locale === 'ar' ? 'تم فتح صفحة الدفع في تبويب جديد' : 'Payment page opened in a new tab');
+            onClose();
         } catch (error) {
             const message = error instanceof Error ? error.message : 'Failed to start recharge';
             toast.error(locale === 'ar' ? `تعذر إعادة الشحن: ${message}` : `Recharge failed: ${message}`);

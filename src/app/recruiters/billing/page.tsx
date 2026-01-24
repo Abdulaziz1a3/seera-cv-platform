@@ -60,7 +60,8 @@ export default function RecruiterBillingPage() {
             toast.error(data?.error || "Failed to start checkout");
             return;
         }
-        window.location.href = data.url;
+        window.open(data.url, "_blank");
+        toast.success("Payment page opened in a new tab");
     };
 
     const buyPack = async (pack: string) => {
@@ -74,7 +75,8 @@ export default function RecruiterBillingPage() {
             toast.error(data?.error || "Failed to start purchase");
             return;
         }
-        window.location.href = data.url;
+        window.open(data.url, "_blank");
+        toast.success("Payment page opened in a new tab");
     };
 
     return (
