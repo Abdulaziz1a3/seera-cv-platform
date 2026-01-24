@@ -7,7 +7,6 @@ import { useSession } from 'next-auth/react';
 import { Menu, X, FileText, Moon, Sun, Building2, User, ChevronDown, Search } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { LanguageSwitcher } from '@/components/language-switcher';
 import { useLocale } from '@/components/providers/locale-provider';
 import {
@@ -39,7 +38,6 @@ export function MarketingHeader() {
         { href: '/contact', label: t.nav.contact },
     ];
     const recruiterLabel = locale === 'ar' ? 'للشركات' : 'For Recruiters';
-    const comingSoonLabel = locale === 'ar' ? 'قريباً' : 'Coming soon';
 
     // Check if user is super admin (has access to Talent Hunter)
     const isSuperAdmin = session?.user?.role === 'SUPER_ADMIN';
@@ -85,10 +83,13 @@ export function MarketingHeader() {
                                 <span>{locale === 'ar' ? 'صائد المواهب' : 'Talent Hunter'}</span>
                             </Link>
                         ) : (
-                            <div className="px-4 py-2 text-sm font-medium rounded-lg text-muted-foreground cursor-not-allowed flex items-center gap-2">
+                            <Link
+                                href="/recruiters/register"
+                                className="px-4 py-2 text-sm font-medium transition-colors rounded-lg text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 flex items-center gap-2"
+                            >
+                                <Building2 className="h-4 w-4" />
                                 <span>{recruiterLabel}</span>
-                                <Badge variant="secondary">{comingSoonLabel}</Badge>
-                            </div>
+                            </Link>
                         )}
                     </div>
 
@@ -138,16 +139,18 @@ export function MarketingHeader() {
                                             </Link>
                                         </DropdownMenuItem>
                                         <DropdownMenuSeparator />
-                                        <DropdownMenuItem className="cursor-not-allowed opacity-60">
-                                            <Building2 className="h-4 w-4 text-purple-600" />
-                                            <div>
-                                                <p className="font-medium text-purple-600">
-                                                    {locale === 'ar' ? 'مسؤول توظيف' : 'Recruiter'}
-                                                </p>
-                                                <p className="text-xs text-muted-foreground">
-                                                    {comingSoonLabel}
-                                                </p>
-                                            </div>
+                                        <DropdownMenuItem asChild>
+                                            <Link href="/recruiters/login" className="flex items-center gap-2 cursor-pointer">
+                                                <Building2 className="h-4 w-4 text-purple-600" />
+                                                <div>
+                                                    <p className="font-medium text-purple-600">
+                                                        {locale === 'ar' ? 'مسؤول توظيف' : 'Recruiter'}
+                                                    </p>
+                                                    <p className="text-xs text-muted-foreground">
+                                                        {locale === 'ar' ? 'تسجيل الدخول للبوابة' : 'Sign in to recruiter portal'}
+                                                    </p>
+                                                </div>
+                                            </Link>
                                         </DropdownMenuItem>
                                     </DropdownMenuContent>
                                 </DropdownMenu>
@@ -177,18 +180,20 @@ export function MarketingHeader() {
                                             </Link>
                                         </DropdownMenuItem>
                                         <DropdownMenuSeparator />
-                                        <DropdownMenuItem className="cursor-not-allowed opacity-60">
-                                            <div className="h-10 w-10 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
-                                                <Building2 className="h-5 w-5 text-purple-600" />
-                                            </div>
-                                            <div>
-                                                <p className="font-semibold text-purple-600">
-                                                    {locale === 'ar' ? 'صائد مواهب' : 'Talent Hunter'}
-                                                </p>
-                                                <p className="text-xs text-muted-foreground">
-                                                    {comingSoonLabel}
-                                                </p>
-                                            </div>
+                                        <DropdownMenuItem asChild>
+                                            <Link href="/recruiters/register" className="flex items-center gap-3 cursor-pointer py-3">
+                                                <div className="h-10 w-10 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
+                                                    <Building2 className="h-5 w-5 text-purple-600" />
+                                                </div>
+                                                <div>
+                                                    <p className="font-semibold text-purple-600">
+                                                        {locale === 'ar' ? 'ابدأ التوظيف' : 'Start Hiring'}
+                                                    </p>
+                                                    <p className="text-xs text-muted-foreground">
+                                                        {locale === 'ar' ? 'أنشئ حساب مسؤول توظيف' : 'Create a recruiter account'}
+                                                    </p>
+                                                </div>
+                                            </Link>
                                         </DropdownMenuItem>
                                     </DropdownMenuContent>
                                 </DropdownMenu>
@@ -246,10 +251,14 @@ export function MarketingHeader() {
                                 <span>{locale === 'ar' ? 'صائد المواهب' : 'Talent Hunter'}</span>
                             </Link>
                         ) : (
-                            <div className="px-4 py-3 text-sm font-medium rounded-lg text-muted-foreground cursor-not-allowed flex items-center gap-2">
+                            <Link
+                                href="/recruiters/register"
+                                onClick={() => setIsMobileMenuOpen(false)}
+                                className="px-4 py-3 text-sm font-medium rounded-lg text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 flex items-center gap-2"
+                            >
+                                <Building2 className="h-4 w-4" />
                                 <span>{recruiterLabel}</span>
-                                <Badge variant="secondary">{comingSoonLabel}</Badge>
-                            </div>
+                            </Link>
                         )}
                         <div className="h-px bg-border my-2" />
 
@@ -275,9 +284,17 @@ export function MarketingHeader() {
                                 <p className="text-xs text-muted-foreground px-4 mb-1">
                                     {locale === 'ar' ? 'للشركات' : 'For Recruiters'}
                                 </p>
-                                <Button variant="outline" className="w-full border-purple-200 text-purple-600" disabled>
-                                    <Building2 className="h-4 w-4 me-2" />
-                                    {comingSoonLabel}
+                                <Button variant="outline" asChild className="w-full border-purple-200 text-purple-600">
+                                    <Link href="/recruiters/login">
+                                        <Building2 className="h-4 w-4 me-2" />
+                                        {locale === 'ar' ? 'تسجيل الدخول' : 'Sign in'}
+                                    </Link>
+                                </Button>
+                                <Button asChild className="w-full bg-purple-600 hover:bg-purple-700">
+                                    <Link href="/recruiters/register">
+                                        <Building2 className="h-4 w-4 me-2" />
+                                        {locale === 'ar' ? 'ابدأ التوظيف' : 'Start Hiring'}
+                                    </Link>
                                 </Button>
                             </>
                         )}

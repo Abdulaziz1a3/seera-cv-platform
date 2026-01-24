@@ -226,13 +226,12 @@ export default function Home() {
                                     <ArrowRight className="h-5 w-5" />
                                 </Button>
                             </Link>
-                            <Button size="lg" variant="outline" className="h-14 px-8 text-lg gap-2 border-2" disabled>
-                                <Building2 className="h-5 w-5" />
-                                {locale === 'ar' ? 'صائد مواهب' : 'Talent Hunter'}
-                                <Badge variant="secondary" className="ms-2">
-                                    {locale === 'ar' ? 'قريباً' : 'Coming soon'}
-                                </Badge>
-                            </Button>
+                            <Link href="/recruiters/register">
+                                <Button size="lg" variant="outline" className="h-14 px-8 text-lg gap-2 border-2">
+                                    <Building2 className="h-5 w-5" />
+                                    {locale === 'ar' ? 'صائد مواهب' : 'Talent Hunter'}
+                                </Button>
+                            </Link>
                         </div>
 
                         <p className="text-sm text-muted-foreground">
@@ -354,15 +353,16 @@ export default function Home() {
                                 </ul>
 
                                 <div className="flex flex-col sm:flex-row gap-4">
-                                    <Button size="lg" className="bg-white text-blue-600 hover:bg-white/90 gap-2" disabled>
-                                        {locale === 'ar' ? 'ابدأ التوظيف' : 'Start Hiring'}
-                                        <Badge variant="secondary" className="ms-2">
-                                            {locale === 'ar' ? 'قريباً' : 'Coming soon'}
-                                        </Badge>
-                                    </Button>
-                                    <Button size="lg" variant="outline" className="border-white/50 text-white hover:bg-white/10" disabled>
-                                        {locale === 'ar' ? 'شاهد الأسعار' : 'View Pricing'}
-                                    </Button>
+                                    <Link href="/recruiters/register">
+                                        <Button size="lg" className="bg-white text-blue-600 hover:bg-white/90 gap-2">
+                                            {locale === 'ar' ? 'ابدأ التوظيف' : 'Start Hiring'}
+                                        </Button>
+                                    </Link>
+                                    <Link href="/pricing">
+                                        <Button size="lg" variant="outline" className="border-white/50 text-white hover:bg-white/10">
+                                            {locale === 'ar' ? 'شاهد الأسعار' : 'View Pricing'}
+                                        </Button>
+                                    </Link>
                                 </div>
                             </div>
 
