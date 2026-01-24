@@ -92,6 +92,17 @@ type TalentPoolStats = {
     cvDownloads: number;
 };
 
+const CITIZENSHIP_OPTIONS = [
+    { value: 'SAUDI', label: { en: 'Saudi', ar: 'سعودي' } },
+    { value: 'UAE', label: { en: 'Emirati (UAE)', ar: 'إماراتي' } },
+    { value: 'QATAR', label: { en: 'Qatari', ar: 'قطري' } },
+    { value: 'BAHRAIN', label: { en: 'Bahraini', ar: 'بحريني' } },
+    { value: 'KUWAIT', label: { en: 'Kuwaiti', ar: 'كويتي' } },
+    { value: 'OMAN', label: { en: 'Omani', ar: 'عماني' } },
+    { value: 'OTHER', label: { en: 'Other', ar: 'أخرى' } },
+    { value: 'PREFER_NOT_TO_SAY', label: { en: 'Prefer not to say', ar: 'أفضل عدم الإفصاح' } },
+];
+
 export default function TalentPoolPage() {
     const { locale } = useLocale();
     const { resumes, isLoading: resumesLoading } = useResumes();
@@ -113,6 +124,7 @@ export default function TalentPoolPage() {
 
     // Form state
     const [selectedResumeId, setSelectedResumeId] = useState<string>('');
+    const [citizenship, setCitizenship] = useState<string>('');
     const [isVisible, setIsVisible] = useState(true);
     const [availabilityStatus, setAvailabilityStatus] = useState<string>('open_to_offers');
     const [hideCurrentEmployer, setHideCurrentEmployer] = useState(false);
@@ -158,6 +170,7 @@ export default function TalentPoolPage() {
             }
 
             // Successfully loaded - update state with profile data
+            setCitizenship(data?.citizenship || '');
             if (data?.profile) {
                 const p = data.profile;
                 setProfile(p);
@@ -232,6 +245,10 @@ export default function TalentPoolPage() {
             toast.error(locale === 'ar' ? 'يرجى اختيار سيرة ذاتية' : 'Please select a resume first');
             return;
         }
+        if (!citizenship) {
+            toast.error(locale === 'ar' ? 'يرجى اختيار الجنسية' : 'Please select a citizenship');
+            return;
+        }
 
         setIsSaving(true);
         try {
@@ -240,6 +257,7 @@ export default function TalentPoolPage() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     resumeId: selectedResumeId,
+                    citizenship,
                     isVisible,
                     availabilityStatus,
                     hideCurrentEmployer,
@@ -457,10 +475,33 @@ export default function TalentPoolPage() {
                                         )}
                                     </div>
 
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-medium">
+                                            {locale === 'ar' ? 'الجنسية' : 'Citizenship'}
+                                        </label>
+                                        <Select value={citizenship} onValueChange={setCitizenship}>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder={locale === 'ar' ? 'اختر الجنسية' : 'Select citizenship'} />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {CITIZENSHIP_OPTIONS.map((option) => (
+                                                    <SelectItem key={option.value} value={option.value}>
+                                                        {locale === 'ar' ? option.label.ar : option.label.en}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                        <p className="text-xs text-muted-foreground">
+                                            {locale === 'ar'
+                                                ? 'بعض الشركات توظف فقط جنسيات محددة بسبب الأنظمة.'
+                                                : 'Some companies hire only specific nationalities due to regulations.'}
+                                        </p>
+                                    </div>
+
                                     <Button
                                         className="w-full h-12 bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600"
                                         onClick={handleSave}
-                                        disabled={isSaving || !selectedResumeId}
+                                        disabled={isSaving || !selectedResumeId || !citizenship}
                                     >
                                         {isSaving ? (
                                             <Loader2 className="h-5 w-5 me-2 animate-spin" />
@@ -901,6 +942,30 @@ export default function TalentPoolPage() {
                                                     </SelectItem>
                                                 </SelectContent>
                                             </Select>
+                                        </div>
+
+                                        {/* Citizenship */}
+                                        <div className="space-y-2">
+                                            <label className="text-sm font-medium">
+                                                {locale === 'ar' ? 'الجنسية' : 'Citizenship'}
+                                            </label>
+                                            <Select value={citizenship} onValueChange={setCitizenship}>
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder={locale === 'ar' ? 'اختر الجنسية' : 'Select citizenship'} />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {CITIZENSHIP_OPTIONS.map((option) => (
+                                                        <SelectItem key={option.value} value={option.value}>
+                                                            {locale === 'ar' ? option.label.ar : option.label.en}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                            <p className="text-xs text-muted-foreground">
+                                                {locale === 'ar'
+                                                    ? 'بعض الشركات توظف فقط جنسيات محددة بسبب الأنظمة.'
+                                                    : 'Some companies hire only specific nationalities due to regulations.'}
+                                            </p>
                                         </div>
 
                                         {/* Resume Selection */}

@@ -15,6 +15,7 @@ const searchSchema = z.object({
     minSalary: z.number().int().min(0).optional(),
     maxSalary: z.number().int().min(0).optional(),
     noticePeriod: z.array(z.string()).optional(),
+    citizenship: z.enum(['SAUDI', 'UAE', 'QATAR', 'BAHRAIN', 'KUWAIT', 'OMAN', 'OTHER', 'PREFER_NOT_TO_SAY']).optional(),
     page: z.number().int().min(1).default(1),
     limit: z.number().int().min(1).max(50).default(20),
     sortBy: z.enum(['relevance', 'experience', 'recent']).default('relevance'),
@@ -113,6 +114,16 @@ export async function POST(request: NextRequest) {
         if (filters.availabilityStatus && filters.availabilityStatus.length > 0) {
             whereConditions.push({
                 availabilityStatus: { in: filters.availabilityStatus },
+            });
+        }
+
+        if (filters.citizenship) {
+            whereConditions.push({
+                user: {
+                    profile: {
+                        is: { citizenship: filters.citizenship },
+                    },
+                },
             });
         }
 

@@ -21,6 +21,7 @@ const searchSchema = z.object({
     graduationYearMin: z.number().int().min(1900).optional(),
     graduationYearMax: z.number().int().min(1900).optional(),
     experienceBands: z.array(z.enum(['STUDENT_FRESH', 'JUNIOR', 'MID', 'SENIOR'])).optional(),
+    citizenship: z.enum(['SAUDI', 'UAE', 'QATAR', 'BAHRAIN', 'KUWAIT', 'OMAN', 'OTHER', 'PREFER_NOT_TO_SAY']).optional(),
     page: z.number().int().min(1).default(1),
     limit: z.number().int().min(1).max(50).default(20),
     sortBy: z.enum(['relevance', 'experience', 'recent']).default('relevance'),
@@ -131,6 +132,16 @@ export async function POST(request: NextRequest) {
     if (filters.availabilityStatus && filters.availabilityStatus.length > 0) {
         whereConditions.push({
             availabilityStatus: { in: filters.availabilityStatus },
+        });
+    }
+
+    if (filters.citizenship) {
+        whereConditions.push({
+            user: {
+                profile: {
+                    is: { citizenship: filters.citizenship },
+                },
+            },
         });
     }
 
@@ -259,6 +270,13 @@ export async function POST(request: NextRequest) {
                 projectCount: true,
                 freelanceCount: true,
                 trainingFlag: true,
+                user: {
+                    select: {
+                        profile: {
+                            select: { citizenship: true },
+                        },
+                    },
+                },
             },
         }),
         prisma.talentProfile.count({
@@ -272,7 +290,7 @@ export async function POST(request: NextRequest) {
     });
     const unlockedSet = new Set(unlocks.map((unlock) => unlock.candidateId));
 
-    const sanitizedCandidates = candidates.map((candidate) => {
+    const sanitizedCandidates = candidates.map(({ user, ...candidate }) => {
         const isUnlocked = unlockedSet.has(candidate.id);
         return {
             ...candidate,
@@ -295,6 +313,7 @@ export async function POST(request: NextRequest) {
             projectCount: candidate.projectCount,
             freelanceCount: candidate.freelanceCount,
             trainingFlag: candidate.trainingFlag,
+            citizenship: user?.profile?.citizenship ?? null,
         };
     });
 

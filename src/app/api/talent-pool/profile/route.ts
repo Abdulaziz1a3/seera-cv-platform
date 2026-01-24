@@ -27,6 +27,16 @@ const profileSchema = z.object({
     noticePeriod: z.enum(['immediate', '1_week', '2_weeks', '1_month', '2_months', '3_months']).optional().nullable(),
     preferredLocations: z.array(z.string()).default([]),
     preferredIndustries: z.array(z.string()).default([]),
+    citizenship: z.enum([
+        'SAUDI',
+        'UAE',
+        'QATAR',
+        'BAHRAIN',
+        'KUWAIT',
+        'OMAN',
+        'OTHER',
+        'PREFER_NOT_TO_SAY',
+    ]).optional(),
 });
 
 /**
@@ -139,10 +149,15 @@ export async function GET() {
                 },
             },
         });
+        const userProfile = await prisma.userProfile.findUnique({
+            where: { userId: session.user.id },
+            select: { citizenship: true },
+        });
 
         return NextResponse.json({
             profile,
             hasAccess: true,
+            citizenship: userProfile?.citizenship ?? null,
         });
     } catch (error) {
         console.error('Talent pool GET error:', error);
@@ -197,6 +212,30 @@ export async function POST(request: NextRequest) {
         }
 
         const data = parseResult.data;
+
+        const existingProfile = await prisma.userProfile.findUnique({
+            where: { userId: session.user.id },
+            select: { citizenship: true },
+        });
+        const effectiveCitizenship = data.citizenship ?? existingProfile?.citizenship ?? null;
+        if (!effectiveCitizenship) {
+            return NextResponse.json(
+                { error: 'Citizenship is required to join the Talent Pool' },
+                { status: 400 }
+            );
+        }
+        if (data.citizenship && data.citizenship !== existingProfile?.citizenship) {
+            await prisma.userProfile.upsert({
+                where: { userId: session.user.id },
+                create: {
+                    userId: session.user.id,
+                    citizenship: data.citizenship,
+                },
+                update: {
+                    citizenship: data.citizenship,
+                },
+            });
+        }
 
         // Verify the resume exists and belongs to the user
         const resume = await prisma.resume.findFirst({

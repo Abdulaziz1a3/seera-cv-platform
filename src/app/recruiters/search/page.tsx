@@ -34,6 +34,17 @@ const EXPERIENCE_BANDS = [
     { value: "SENIOR", label: "Senior" },
 ];
 
+const CITIZENSHIP_OPTIONS = [
+    { value: "SAUDI", label: "Saudi" },
+    { value: "UAE", label: "Emirati (UAE)" },
+    { value: "QATAR", label: "Qatari" },
+    { value: "BAHRAIN", label: "Bahraini" },
+    { value: "KUWAIT", label: "Kuwaiti" },
+    { value: "OMAN", label: "Omani" },
+    { value: "OTHER", label: "Other" },
+    { value: "PREFER_NOT_TO_SAY", label: "Prefer not to say" },
+];
+
 const FIELD_SUGGESTIONS = [
     "Computer Science",
     "Software Engineering",
@@ -64,6 +75,7 @@ type Candidate = {
     noticePeriod?: string | null;
     preferredLocations?: string[] | null;
     desiredRoles?: string[] | null;
+    citizenship?: string | null;
     matchScore?: number;
     unlocked?: boolean;
     highestDegreeLevel?: "DIPLOMA" | "BACHELOR" | "MASTER" | "PHD" | null;
@@ -91,6 +103,7 @@ type Shortlist = {
 export default function RecruiterSearchPage() {
     const [query, setQuery] = useState("");
     const [location, setLocation] = useState("");
+    const [citizenship, setCitizenship] = useState("");
     const [skills, setSkills] = useState("");
     const [minExperience, setMinExperience] = useState("");
     const [maxExperience, setMaxExperience] = useState("");
@@ -158,6 +171,12 @@ export default function RecruiterSearchPage() {
         return `${min || "N/A"} - ${max || "N/A"} SAR`;
     };
 
+    const formatCitizenship = (value?: string | null) => {
+        if (!value) return null;
+        const entry = CITIZENSHIP_OPTIONS.find((item) => item.value === value);
+        return entry?.label || value;
+    };
+
     const getCompleteness = (candidate: Candidate) => {
         const checks = [
             Boolean(candidate.summary),
@@ -190,6 +209,7 @@ export default function RecruiterSearchPage() {
                 body: JSON.stringify({
                     query: query || undefined,
                     locations: location ? [location] : undefined,
+                    citizenship: citizenship || undefined,
                     skills: skills ? skills.split(",").map((skill) => skill.trim()).filter(Boolean) : undefined,
                     minExperience: minExperience ? Number(minExperience) : undefined,
                     maxExperience: maxExperience ? Number(maxExperience) : undefined,
@@ -297,7 +317,7 @@ export default function RecruiterSearchPage() {
                     </CardTitle>
                 </CardHeader>
                 <CardContent className="grid gap-4">
-                    <div className="grid gap-4 md:grid-cols-2">
+                    <div className="grid gap-4 md:grid-cols-3">
                         <div className="space-y-2">
                             <Label htmlFor="query">Search</Label>
                             <Input
@@ -315,6 +335,25 @@ export default function RecruiterSearchPage() {
                                 value={location}
                                 onChange={(event) => setLocation(event.target.value)}
                             />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="citizenship">Citizenship</Label>
+                            <Select
+                                value={citizenship || "ANY"}
+                                onValueChange={(value) => setCitizenship(value === "ANY" ? "" : value)}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Any" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="ANY">Any</SelectItem>
+                                    {CITIZENSHIP_OPTIONS.map((option) => (
+                                        <SelectItem key={option.value} value={option.value}>
+                                            {option.label}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
                         </div>
                     </div>
 
@@ -539,6 +578,11 @@ export default function RecruiterSearchPage() {
                                     {candidate.experienceBand && (
                                         <Badge variant="secondary">
                                             {formatExperienceBand(candidate.experienceBand)}
+                                        </Badge>
+                                    )}
+                                    {candidate.citizenship && (
+                                        <Badge variant="secondary">
+                                            {formatCitizenship(candidate.citizenship)}
                                         </Badge>
                                     )}
                                 </div>

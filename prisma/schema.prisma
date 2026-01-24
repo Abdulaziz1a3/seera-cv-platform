@@ -70,6 +70,17 @@ enum UserRole {
   SUPER_ADMIN
 }
 
+enum Citizenship {
+  SAUDI
+  UAE
+  QATAR
+  BAHRAIN
+  KUWAIT
+  OMAN
+  OTHER
+  PREFER_NOT_TO_SAY
+}
+
 model Account {
   id                String  @id @default(cuid())
   userId            String
@@ -127,6 +138,7 @@ model UserProfile {
   location    String?
   website     String?
   linkedinUrl String?
+  citizenship Citizenship?
   
   // Preferences
   language    String   @default("en")
@@ -139,6 +151,8 @@ model UserProfile {
   
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  @@index([citizenship])
 }
 
 // ==========================================
