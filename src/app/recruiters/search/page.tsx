@@ -42,7 +42,6 @@ const CITIZENSHIP_OPTIONS = [
     { value: "KUWAIT", label: "Kuwaiti" },
     { value: "OMAN", label: "Omani" },
     { value: "OTHER", label: "Other" },
-    { value: "PREFER_NOT_TO_SAY", label: "Prefer not to say" },
 ];
 
 const FIELD_SUGGESTIONS = [
@@ -173,6 +172,7 @@ export default function RecruiterSearchPage() {
 
     const formatCitizenship = (value?: string | null) => {
         if (!value) return null;
+        if (value === "PREFER_NOT_TO_SAY") return null;
         const entry = CITIZENSHIP_OPTIONS.find((item) => item.value === value);
         return entry?.label || value;
     };
@@ -580,7 +580,7 @@ export default function RecruiterSearchPage() {
                                             {formatExperienceBand(candidate.experienceBand)}
                                         </Badge>
                                     )}
-                                    {candidate.citizenship && (
+                                    {formatCitizenship(candidate.citizenship) && (
                                         <Badge variant="secondary">
                                             {formatCitizenship(candidate.citizenship)}
                                         </Badge>

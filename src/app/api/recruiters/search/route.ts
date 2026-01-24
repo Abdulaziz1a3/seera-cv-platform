@@ -292,12 +292,13 @@ export async function POST(request: NextRequest) {
 
     const sanitizedCandidates = candidates.map(({ user, ...candidate }) => {
         const isUnlocked = unlockedSet.has(candidate.id);
+        const visibleCompany = candidate.hideCurrentEmployer ? null : candidate.currentCompany;
         return {
             ...candidate,
             displayName: isUnlocked
                 ? candidate.displayName
                 : buildAnonymizedName(candidate.displayName, candidate.id),
-            currentCompany: candidate.hideCurrentEmployer ? null : candidate.currentCompany,
+            currentCompany: isUnlocked ? visibleCompany : null,
             desiredSalaryMin: candidate.hideSalaryHistory ? null : candidate.desiredSalaryMin,
             desiredSalaryMax: candidate.hideSalaryHistory ? null : candidate.desiredSalaryMax,
             matchScore: computeFitScore(candidate.skills, queryTokens),
