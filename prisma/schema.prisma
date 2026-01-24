@@ -307,9 +307,21 @@ model RecruiterShortlistCandidate {
   talentProfile   TalentProfile @relation(fields: [talentProfileId], references: [id], onDelete: Cascade)
   note            String?
   addedAt         DateTime      @default(now())
+  status          RecruiterShortlistStatus @default(NEW)
+  statusUpdatedAt DateTime      @default(now())
 
   @@unique([shortlistId, talentProfileId])
   @@index([talentProfileId])
+  @@index([shortlistId, status])
+  @@index([shortlistId, addedAt])
+}
+
+enum RecruiterShortlistStatus {
+  NEW
+  CONTACTED
+  INTERVIEWED
+  REJECTED
+  OFFER
 }
 
 model RecruiterSavedSearch {

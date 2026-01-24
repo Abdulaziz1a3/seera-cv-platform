@@ -8,6 +8,11 @@ const addSchema = z.object({
     note: z.string().max(240).optional(),
 });
 
+const updateStatusSchema = z.object({
+    talentProfileId: z.string().min(1),
+    status: z.enum(['NEW', 'CONTACTED', 'INTERVIEWED', 'REJECTED', 'OFFER']),
+});
+
 export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
     const guard = await requireEnterpriseRecruiter();
     if (!guard.allowed) {
@@ -107,4 +112,60 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
     });
 
     return NextResponse.json({ success: true });
+}
+
+export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+    const guard = await requireEnterpriseRecruiter();
+    if (!guard.allowed) {
+        return NextResponse.json({ error: guard.error }, { status: guard.status });
+    }
+
+    let body: unknown;
+    try {
+        body = await request.json();
+    } catch {
+        return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+    }
+
+    const parseResult = updateStatusSchema.safeParse(body);
+    if (!parseResult.success) {
+        return NextResponse.json(
+            { error: 'Validation failed', details: parseResult.error.flatten().fieldErrors },
+            { status: 400 }
+        );
+    }
+
+    const { talentProfileId, status } = parseResult.data;
+
+    const shortlist = await prisma.recruiterShortlist.findFirst({
+        where: { id: params.id, recruiterId: guard.userId },
+    });
+    if (!shortlist) {
+        return NextResponse.json({ error: 'Shortlist not found' }, { status: 404 });
+    }
+
+    try {
+        const entry = await prisma.recruiterShortlistCandidate.update({
+            where: {
+                shortlistId_talentProfileId: {
+                    shortlistId: shortlist.id,
+                    talentProfileId,
+                },
+            },
+            data: {
+                status,
+                statusUpdatedAt: new Date(),
+            },
+        });
+
+        return NextResponse.json({ entry });
+    } catch (error) {
+        if ((error as { code?: string }).code === 'P2021') {
+            return NextResponse.json(
+                { error: 'Database schema is missing required tables. Please run migrations.' },
+                { status: 500 }
+            );
+        }
+        return NextResponse.json({ error: 'Failed to update status' }, { status: 500 });
+    }
 }

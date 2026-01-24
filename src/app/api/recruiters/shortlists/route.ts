@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db';
 import { requireEnterpriseRecruiter } from '@/lib/recruiter-auth';
 import { buildAnonymizedName } from '@/lib/recruiter-matching';
 import { z } from 'zod';
+import { z } from 'zod';
 
 const createSchema = z.object({
     name: z.string().min(2).max(80),
@@ -24,7 +25,14 @@ export async function GET() {
             orderBy: { updatedAt: 'desc' },
             include: {
                 candidates: {
-                    include: { talentProfile: true },
+                    include: {
+                        talentProfile: {
+                            include: {
+                                user: { select: { profile: { select: { citizenship: true } } } },
+                                contact: true,
+                            },
+                        },
+                    },
                     orderBy: { addedAt: 'desc' },
                 },
             },
@@ -43,16 +51,22 @@ export async function GET() {
             ...shortlist,
             candidates: shortlist.candidates.map((candidate) => {
                 const isUnlocked = unlockedSet.has(candidate.talentProfileId);
+                const { user, contact, ...profile } = candidate.talentProfile;
                 return {
                     ...candidate,
                     talentProfile: {
-                        ...candidate.talentProfile,
+                        ...profile,
                         displayName: isUnlocked
-                            ? candidate.talentProfile.displayName
-                            : buildAnonymizedName(candidate.talentProfile.displayName, candidate.talentProfile.id),
-                        currentCompany: candidate.talentProfile.hideCurrentEmployer
-                            ? null
-                            : candidate.talentProfile.currentCompany,
+                            ? profile.displayName
+                            : buildAnonymizedName(profile.displayName, profile.id),
+                        currentCompany: profile.hideCurrentEmployer ? null : profile.currentCompany,
+                        citizenship: user?.profile?.citizenship ?? null,
+                        contact: isUnlocked && contact
+                            ? {
+                                  email: contact.email,
+                                  phone: contact.phone,
+                              }
+                            : null,
                     },
                     unlocked: isUnlocked,
                 };
