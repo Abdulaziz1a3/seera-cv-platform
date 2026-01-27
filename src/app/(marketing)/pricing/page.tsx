@@ -63,6 +63,9 @@ export default function PricingPage() {
             color: 'from-amber-500 to-orange-600',
         },
     ];
+    const pricingFaqQuestions = t.landing.faq.questions
+        .filter((faq) => faq.q !== 'Is my data secure?' && faq.q !== 'هل بياناتي آمنة؟')
+        .slice(-2);
 
     return (
         <div className="min-h-screen">
@@ -189,7 +192,7 @@ export default function PricingPage() {
 
                     <div className="max-w-3xl mx-auto">
                         <Accordion type="single" collapsible className="w-full">
-                            {t.landing.faq.questions.slice(3, 6).map((faq, index) => (
+                            {pricingFaqQuestions.map((faq, index) => (
                                 <AccordionItem key={index} value={`item-${index}`}>
                                     <AccordionTrigger className="text-start hover:no-underline">
                                         {faq.q}

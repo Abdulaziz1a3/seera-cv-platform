@@ -719,7 +719,7 @@ export const ar = {
 
     // Footer
     footer: {
-        description: 'للشركات وفرق التوظيف',
+        description: 'منشئ سيرة ذاتية مدعوم بالذكاء الاصطناعي يساعد الباحثين عن عمل على الحصول على وظائف أحلامهم بسير ذاتية محسّنة لأنظمة ATS.',
         product: 'المنتج',
         resources: 'الموارد',
         company: 'الشركة',
@@ -744,6 +744,7 @@ export const ar = {
             linkedin: 'لينكد إن',
             facebook: 'فيسبوك',
             instagram: 'انستغرام',
+            whatsapp: 'واتساب',
         },
     },
 

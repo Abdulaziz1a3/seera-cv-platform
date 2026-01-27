@@ -51,6 +51,27 @@ export default function ContactPage() {
                 </div>
             </section>
 
+            {/* About Us */}
+            <section className="py-16 md:py-20">
+                <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+                    <div className="max-w-3xl mx-auto text-center">
+                        <h2 className="text-2xl md:text-3xl font-bold mb-4">
+                            {locale === 'ar' ? 'من نحن' : 'About Us'}
+                        </h2>
+                        <p className="text-lg text-muted-foreground">
+                            {locale === 'ar'
+                                ? 'سييرا AI منصة مهنية مدعومة بالذكاء الاصطناعي، صُممت لمساعدة الباحثين عن عمل على الانتقال من "أحتاج وظيفة" إلى "تم توظيفي" — كل ذلك في مكان واحد.'
+                                : 'Seera AI is an AI-powered career platform designed to help job seekers go from “I need a job” to “I’m hired”—all in one place.'}
+                        </p>
+                        <p className="text-lg text-muted-foreground mt-4">
+                            {locale === 'ar'
+                                ? 'تجمع بين بناء السيرة الذاتية، والتحضير للمقابلات، والتخطيط المهني، والظهور أمام مسؤولي التوظيف، مع تركيز قوي على تحسين ATS وسوق العمل السعودي.'
+                                : 'It combines resume building, interview preparation, career planning, and recruiter visibility, with a strong focus on ATS optimization and the Saudi job market.'}
+                        </p>
+                    </div>
+                </div>
+            </section>
+
             {/* Contact Info */}
             <section className="py-12 border-b">
                 <div className="container mx-auto px-4 sm:px-6 lg:px-8">

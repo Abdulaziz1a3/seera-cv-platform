@@ -744,6 +744,7 @@ export const en = {
             linkedin: 'LinkedIn',
             facebook: 'Facebook',
             instagram: 'Instagram',
+            whatsapp: 'WhatsApp',
         },
     },
 
