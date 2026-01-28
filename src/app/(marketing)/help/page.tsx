@@ -138,7 +138,7 @@ const faqs = {
         },
         {
             q: 'Is my data secure?',
-            a: 'Absolutely. We use bank-level encryption and never share your data. You can delete your account and all data at any time.',
+            a: 'Absolutely. We use encryption and never share your data. You can delete your account and all data at any time.',
         },
     ],
     ar: [
@@ -164,7 +164,7 @@ const faqs = {
         },
         {
             q: 'هل بياناتي آمنة؟',
-            a: 'بالتأكيد. نستخدم تشفيراً على مستوى البنوك ولا نشارك بياناتك أبداً. يمكنك حذف حسابك وجميع البيانات في أي وقت.',
+            a: 'بالتأكيد. نستخدم التشفير ولا نشارك بياناتك أبداً. يمكنك حذف حسابك وجميع البيانات في أي وقت.',
         },
     ],
 };
