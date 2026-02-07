@@ -22,6 +22,8 @@ export async function GET() {
 }
 
 const GIFT_CLAIM_WINDOW_DAYS = 90;
+const DEFAULT_XMAIL_BILLING_WEBHOOK_URL = 'https://api.infinitesolutions.sa/v1/billing/webhooks/tuwaiq-pay';
+const XMAIL_WEBHOOK_TIMEOUT_MS = 4500;
 
 function addMonths(date: Date, months: number): Date {
     const next = new Date(date);
@@ -118,6 +120,68 @@ function extractTransactionData(payload: Record<string, unknown>): {
         (details?.merchantTransactionId as string);
 
     return result;
+}
+
+function getXmailForwardConfig() {
+    return {
+        enabled: (process.env.TUWAIQPAY_FORWARD_TO_XMAIL || 'true').toLowerCase() !== 'false',
+        webhookUrl: (process.env.XMAIL_BILLING_WEBHOOK_URL || DEFAULT_XMAIL_BILLING_WEBHOOK_URL).trim(),
+    };
+}
+
+async function forwardWebhookToXmail(
+    payload: Record<string, unknown>,
+    headerName: string,
+    headerValue: string,
+) {
+    const { enabled, webhookUrl } = getXmailForwardConfig();
+    if (!enabled || !webhookUrl) {
+        logger.info('Skipped forwarding TuwaiqPay webhook to Xmail', {
+            enabled,
+            webhookUrl: webhookUrl || null,
+        });
+        return;
+    }
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), XMAIL_WEBHOOK_TIMEOUT_MS);
+
+    try {
+        const response = await fetch(webhookUrl, {
+            method: 'POST',
+            headers: {
+                'content-type': 'application/json',
+                [headerName]: headerValue,
+                'x-signature': headerValue,
+                'x-forwarded-from': 'seera-ai',
+            },
+            body: JSON.stringify(payload),
+            cache: 'no-store',
+            signal: controller.signal,
+        });
+
+        const responseBody = await response.text().catch(() => '');
+        if (!response.ok) {
+            logger.warn('Failed forwarding TuwaiqPay webhook to Xmail', {
+                webhookUrl,
+                status: response.status,
+                responseBody: responseBody.substring(0, 600),
+            });
+            return;
+        }
+
+        logger.info('Forwarded TuwaiqPay webhook to Xmail', {
+            webhookUrl,
+            status: response.status,
+        });
+    } catch (error) {
+        logger.error('Error forwarding TuwaiqPay webhook to Xmail', {
+            webhookUrl,
+            error: error instanceof Error ? error : new Error(String(error)),
+        });
+    } finally {
+        clearTimeout(timeout);
+    }
 }
 
 export async function POST(request: Request) {
@@ -235,6 +299,10 @@ export async function POST(request: Request) {
         payload: JSON.stringify(payload).substring(0, 2000),
         keys: Object.keys(payload),
     });
+
+    // Do not block Seera payment processing on downstream forwarding.
+    // This keeps Seera subscriptions safe even if Xmail webhook is slow/down.
+    void forwardWebhookToXmail(payload, headerName, headerValue);
 
     // Extract transaction data from various formats
     const extracted = extractTransactionData(payload);
