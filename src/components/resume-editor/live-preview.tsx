@@ -75,6 +75,16 @@ export function LivePreview({
         return <ClassicProfessionalPreview resume={resume} theme={theme} locale={locale} fontFamily={fontFamily} />;
       case 'impact-modern':
         return <ImpactModernPreview resume={resume} theme={theme} locale={locale} fontFamily={fontFamily} />;
+      case 'azure-sidebar':
+        return <AzureSidebarPreview resume={resume} theme={theme} locale={locale} fontFamily={fontFamily} />;
+      case 'crimson-bold':
+        return <CrimsonBoldPreview resume={resume} theme={theme} locale={locale} fontFamily={fontFamily} />;
+      case 'sage-academic':
+        return <SageAcademicPreview resume={resume} theme={theme} locale={locale} fontFamily={fontFamily} />;
+      case 'terra-tech':
+        return <TerraTechPreview resume={resume} theme={theme} locale={locale} fontFamily={fontFamily} />;
+      case 'pearl-executive':
+        return <PearlExecutivePreview resume={resume} theme={theme} locale={locale} fontFamily={fontFamily} />;
       default:
         return <PrestigeExecutivePreview resume={resume} theme={theme} locale={locale} fontFamily={fontFamily} />;
     }
@@ -874,6 +884,991 @@ function ImpactModernPreview({
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+// ============================================
+// Azure Sidebar Preview
+// ============================================
+
+function AzureSidebarPreview({
+  resume,
+  theme,
+  locale,
+  fontFamily,
+}: {
+  resume: ResumeData;
+  theme: typeof THEMES.obsidian;
+  locale: 'en' | 'ar';
+  fontFamily: string;
+}) {
+  return (
+    <div className="flex min-h-full" style={{ fontFamily, color: theme.text }}>
+      {/* Main content — left 2/3 */}
+      <div className="flex-1 p-8">
+        {/* Header */}
+        <div className="mb-6 pb-5" style={{ borderBottom: `2px solid ${theme.accent}` }}>
+          <h1 className="text-3xl font-bold tracking-tight" style={{ color: theme.primary }}>
+            {resume.contact.fullName || 'Your Name'}
+          </h1>
+          {resume.title && (
+            <p className="text-xs font-semibold uppercase tracking-wider mt-1.5" style={{ color: theme.accent }}>
+              {resume.title}
+            </p>
+          )}
+        </div>
+
+        {/* Summary */}
+        {resume.summary && (
+          <div className="mb-5">
+            <h2 className="text-[9px] font-bold uppercase tracking-widest mb-2" style={{ color: theme.primary }}>
+              {getSectionHeader('summary', locale)}
+            </h2>
+            <p className="text-xs leading-relaxed" style={{ color: theme.muted }}>{resume.summary}</p>
+          </div>
+        )}
+
+        {/* Experience */}
+        {resume.experience.length > 0 && (
+          <div className="mb-5">
+            <h2 className="text-[9px] font-bold uppercase tracking-widest mb-3" style={{ color: theme.primary }}>
+              {getSectionHeader('experience', locale)}
+            </h2>
+            {resume.experience.map((exp, idx) => (
+              <div key={exp.id} className={cn(idx > 0 && 'mt-4')}>
+                <div className="flex justify-between items-start gap-2">
+                  <div>
+                    <span className="font-bold text-xs">{exp.position}</span>
+                    <p className="text-[10px]" style={{ color: theme.muted }}>
+                      {exp.company}{exp.location && `, ${exp.location}`}
+                    </p>
+                  </div>
+                  <span className="text-[9px] whitespace-nowrap" style={{ color: theme.accent }}>
+                    {formatDate(exp.startDate, locale)} – {exp.current ? getPresentText(locale) : formatDate(exp.endDate, locale)}
+                  </span>
+                </div>
+                <ul className="mt-1.5 space-y-0.5">
+                  {exp.bullets.filter(b => b?.trim()).map((bullet, i) => (
+                    <li key={i} className="flex items-start gap-1.5 text-[10px]">
+                      <span className="mt-[3px] h-1 w-1 rounded-full flex-shrink-0" style={{ backgroundColor: theme.accent }} />
+                      <span>{bullet}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Education */}
+        {resume.education.length > 0 && (
+          <div className="mb-5">
+            <h2 className="text-[9px] font-bold uppercase tracking-widest mb-3" style={{ color: theme.primary }}>
+              {getSectionHeader('education', locale)}
+            </h2>
+            {resume.education.map((edu) => (
+              <div key={edu.id} className="flex justify-between items-start text-xs mb-2">
+                <div>
+                  <span className="font-bold">{edu.degree}{edu.field && ` in ${edu.field}`}</span>
+                  <p className="text-[10px]" style={{ color: theme.muted }}>
+                    {edu.institution}{edu.gpa && ` · GPA ${edu.gpa}`}
+                  </p>
+                </div>
+                {edu.graduationDate && (
+                  <span className="text-[10px] whitespace-nowrap" style={{ color: theme.accent }}>
+                    {formatDate(edu.graduationDate, locale)}
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Projects */}
+        {resume.projects.length > 0 && (
+          <div>
+            <h2 className="text-[9px] font-bold uppercase tracking-widest mb-3" style={{ color: theme.primary }}>
+              {getSectionHeader('projects', locale)}
+            </h2>
+            {resume.projects.map((project) => (
+              <div key={project.id} className="mb-3">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-bold text-xs">{project.name || 'Project'}</span>
+                  {project.url && (
+                    <span className="text-[9px]" style={{ color: theme.accent }}>
+                      {project.url.replace(/^https?:\/\//, '')}
+                    </span>
+                  )}
+                </div>
+                {project.description && (
+                  <p className="text-[10px] mt-0.5" style={{ color: theme.muted }}>{project.description}</p>
+                )}
+                {project.technologies?.length > 0 && (
+                  <p className="text-[9px] mt-0.5" style={{ color: theme.muted }}>
+                    {project.technologies.join(' · ')}
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Sidebar — right 1/3 */}
+      <div className="w-40 p-5 flex-shrink-0" style={{ backgroundColor: theme.surface, borderLeft: `1px solid ${theme.border}` }}>
+        {/* Contact */}
+        <div className="mb-6">
+          <h3 className="text-[8px] font-bold uppercase tracking-widest mb-3 pb-1" style={{ color: theme.primary, borderBottom: `1px solid ${theme.border}` }}>
+            {getSectionHeader('contact', locale)}
+          </h3>
+          <div className="space-y-1.5 text-[8px]" style={{ color: theme.muted }}>
+            {resume.contact.email && <p className="break-all leading-snug">{resume.contact.email}</p>}
+            {resume.contact.phone && <p>{resume.contact.phone}</p>}
+            {resume.contact.location && <p>{resume.contact.location}</p>}
+            {resume.contact.linkedin && <p className="break-all leading-snug" style={{ color: theme.accent }}>{resume.contact.linkedin}</p>}
+          </div>
+        </div>
+
+        {/* Skills */}
+        {resume.skills.length > 0 && (
+          <div className="mb-6">
+            <h3 className="text-[8px] font-bold uppercase tracking-widest mb-3 pb-1" style={{ color: theme.primary, borderBottom: `1px solid ${theme.border}` }}>
+              {getSectionHeader('skills', locale)}
+            </h3>
+            <div className="space-y-1">
+              {resume.skills.slice(0, 14).map((skill, i) => (
+                <p key={i} className="text-[8px] flex items-center gap-1" style={{ color: theme.text }}>
+                  <span style={{ color: theme.accent }}>›</span>
+                  {skill}
+                </p>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Languages */}
+        {resume.languages.length > 0 && (
+          <div className="mb-6">
+            <h3 className="text-[8px] font-bold uppercase tracking-widest mb-3 pb-1" style={{ color: theme.primary, borderBottom: `1px solid ${theme.border}` }}>
+              {getSectionHeader('languages', locale)}
+            </h3>
+            {resume.languages.map((lang, i) => (
+              <div key={i} className="mb-1">
+                <p className="text-[8px] font-medium" style={{ color: theme.text }}>{lang.name}</p>
+                <p className="text-[7px]" style={{ color: theme.muted }}>{lang.proficiency}</p>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Certifications */}
+        {resume.certifications.length > 0 && (
+          <div>
+            <h3 className="text-[8px] font-bold uppercase tracking-widest mb-3 pb-1" style={{ color: theme.primary, borderBottom: `1px solid ${theme.border}` }}>
+              {getSectionHeader('certifications', locale)}
+            </h3>
+            {resume.certifications.map((cert) => (
+              <div key={cert.id} className="mb-1.5">
+                <p className="text-[8px] font-semibold leading-snug" style={{ color: theme.text }}>{cert.name}</p>
+                {cert.issuer && <p className="text-[7px]" style={{ color: theme.muted }}>{cert.issuer}</p>}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ============================================
+// Crimson Bold Preview
+// ============================================
+
+function CrimsonBoldPreview({
+  resume,
+  theme,
+  locale,
+  fontFamily,
+}: {
+  resume: ResumeData;
+  theme: typeof THEMES.obsidian;
+  locale: 'en' | 'ar';
+  fontFamily: string;
+}) {
+  return (
+    <div className="font-sans" style={{ fontFamily, color: theme.text }}>
+      {/* Full-bleed header */}
+      <div className="py-9 px-8 text-center" style={{ backgroundColor: theme.primary }}>
+        <h1 className="text-4xl font-black uppercase tracking-wide text-white leading-tight">
+          {resume.contact.fullName || 'Your Name'}
+        </h1>
+        {resume.title && (
+          <p className="text-xs font-semibold uppercase tracking-widest mt-2.5" style={{ color: theme.accent }}>
+            {resume.title}
+          </p>
+        )}
+        {/* Contact row */}
+        <div className="flex justify-center flex-wrap gap-x-5 gap-y-1 mt-4 text-[9px] text-white/75">
+          {resume.contact.email && <span>{resume.contact.email}</span>}
+          {resume.contact.phone && <span>{resume.contact.phone}</span>}
+          {resume.contact.location && <span>{resume.contact.location}</span>}
+          {resume.contact.linkedin && <span style={{ color: theme.accent }}>{resume.contact.linkedin}</span>}
+        </div>
+      </div>
+
+      {/* Two-column body */}
+      <div className="flex gap-0">
+        {/* Left panel — skills, education, languages, certs */}
+        <div className="w-44 p-6 flex-shrink-0" style={{ backgroundColor: theme.surface }}>
+          {/* Skills */}
+          {resume.skills.length > 0 && (
+            <div className="mb-5">
+              <h3 className="text-[8px] font-bold uppercase tracking-widest mb-2.5" style={{ color: theme.primary }}>
+                {getSectionHeader('skills', locale)}
+              </h3>
+              <div className="space-y-1">
+                {resume.skills.slice(0, 14).map((skill, i) => (
+                  <p key={i} className="text-[8px]" style={{ color: theme.text }}>· {skill}</p>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Education */}
+          {resume.education.length > 0 && (
+            <div className="mb-5">
+              <h3 className="text-[8px] font-bold uppercase tracking-widest mb-2.5" style={{ color: theme.primary }}>
+                {getSectionHeader('education', locale)}
+              </h3>
+              {resume.education.map((edu) => (
+                <div key={edu.id} className="mb-2">
+                  <p className="text-[8px] font-bold leading-snug">{edu.degree}{edu.field && ` in ${edu.field}`}</p>
+                  <p className="text-[7px]" style={{ color: theme.muted }}>{edu.institution}</p>
+                  {edu.graduationDate && (
+                    <p className="text-[7px]" style={{ color: theme.accent }}>{formatDate(edu.graduationDate, locale)}</p>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Languages */}
+          {resume.languages.length > 0 && (
+            <div className="mb-5">
+              <h3 className="text-[8px] font-bold uppercase tracking-widest mb-2.5" style={{ color: theme.primary }}>
+                {getSectionHeader('languages', locale)}
+              </h3>
+              {resume.languages.map((lang, i) => (
+                <div key={i} className="mb-1">
+                  <p className="text-[8px] font-medium">{lang.name}</p>
+                  <p className="text-[7px]" style={{ color: theme.muted }}>{lang.proficiency}</p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Certifications */}
+          {resume.certifications.length > 0 && (
+            <div>
+              <h3 className="text-[8px] font-bold uppercase tracking-widest mb-2.5" style={{ color: theme.primary }}>
+                {getSectionHeader('certifications', locale)}
+              </h3>
+              {resume.certifications.map((cert) => (
+                <div key={cert.id} className="mb-1.5">
+                  <p className="text-[8px] font-semibold leading-snug">{cert.name}</p>
+                  {cert.issuer && <p className="text-[7px]" style={{ color: theme.muted }}>{cert.issuer}</p>}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Right panel — summary, experience, projects */}
+        <div className="flex-1 p-6">
+          {/* Summary */}
+          {resume.summary && (
+            <div className="mb-5">
+              <h2 className="text-[9px] font-bold uppercase tracking-widest mb-2" style={{ color: theme.primary }}>
+                {getSectionHeader('summary', locale)}
+              </h2>
+              <div className="h-px mb-2" style={{ backgroundColor: theme.accent }} />
+              <p className="text-[10px] leading-relaxed" style={{ color: theme.muted }}>{resume.summary}</p>
+            </div>
+          )}
+
+          {/* Experience */}
+          {resume.experience.length > 0 && (
+            <div className="mb-5">
+              <h2 className="text-[9px] font-bold uppercase tracking-widest mb-2" style={{ color: theme.primary }}>
+                {getSectionHeader('experience', locale)}
+              </h2>
+              <div className="h-px mb-3" style={{ backgroundColor: theme.accent }} />
+              {resume.experience.map((exp, idx) => (
+                <div key={exp.id} className={cn(idx > 0 && 'mt-4')}>
+                  <div className="flex justify-between items-start gap-2">
+                    <span className="font-bold text-xs">{exp.position}</span>
+                    <span className="text-[9px] whitespace-nowrap" style={{ color: theme.accent }}>
+                      {formatDate(exp.startDate, locale)} – {exp.current ? getPresentText(locale) : formatDate(exp.endDate, locale)}
+                    </span>
+                  </div>
+                  <p className="text-[10px] italic" style={{ color: theme.muted }}>
+                    {exp.company}{exp.location && ` · ${exp.location}`}
+                  </p>
+                  <ul className="mt-1.5 space-y-0.5">
+                    {exp.bullets.filter(b => b?.trim()).map((bullet, i) => (
+                      <li key={i} className="text-[10px] flex gap-1.5">
+                        <span style={{ color: theme.accent }}>—</span>
+                        <span>{bullet}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Projects */}
+          {resume.projects.length > 0 && (
+            <div>
+              <h2 className="text-[9px] font-bold uppercase tracking-widest mb-2" style={{ color: theme.primary }}>
+                {getSectionHeader('projects', locale)}
+              </h2>
+              <div className="h-px mb-3" style={{ backgroundColor: theme.accent }} />
+              {resume.projects.map((project) => (
+                <div key={project.id} className="mb-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-bold text-xs">{project.name || 'Project'}</span>
+                    {project.url && (
+                      <span className="text-[9px]" style={{ color: theme.accent }}>
+                        {project.url.replace(/^https?:\/\//, '')}
+                      </span>
+                    )}
+                  </div>
+                  {project.description && (
+                    <p className="text-[10px] mt-0.5" style={{ color: theme.muted }}>{project.description}</p>
+                  )}
+                  {project.technologies?.length > 0 && (
+                    <p className="text-[9px] mt-0.5" style={{ color: theme.muted }}>
+                      {project.technologies.join(' · ')}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================
+// Sage Academic Preview
+// ============================================
+
+function SageAcademicPreview({
+  resume,
+  theme,
+  locale,
+  fontFamily,
+}: {
+  resume: ResumeData;
+  theme: typeof THEMES.obsidian;
+  locale: 'en' | 'ar';
+  fontFamily: string;
+}) {
+  const AcademicSection = ({ title, children }: { title: string; children: React.ReactNode }) => (
+    <div className="mt-7">
+      <h2 className="text-[10px] font-bold uppercase tracking-widest text-center mb-2" style={{ color: theme.primary }}>
+        {getSectionHeader(title, locale)}
+      </h2>
+      {/* Double rule: thick + thin */}
+      <div className="mb-4">
+        <div className="h-px" style={{ backgroundColor: theme.primary }} />
+        <div className="h-px mt-0.5 opacity-40" style={{ backgroundColor: theme.primary }} />
+      </div>
+      {children}
+    </div>
+  );
+
+  return (
+    <div className="p-10 font-sans" style={{ fontFamily, color: theme.text }}>
+      {/* Centered header */}
+      <div className="text-center mb-2">
+        <h1 className="text-3xl font-bold" style={{ color: theme.primary }}>
+          {resume.contact.fullName || 'Your Name'}
+        </h1>
+        {resume.title && (
+          <p className="text-sm mt-1.5 italic" style={{ color: theme.muted }}>{resume.title}</p>
+        )}
+      </div>
+
+      {/* Decorative rule */}
+      <div className="flex items-center gap-3 my-4">
+        <div className="flex-1 h-px" style={{ backgroundColor: theme.border }} />
+        <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: theme.accent }} />
+        <div className="flex-1 h-px" style={{ backgroundColor: theme.border }} />
+      </div>
+
+      {/* Contact row */}
+      <div className="flex justify-center flex-wrap gap-x-5 gap-y-1 text-[9px] mb-1" style={{ color: theme.muted }}>
+        {resume.contact.email && <span>{resume.contact.email}</span>}
+        {resume.contact.phone && <span>{resume.contact.phone}</span>}
+        {resume.contact.location && <span>{resume.contact.location}</span>}
+        {resume.contact.linkedin && <span style={{ color: theme.accent }}>{resume.contact.linkedin}</span>}
+      </div>
+
+      {/* Summary */}
+      {resume.summary && (
+        <AcademicSection title="summary">
+          <p className="text-xs leading-relaxed text-center italic" style={{ color: theme.muted }}>
+            {resume.summary}
+          </p>
+        </AcademicSection>
+      )}
+
+      {/* Experience */}
+      {resume.experience.length > 0 && (
+        <AcademicSection title="experience">
+          {resume.experience.map((exp, idx) => (
+            <div key={exp.id} className={cn(idx > 0 && 'mt-5')}>
+              <div className="flex justify-between items-baseline">
+                <span className="font-bold text-sm">{exp.position}</span>
+                <span className="text-[10px]" style={{ color: theme.accent }}>
+                  {formatDate(exp.startDate, locale)} – {exp.current ? getPresentText(locale) : formatDate(exp.endDate, locale)}
+                </span>
+              </div>
+              <p className="text-xs italic mb-1.5" style={{ color: theme.muted }}>
+                {exp.company}{exp.location && `, ${exp.location}`}
+              </p>
+              <ul className="space-y-0.5">
+                {exp.bullets.filter(b => b?.trim()).map((bullet, i) => (
+                  <li key={i} className="text-xs flex gap-2">
+                    <span style={{ color: theme.accent }}>◆</span>
+                    <span>{bullet}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </AcademicSection>
+      )}
+
+      {/* Education */}
+      {resume.education.length > 0 && (
+        <AcademicSection title="education">
+          {resume.education.map((edu) => (
+            <div key={edu.id} className="flex justify-between items-start mb-3">
+              <div>
+                <p className="font-bold text-xs">{edu.degree}{edu.field && `, ${edu.field}`}</p>
+                <p className="text-[10px] italic" style={{ color: theme.muted }}>
+                  {edu.institution}{edu.location && `, ${edu.location}`}
+                  {edu.gpa && ` · GPA: ${edu.gpa}`}
+                </p>
+              </div>
+              {edu.graduationDate && (
+                <span className="text-[10px] whitespace-nowrap" style={{ color: theme.accent }}>
+                  {formatDate(edu.graduationDate, locale)}
+                </span>
+              )}
+            </div>
+          ))}
+        </AcademicSection>
+      )}
+
+      {/* Skills */}
+      {resume.skills.length > 0 && (
+        <AcademicSection title="skills">
+          <p className="text-xs text-center leading-relaxed">
+            {resume.skills.join(' · ')}
+          </p>
+        </AcademicSection>
+      )}
+
+      {/* Projects */}
+      {resume.projects.length > 0 && (
+        <AcademicSection title="projects">
+          {resume.projects.map((project) => (
+            <div key={project.id} className="mb-3">
+              <div className="flex justify-between items-baseline">
+                <span className="font-bold text-xs">{project.name || 'Project'}</span>
+                {project.url && (
+                  <span className="text-[9px]" style={{ color: theme.accent }}>
+                    {project.url.replace(/^https?:\/\//, '')}
+                  </span>
+                )}
+              </div>
+              {project.description && (
+                <p className="text-[10px] mt-0.5 italic" style={{ color: theme.muted }}>{project.description}</p>
+              )}
+              {project.technologies?.length > 0 && (
+                <p className="text-[9px] mt-0.5" style={{ color: theme.muted }}>
+                  {project.technologies.join(', ')}
+                </p>
+              )}
+            </div>
+          ))}
+        </AcademicSection>
+      )}
+
+      {/* Certifications + Languages row */}
+      {(resume.certifications.length > 0 || resume.languages.length > 0) && (
+        <div className="flex gap-6 mt-7">
+          {resume.certifications.length > 0 && (
+            <div className="flex-1">
+              <h2 className="text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: theme.primary }}>
+                {getSectionHeader('certifications', locale)}
+              </h2>
+              <div className="h-px mb-3" style={{ backgroundColor: theme.border }} />
+              {resume.certifications.map((cert) => (
+                <div key={cert.id} className="mb-1.5 text-xs">
+                  <span className="font-medium">{cert.name}</span>
+                  {cert.issuer && <span className="text-[10px]" style={{ color: theme.muted }}> · {cert.issuer}</span>}
+                </div>
+              ))}
+            </div>
+          )}
+          {resume.languages.length > 0 && (
+            <div className="flex-1">
+              <h2 className="text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: theme.primary }}>
+                {getSectionHeader('languages', locale)}
+              </h2>
+              <div className="h-px mb-3" style={{ backgroundColor: theme.border }} />
+              {resume.languages.map((lang, i) => (
+                <p key={i} className="text-xs mb-1">
+                  <span className="font-medium">{lang.name}</span>
+                  <span style={{ color: theme.muted }}> · {lang.proficiency}</span>
+                </p>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ============================================
+// Terra Tech Preview
+// ============================================
+
+function TerraTechPreview({
+  resume,
+  theme,
+  locale,
+  fontFamily,
+}: {
+  resume: ResumeData;
+  theme: typeof THEMES.obsidian;
+  locale: 'en' | 'ar';
+  fontFamily: string;
+}) {
+  return (
+    <div className="p-7 font-sans" style={{ fontFamily, color: theme.text }}>
+      {/* Split header */}
+      <div className="flex items-end justify-between pb-4 mb-5" style={{ borderBottom: `2px solid ${theme.primary}` }}>
+        <div>
+          <h1 className="text-2xl font-bold" style={{ color: theme.primary }}>
+            {resume.contact.fullName || 'Your Name'}
+          </h1>
+          {resume.title && (
+            <p className="text-xs font-semibold mt-1 uppercase tracking-wide" style={{ color: theme.accent }}>
+              {resume.title}
+            </p>
+          )}
+        </div>
+        <div className="text-right space-y-0.5">
+          {resume.contact.email && <p className="text-[9px]" style={{ color: theme.muted }}>{resume.contact.email}</p>}
+          {resume.contact.phone && <p className="text-[9px]" style={{ color: theme.muted }}>{resume.contact.phone}</p>}
+          {resume.contact.location && <p className="text-[9px]" style={{ color: theme.muted }}>{resume.contact.location}</p>}
+          {resume.contact.linkedin && <p className="text-[9px]" style={{ color: theme.accent }}>{resume.contact.linkedin}</p>}
+        </div>
+      </div>
+
+      {/* Skill pills */}
+      {resume.skills.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 mb-6">
+          {resume.skills.map((skill, i) => (
+            <span
+              key={i}
+              className="px-2 py-0.5 rounded-full text-[8px] font-medium border"
+              style={{ borderColor: theme.accent, color: theme.accent, backgroundColor: `${theme.accent}18` }}
+            >
+              {skill}
+            </span>
+          ))}
+        </div>
+      )}
+
+      {/* Summary */}
+      {resume.summary && (
+        <div className="mb-5">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="h-px flex-1" style={{ backgroundColor: theme.border }} />
+            <h2 className="text-[9px] font-bold uppercase tracking-widest" style={{ color: theme.primary }}>
+              {getSectionHeader('summary', locale)}
+            </h2>
+            <div className="h-px flex-1" style={{ backgroundColor: theme.border }} />
+          </div>
+          <p className="text-[10px] leading-relaxed" style={{ color: theme.muted }}>{resume.summary}</p>
+        </div>
+      )}
+
+      {/* Experience */}
+      {resume.experience.length > 0 && (
+        <div className="mb-5">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="h-px flex-1" style={{ backgroundColor: theme.border }} />
+            <h2 className="text-[9px] font-bold uppercase tracking-widest" style={{ color: theme.primary }}>
+              {getSectionHeader('experience', locale)}
+            </h2>
+            <div className="h-px flex-1" style={{ backgroundColor: theme.border }} />
+          </div>
+          {resume.experience.map((exp, idx) => (
+            <div key={exp.id} className={cn('flex gap-3', idx > 0 && 'mt-4')}>
+              {/* Left border timeline */}
+              <div className="flex flex-col items-center">
+                <div className="w-2 h-2 rounded-full border-2 flex-shrink-0" style={{ borderColor: theme.accent, backgroundColor: theme.background }} />
+                <div className="flex-1 w-px mt-1" style={{ backgroundColor: theme.border }} />
+              </div>
+              <div className="flex-1 pb-2">
+                <div className="flex justify-between items-start gap-2">
+                  <span className="font-bold text-xs">{exp.position}</span>
+                  <span className="text-[9px] whitespace-nowrap" style={{ color: theme.accent }}>
+                    {formatDate(exp.startDate, locale)} – {exp.current ? getPresentText(locale) : formatDate(exp.endDate, locale)}
+                  </span>
+                </div>
+                <p className="text-[10px]" style={{ color: theme.muted }}>
+                  {exp.company}{exp.location && ` · ${exp.location}`}
+                </p>
+                <ul className="mt-1.5 space-y-0.5">
+                  {exp.bullets.filter(b => b?.trim()).map((bullet, i) => (
+                    <li key={i} className="text-[10px] flex gap-1.5">
+                      <span className="text-[9px]" style={{ color: theme.accent }}>›</span>
+                      <span>{bullet}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Two-column: Education + (Certs & Languages) */}
+      <div className="flex gap-6 mt-5">
+        {/* Education */}
+        {resume.education.length > 0 && (
+          <div className="flex-1">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="h-px flex-1" style={{ backgroundColor: theme.border }} />
+              <h2 className="text-[9px] font-bold uppercase tracking-widest" style={{ color: theme.primary }}>
+                {getSectionHeader('education', locale)}
+              </h2>
+              <div className="h-px flex-1" style={{ backgroundColor: theme.border }} />
+            </div>
+            {resume.education.map((edu) => (
+              <div key={edu.id} className="mb-3">
+                <p className="font-bold text-xs">{edu.degree}{edu.field && ` in ${edu.field}`}</p>
+                <p className="text-[10px]" style={{ color: theme.muted }}>{edu.institution}</p>
+                {edu.graduationDate && (
+                  <p className="text-[9px]" style={{ color: theme.accent }}>{formatDate(edu.graduationDate, locale)}</p>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Certs + Languages */}
+        {(resume.certifications.length > 0 || resume.languages.length > 0) && (
+          <div className="flex-1">
+            {resume.certifications.length > 0 && (
+              <div className="mb-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="h-px flex-1" style={{ backgroundColor: theme.border }} />
+                  <h2 className="text-[9px] font-bold uppercase tracking-widest" style={{ color: theme.primary }}>
+                    {getSectionHeader('certifications', locale)}
+                  </h2>
+                  <div className="h-px flex-1" style={{ backgroundColor: theme.border }} />
+                </div>
+                {resume.certifications.map((cert) => (
+                  <div key={cert.id} className="mb-1.5">
+                    <p className="text-xs font-semibold">{cert.name}</p>
+                    {cert.issuer && <p className="text-[9px]" style={{ color: theme.muted }}>{cert.issuer}</p>}
+                  </div>
+                ))}
+              </div>
+            )}
+            {resume.languages.length > 0 && (
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="h-px flex-1" style={{ backgroundColor: theme.border }} />
+                  <h2 className="text-[9px] font-bold uppercase tracking-widest" style={{ color: theme.primary }}>
+                    {getSectionHeader('languages', locale)}
+                  </h2>
+                  <div className="h-px flex-1" style={{ backgroundColor: theme.border }} />
+                </div>
+                {resume.languages.map((lang, i) => (
+                  <p key={i} className="text-xs mb-1">
+                    <span className="font-medium">{lang.name}</span>
+                    <span className="text-[10px]" style={{ color: theme.muted }}> · {lang.proficiency}</span>
+                  </p>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Projects */}
+      {resume.projects.length > 0 && (
+        <div className="mt-5">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="h-px flex-1" style={{ backgroundColor: theme.border }} />
+            <h2 className="text-[9px] font-bold uppercase tracking-widest" style={{ color: theme.primary }}>
+              {getSectionHeader('projects', locale)}
+            </h2>
+            <div className="h-px flex-1" style={{ backgroundColor: theme.border }} />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            {resume.projects.map((project) => (
+              <div key={project.id} className="rounded p-2" style={{ backgroundColor: theme.surface, border: `1px solid ${theme.border}` }}>
+                <div className="flex items-center justify-between gap-1 mb-1">
+                  <span className="font-bold text-[10px]">{project.name || 'Project'}</span>
+                  {project.url && (
+                    <span className="text-[8px]" style={{ color: theme.accent }}>
+                      {project.url.replace(/^https?:\/\/www\./, '')}
+                    </span>
+                  )}
+                </div>
+                {project.description && (
+                  <p className="text-[9px]" style={{ color: theme.muted }}>{project.description}</p>
+                )}
+                {project.technologies?.length > 0 && (
+                  <div className="flex flex-wrap gap-0.5 mt-1">
+                    {project.technologies.map((tech, i) => (
+                      <span key={i} className="text-[7px] px-1 rounded" style={{ backgroundColor: `${theme.accent}20`, color: theme.accent }}>
+                        {tech}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ============================================
+// Pearl Executive Preview
+// ============================================
+
+function PearlExecutivePreview({
+  resume,
+  theme,
+  locale,
+  fontFamily,
+}: {
+  resume: ResumeData;
+  theme: typeof THEMES.obsidian;
+  locale: 'en' | 'ar';
+  fontFamily: string;
+}) {
+  return (
+    <div className="p-9 font-sans" style={{ fontFamily, color: theme.text }}>
+      {/* Header: Name | vertical divider | Contact */}
+      <div className="flex items-start gap-6 mb-5">
+        <div className="flex-1">
+          <h1 className="text-3xl font-bold tracking-tight leading-tight" style={{ color: theme.primary }}>
+            {resume.contact.fullName || 'Your Name'}
+          </h1>
+          {resume.title && (
+            <p className="text-sm font-medium mt-1.5" style={{ color: theme.accent }}>
+              {resume.title}
+            </p>
+          )}
+        </div>
+        {/* Vertical divider */}
+        <div className="w-px self-stretch mx-1 flex-shrink-0" style={{ backgroundColor: theme.border }} />
+        {/* Contact block */}
+        <div className="text-right space-y-1 flex-shrink-0">
+          {resume.contact.email && (
+            <p className="text-[9px]" style={{ color: theme.muted }}>{resume.contact.email}</p>
+          )}
+          {resume.contact.phone && (
+            <p className="text-[9px]" style={{ color: theme.muted }}>{resume.contact.phone}</p>
+          )}
+          {resume.contact.location && (
+            <p className="text-[9px]" style={{ color: theme.muted }}>{resume.contact.location}</p>
+          )}
+          {resume.contact.linkedin && (
+            <p className="text-[9px]" style={{ color: theme.accent }}>{resume.contact.linkedin}</p>
+          )}
+        </div>
+      </div>
+
+      {/* Elegant double accent rule */}
+      <div className="mb-6 flex items-center gap-0">
+        <div className="h-0.5 flex-1" style={{ backgroundColor: theme.primary }} />
+        <div className="h-0.5 w-12 ms-1" style={{ backgroundColor: theme.accent }} />
+      </div>
+
+      {/* Summary */}
+      {resume.summary && (
+        <div className="mb-6">
+          <p className="text-xs leading-relaxed italic" style={{ color: theme.muted }}>
+            {resume.summary}
+          </p>
+        </div>
+      )}
+
+      {/* Experience */}
+      {resume.experience.length > 0 && (
+        <div className="mb-6">
+          <div className="flex items-center gap-3 mb-4">
+            <h2 className="text-xs font-bold uppercase tracking-widest" style={{ color: theme.primary }}>
+              {getSectionHeader('experience', locale)}
+            </h2>
+            <div className="flex-1 h-px" style={{ backgroundColor: theme.border }} />
+          </div>
+          {resume.experience.map((exp, idx) => (
+            <div key={exp.id} className={cn(idx > 0 && 'mt-5')}>
+              <div className="flex justify-between items-baseline">
+                <div>
+                  <span className="font-bold text-sm" style={{ color: theme.primary }}>{exp.position}</span>
+                  <span className="text-xs ms-2" style={{ color: theme.accent }}>
+                    {exp.company}
+                  </span>
+                </div>
+                <span className="text-[10px] font-medium" style={{ color: theme.muted }}>
+                  {formatDate(exp.startDate, locale)} — {exp.current ? getPresentText(locale) : formatDate(exp.endDate, locale)}
+                </span>
+              </div>
+              {exp.location && (
+                <p className="text-[10px]" style={{ color: theme.muted }}>{exp.location}</p>
+              )}
+              <ul className="mt-2 space-y-1">
+                {exp.bullets.filter(b => b?.trim()).map((bullet, i) => (
+                  <li key={i} className="flex items-start gap-2 text-[10px]">
+                    <span className="mt-[2px] flex-shrink-0 font-bold" style={{ color: theme.accent }}>◆</span>
+                    <span>{bullet}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Education */}
+      {resume.education.length > 0 && (
+        <div className="mb-6">
+          <div className="flex items-center gap-3 mb-4">
+            <h2 className="text-xs font-bold uppercase tracking-widest" style={{ color: theme.primary }}>
+              {getSectionHeader('education', locale)}
+            </h2>
+            <div className="flex-1 h-px" style={{ backgroundColor: theme.border }} />
+          </div>
+          {resume.education.map((edu) => (
+            <div key={edu.id} className="flex justify-between items-start mb-3">
+              <div>
+                <p className="font-bold text-xs">{edu.degree}{edu.field && ` in ${edu.field}`}</p>
+                <p className="text-[10px] italic" style={{ color: theme.muted }}>
+                  {edu.institution}{edu.location && `, ${edu.location}`}
+                  {edu.gpa && ` · GPA ${edu.gpa}`}
+                </p>
+              </div>
+              {edu.graduationDate && (
+                <span className="text-[10px]" style={{ color: theme.muted }}>
+                  {formatDate(edu.graduationDate, locale)}
+                </span>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Skills — elegant single line */}
+      {resume.skills.length > 0 && (
+        <div className="mb-6">
+          <div className="flex items-center gap-3 mb-3">
+            <h2 className="text-xs font-bold uppercase tracking-widest" style={{ color: theme.primary }}>
+              {getSectionHeader('skills', locale)}
+            </h2>
+            <div className="flex-1 h-px" style={{ backgroundColor: theme.border }} />
+          </div>
+          <p className="text-xs leading-relaxed">
+            {resume.skills.map((skill, i) => (
+              <span key={i}>
+                {skill}
+                {i < resume.skills.length - 1 && (
+                  <span className="mx-2 font-bold" style={{ color: theme.accent }}>·</span>
+                )}
+              </span>
+            ))}
+          </p>
+        </div>
+      )}
+
+      {/* Bottom row: Projects, Certs, Languages */}
+      {(resume.projects.length > 0 || resume.certifications.length > 0 || resume.languages.length > 0) && (
+        <div className="flex gap-6">
+          {resume.projects.length > 0 && (
+            <div className="flex-1">
+              <div className="flex items-center gap-3 mb-3">
+                <h2 className="text-xs font-bold uppercase tracking-widest" style={{ color: theme.primary }}>
+                  {getSectionHeader('projects', locale)}
+                </h2>
+                <div className="flex-1 h-px" style={{ backgroundColor: theme.border }} />
+              </div>
+              {resume.projects.map((project) => (
+                <div key={project.id} className="mb-2">
+                  <span className="font-semibold text-xs">{project.name}</span>
+                  {project.description && (
+                    <p className="text-[9px]" style={{ color: theme.muted }}>{project.description}</p>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+          {resume.certifications.length > 0 && (
+            <div className="flex-1">
+              <div className="flex items-center gap-3 mb-3">
+                <h2 className="text-xs font-bold uppercase tracking-widest" style={{ color: theme.primary }}>
+                  {getSectionHeader('certifications', locale)}
+                </h2>
+                <div className="flex-1 h-px" style={{ backgroundColor: theme.border }} />
+              </div>
+              {resume.certifications.map((cert) => (
+                <div key={cert.id} className="mb-1.5 text-xs">
+                  <span className="font-medium">{cert.name}</span>
+                  {cert.issuer && <p className="text-[9px]" style={{ color: theme.muted }}>{cert.issuer}</p>}
+                </div>
+              ))}
+            </div>
+          )}
+          {resume.languages.length > 0 && (
+            <div>
+              <div className="flex items-center gap-3 mb-3">
+                <h2 className="text-xs font-bold uppercase tracking-widest" style={{ color: theme.primary }}>
+                  {getSectionHeader('languages', locale)}
+                </h2>
+                <div className="flex-1 h-px" style={{ backgroundColor: theme.border }} />
+              </div>
+              {resume.languages.map((lang, i) => (
+                <p key={i} className="text-xs mb-1">
+                  <span className="font-medium">{lang.name}</span>
+                  <span className="text-[10px] ms-1" style={{ color: theme.muted }}>{lang.proficiency}</span>
+                </p>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

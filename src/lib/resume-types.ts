@@ -10,14 +10,24 @@ export type TemplateId =
   | 'nordic-minimal'
   | 'metropolitan-split'
   | 'classic-professional'
-  | 'impact-modern';
+  | 'impact-modern'
+  | 'azure-sidebar'
+  | 'crimson-bold'
+  | 'sage-academic'
+  | 'terra-tech'
+  | 'pearl-executive';
 
 export type ThemeId =
   | 'obsidian'
   | 'sapphire'
   | 'emerald'
   | 'graphite'
-  | 'ivory';
+  | 'ivory'
+  | 'crimson'
+  | 'midnight'
+  | 'sage'
+  | 'terra'
+  | 'pearl';
 
 export type LocaleId = 'en' | 'ar';
 

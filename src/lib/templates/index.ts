@@ -70,6 +70,71 @@ export const TEMPLATES: Record<TemplateId, TemplateMetadata> = {
     features: ['Hero header', 'Timeline style', 'Skill tags'],
     bestFor: ['Tech', 'Startups', 'Dynamic roles'],
   },
+
+  'azure-sidebar': {
+    id: 'azure-sidebar',
+    name: { en: 'Azure Sidebar', ar: 'الشريط الجانبي الأزرق' },
+    description: {
+      en: 'Clean right-sidebar layout with dedicated contact and skills panel',
+      ar: 'تخطيط نظيف بشريط جانبي للمهارات ومعلومات التواصل',
+    },
+    thumbnail: '/templates/azure-sidebar.png',
+    isPremium: true,
+    features: ['Right sidebar', 'Skills panel', 'Clean typography'],
+    bestFor: ['Tech', 'Finance', 'Consulting'],
+  },
+
+  'crimson-bold': {
+    id: 'crimson-bold',
+    name: { en: 'Crimson Bold', ar: 'الأحمر الجريء' },
+    description: {
+      en: 'Full-bleed header with bold name and creative two-column body',
+      ar: 'رأسية كاملة الاتساع مع اسم بارز وهيكل إبداعي بعمودين',
+    },
+    thumbnail: '/templates/crimson-bold.png',
+    isPremium: true,
+    features: ['Full-bleed header', 'Bold typography', 'Two-column body'],
+    bestFor: ['Creative', 'Marketing', 'Agencies'],
+  },
+
+  'sage-academic': {
+    id: 'sage-academic',
+    name: { en: 'Sage Academic', ar: 'الأكاديمي الحكيم' },
+    description: {
+      en: 'Scholarly single-column layout with elegant centered header and refined dividers',
+      ar: 'تخطيط أكاديمي بعمود واحد مع رأسية مركزية أنيقة وفواصل راقية',
+    },
+    thumbnail: '/templates/sage-academic.png',
+    isPremium: true,
+    features: ['Scholarly style', 'Centered header', 'Elegant dividers'],
+    bestFor: ['Academia', 'Research', 'Education'],
+  },
+
+  'terra-tech': {
+    id: 'terra-tech',
+    name: { en: 'Terra Tech', ar: 'تيرا تك' },
+    description: {
+      en: 'Tech-focused split header with skill pill chips and compact experience timeline',
+      ar: 'رأسية مقسمة تقنية مع رقاقات مهارات وجدول خبرة مضغوط',
+    },
+    thumbnail: '/templates/terra-tech.png',
+    isPremium: true,
+    features: ['Split header', 'Pill skill chips', 'Compact layout'],
+    bestFor: ['Software Engineers', 'Data Scientists', 'DevOps'],
+  },
+
+  'pearl-executive': {
+    id: 'pearl-executive',
+    name: { en: 'Pearl Executive', ar: 'اللؤلؤي التنفيذي' },
+    description: {
+      en: 'Ultra-premium layout with name-divider-contact header and sophisticated section styling',
+      ar: 'تخطيط فاخر مع رأسية من الاسم والفاصل ومعلومات التواصل',
+    },
+    thumbnail: '/templates/pearl-executive.png',
+    isPremium: true,
+    features: ['Premium feel', 'Vertical divider header', 'Executive hierarchy'],
+    bestFor: ['C-Suite', 'Directors', 'Senior Executives'],
+  },
 };
 
 // ============================================
@@ -116,6 +181,46 @@ export const TEMPLATE_CONFIGS: Record<TemplateId, TemplateConfig> = {
     spacing: { section: 12, item: 6, line: 4 },
     typography: { nameSize: 36, sectionHeaderSize: 12, bodySize: 10, smallSize: 9 },
     margins: { top: 0, bottom: 20, left: 20, right: 20 },
+  },
+  'azure-sidebar': {
+    layout: 'sidebar-right',
+    headerStyle: 'left-aligned',
+    sectionStyle: 'simple',
+    spacing: { section: 10, item: 5, line: 4 },
+    typography: { nameSize: 26, sectionHeaderSize: 9, bodySize: 9.5, smallSize: 8.5 },
+    margins: { top: 0, bottom: 0, left: 0, right: 0 },
+  },
+  'crimson-bold': {
+    layout: 'two-column',
+    headerStyle: 'hero',
+    sectionStyle: 'simple',
+    spacing: { section: 10, item: 5, line: 4 },
+    typography: { nameSize: 30, sectionHeaderSize: 10, bodySize: 9.5, smallSize: 8.5 },
+    margins: { top: 0, bottom: 0, left: 0, right: 0 },
+  },
+  'sage-academic': {
+    layout: 'single-column',
+    headerStyle: 'centered',
+    sectionStyle: 'underline',
+    spacing: { section: 14, item: 7, line: 5 },
+    typography: { nameSize: 28, sectionHeaderSize: 10, bodySize: 10, smallSize: 9 },
+    margins: { top: 22, bottom: 22, left: 22, right: 22 },
+  },
+  'terra-tech': {
+    layout: 'single-column',
+    headerStyle: 'split',
+    sectionStyle: 'border-left',
+    spacing: { section: 11, item: 5, line: 4 },
+    typography: { nameSize: 24, sectionHeaderSize: 10, bodySize: 9.5, smallSize: 8.5 },
+    margins: { top: 18, bottom: 18, left: 18, right: 18 },
+  },
+  'pearl-executive': {
+    layout: 'single-column',
+    headerStyle: 'split',
+    sectionStyle: 'underline',
+    spacing: { section: 12, item: 6, line: 4 },
+    typography: { nameSize: 30, sectionHeaderSize: 11, bodySize: 10, smallSize: 9 },
+    margins: { top: 20, bottom: 20, left: 22, right: 22 },
   },
 };
 

@@ -63,6 +63,66 @@ export const THEMES: Record<ThemeId, ThemePalette> = {
     surface: '#faf5f0',      // Cream
     border: '#e7e5e4',       // Stone border
   },
+
+  // Crimson - Deep red corporate theme
+  crimson: {
+    primary: '#7f1d1d',      // Dark crimson
+    secondary: '#450a0a',    // Deeper red
+    accent: '#ef4444',       // Bright red
+    text: '#1c1917',         // Warm dark
+    muted: '#78716c',        // Stone
+    background: '#ffffff',   // White
+    surface: '#fff5f5',      // Very light rose
+    border: '#fecaca',       // Light red
+  },
+
+  // Midnight - Deep indigo sophisticated theme
+  midnight: {
+    primary: '#1e1b4b',      // Deep indigo
+    secondary: '#0f0a3c',    // Darker indigo
+    accent: '#818cf8',       // Indigo-400
+    text: '#1e1b4b',         // Indigo text
+    muted: '#6b7280',        // Gray
+    background: '#ffffff',   // White
+    surface: '#f5f3ff',      // Light violet
+    border: '#ddd6fe',       // Violet-200
+  },
+
+  // Sage - Natural sage green theme
+  sage: {
+    primary: '#2d4a22',      // Deep sage green
+    secondary: '#1a2e13',    // Darker green
+    accent: '#65a30d',       // Lime-600
+    text: '#1a2e13',         // Dark green
+    muted: '#6b7280',        // Gray
+    background: '#ffffff',   // White
+    surface: '#f0fdf4',      // Mint tint
+    border: '#bbf7d0',       // Green-200
+  },
+
+  // Terra - Warm terracotta earth theme
+  terra: {
+    primary: '#7c2d12',      // Terracotta
+    secondary: '#431407',    // Deeper terracotta
+    accent: '#fb923c',       // Orange-400
+    text: '#292524',         // Warm dark
+    muted: '#78716c',        // Stone
+    background: '#fffbf5',   // Warm white
+    surface: '#fff7ed',      // Warm cream
+    border: '#fed7aa',       // Orange-200
+  },
+
+  // Pearl - Sophisticated violet-pearl theme
+  pearl: {
+    primary: '#312e81',      // Indigo-900
+    secondary: '#1e1b4b',    // Indigo-950
+    accent: '#a78bfa',       // Violet-400
+    text: '#1e293b',         // Slate-800
+    muted: '#64748b',        // Slate-500
+    background: '#ffffff',   // White
+    surface: '#f8f7ff',      // Lavender tint
+    border: '#e9d5ff',       // Violet-200
+  },
 };
 
 // Theme metadata for UI display
@@ -86,6 +146,26 @@ export const THEME_METADATA: Record<ThemeId, { name: { en: string; ar: string };
   ivory: {
     name: { en: 'Ivory', ar: 'عاجي' },
     description: 'Warm & elegant',
+  },
+  crimson: {
+    name: { en: 'Crimson', ar: 'قرمزي' },
+    description: 'Bold & striking',
+  },
+  midnight: {
+    name: { en: 'Midnight', ar: 'منتصف الليل' },
+    description: 'Deep & sophisticated',
+  },
+  sage: {
+    name: { en: 'Sage', ar: 'أخضر حكيم' },
+    description: 'Natural & fresh',
+  },
+  terra: {
+    name: { en: 'Terra', ar: 'تيرا' },
+    description: 'Warm & earthy',
+  },
+  pearl: {
+    name: { en: 'Pearl', ar: 'لؤلؤي' },
+    description: 'Premium & refined',
   },
 };
 

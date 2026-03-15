@@ -169,12 +169,13 @@ export default function Home() {
     ];
 
     const templatePreviewBase = getTemplatePreviewData(isArabic ? 'ar' : 'en');
-    const templateShowcase: { id: TemplateId; name: string; theme: ThemeId }[] = [
+    const templateShowcase: { id: TemplateId; name: string; theme: ThemeId; badge?: string }[] = [
         { id: 'prestige-executive', name: isArabic ? 'هيبة تنفيذية' : 'Prestige Executive', theme: 'obsidian' },
         { id: 'metropolitan-split', name: isArabic ? 'المتروبوليتان المقسّم' : 'Metropolitan Split', theme: 'sapphire' },
         { id: 'nordic-minimal', name: isArabic ? 'الشمالي البسيط' : 'Nordic Minimal', theme: 'ivory' },
-        { id: 'classic-professional', name: isArabic ? 'الكلاسيكي الاحترافي' : 'Classic Professional', theme: 'emerald' },
-        { id: 'impact-modern', name: isArabic ? 'التأثير العصري' : 'Impact Modern', theme: 'graphite' },
+        { id: 'azure-sidebar', name: isArabic ? 'الشريط الجانبي الأزرق' : 'Azure Sidebar', theme: 'sapphire', badge: isArabic ? 'برو' : 'Pro' },
+        { id: 'terra-tech', name: isArabic ? 'تيرا تك' : 'Terra Tech', theme: 'terra', badge: isArabic ? 'برو' : 'Pro' },
+        { id: 'pearl-executive', name: isArabic ? 'اللؤلؤي التنفيذي' : 'Pearl Executive', theme: 'pearl', badge: isArabic ? 'برو' : 'Pro' },
     ];
 
     const faq = [
@@ -548,9 +549,15 @@ export default function Home() {
                                                     {isArabic ? 'تنسيق واضح ومتوافق مع أنظمة التتبع.' : 'Clean layout with ATS-ready formatting.'}
                                                 </p>
                                             </div>
-                                            <Badge variant="secondary" className="text-xs shrink-0">
-                                                {isArabic ? 'ATS جاهز' : 'ATS Ready'}
-                                            </Badge>
+                                            {template.badge ? (
+                                                <Badge className="text-xs shrink-0 bg-gradient-to-r from-primary to-purple-600 text-white border-0">
+                                                    {template.badge}
+                                                </Badge>
+                                            ) : (
+                                                <Badge variant="secondary" className="text-xs shrink-0">
+                                                    {isArabic ? 'ATS جاهز' : 'ATS Ready'}
+                                                </Badge>
+                                            )}
                                         </div>
                                     </CardContent>
                                 </Card>

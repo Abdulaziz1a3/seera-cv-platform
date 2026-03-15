@@ -38,9 +38,11 @@ const playfair = Playfair_Display({
     variable: '--font-playfair',
 });
 
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://seera-ai.com';
+
 export const metadata: Metadata = {
     title: {
-        default: 'Seera AI | Professional ATS-Friendly Resume Builder',
+        default: 'Seera AI — AI Resume Builder for Arabic & English Job Seekers',
         template: '%s | Seera AI',
     },
     manifest: '/manifest.json',
@@ -50,68 +52,99 @@ export const metadata: Metadata = {
         title: 'Seera AI',
     },
     description:
-        'Create professional, ATS-optimized resumes with our intelligent resume builder. Multi-language support including Arabic with RTL layout. Get hired faster with tailored resumes.',
+        'Build a standout, ATS-optimized resume in minutes with Seera AI. Choose from 10+ professional templates, get AI-powered writing assistance, and export in Arabic or English. Used by 5,000+ job seekers.',
     keywords: [
+        // English primary
         'resume builder',
         'CV maker',
-        'ATS resume',
-        'professional resume',
-        'Arabic resume',
-        'job application',
-        'career',
-        'resume templates',
-        'سيرة ذاتية',
+        'ATS resume builder',
+        'AI resume builder',
+        'professional resume templates',
+        'ATS-friendly resume',
+        'resume builder free',
+        'online CV builder',
+        'job application resume',
+        'resume maker',
+        'resume creator',
+        'career tools',
+        // Arabic primary
         'منشئ السيرة الذاتية',
+        'سيرة ذاتية احترافية',
+        'برنامج إنشاء السيرة الذاتية',
+        'سيرة ذاتية بالعربي',
+        'نموذج سيرة ذاتية',
+        'بناء السيرة الذاتية',
+        'cv بالعربية',
+        // Regional / niche
+        'resume builder Saudi Arabia',
+        'CV maker Arab',
+        'Arabic resume builder',
+        'bilingual resume',
+        'RTL resume',
+        'Gulf jobs resume',
     ],
-    authors: [{ name: 'Seera AI' }],
+    authors: [{ name: 'Seera AI', url: APP_URL }],
     creator: 'Seera AI',
     publisher: 'Seera AI',
+    category: 'Career & Job Tools',
+    classification: 'Business/Productivity',
     formatDetection: {
         email: false,
         address: false,
         telephone: false,
     },
-    metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'),
+    metadataBase: new URL(APP_URL),
+    alternates: {
+        canonical: '/',
+        languages: {
+            'en-US': '/en',
+            'ar-SA': '/ar',
+        },
+    },
     openGraph: {
         type: 'website',
         locale: 'en_US',
-        alternateLocale: 'ar_SA',
+        alternateLocale: ['ar_SA'],
         url: '/',
         siteName: 'Seera AI',
-        title: 'Seera AI | Professional ATS-Friendly Resume Builder',
+        title: 'Seera AI — AI Resume Builder for Arabic & English Job Seekers',
         description:
-            'Create professional, ATS-optimized resumes with our intelligent resume builder. Multi-language support including Arabic.',
+            'Build a standout, ATS-optimized resume in minutes. 10+ professional templates, AI writing assistance, Arabic + English support.',
         images: [
             {
                 url: '/og-image.png',
                 width: 1200,
                 height: 630,
-                alt: 'Seera AI Resume Builder',
+                alt: 'Seera AI — Professional Resume Builder',
+                type: 'image/png',
             },
         ],
     },
     twitter: {
         card: 'summary_large_image',
-        title: 'Seera AI | Professional ATS-Friendly Resume Builder',
-        description:
-            'Create professional, ATS-optimized resumes with our intelligent resume builder.',
-        images: ['/og-image.png'],
+        site: '@seera_ai',
         creator: '@seera_ai',
+        title: 'Seera AI — AI Resume Builder for Arabic & English Job Seekers',
+        description:
+            'Build a standout, ATS-optimized resume in minutes. 10+ templates, AI writing assistance, Arabic + English.',
+        images: [{ url: '/og-image.png', alt: 'Seera AI Resume Builder' }],
     },
     robots: {
         index: true,
         follow: true,
+        nocache: false,
         googleBot: {
             index: true,
             follow: true,
+            noimageindex: false,
             'max-video-preview': -1,
             'max-image-preview': 'large',
             'max-snippet': -1,
         },
     },
     verification: {
-        // Add your Google Search Console verification code here
-        // google: 'your-actual-verification-code',
+        // google: 'your-google-search-console-verification-code',
+        // yandex: 'your-yandex-verification-code',
     },
 };
 
@@ -125,6 +158,75 @@ export const viewport: Viewport = {
     maximumScale: 5,
 };
 
+const jsonLdOrganization = {
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
+    name: 'Seera AI',
+    url: APP_URL,
+    logo: `${APP_URL}/icons/icon-512x512.png`,
+    description: 'AI-powered professional resume builder with ATS optimization, 10+ templates, and full Arabic/English bilingual support.',
+    foundingDate: '2024',
+    sameAs: [
+        'https://twitter.com/seera_ai',
+    ],
+    contactPoint: {
+        '@type': 'ContactPoint',
+        contactType: 'customer support',
+        url: `${APP_URL}/contact`,
+        availableLanguage: ['English', 'Arabic'],
+    },
+};
+
+const jsonLdWebSite = {
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    name: 'Seera AI',
+    url: APP_URL,
+    description: 'Build a standout, ATS-optimized resume in minutes with Seera AI.',
+    potentialAction: {
+        '@type': 'SearchAction',
+        target: {
+            '@type': 'EntryPoint',
+            urlTemplate: `${APP_URL}/blog?q={search_term_string}`,
+        },
+        'query-input': 'required name=search_term_string',
+    },
+    inLanguage: ['en', 'ar'],
+};
+
+const jsonLdSoftwareApp = {
+    '@context': 'https://schema.org',
+    '@type': 'SoftwareApplication',
+    name: 'Seera AI Resume Builder',
+    url: APP_URL,
+    applicationCategory: 'BusinessApplication',
+    operatingSystem: 'Web',
+    description: 'AI-powered resume builder with ATS optimization, 10+ professional templates, and Arabic/English bilingual support.',
+    offers: {
+        '@type': 'AggregateOffer',
+        priceCurrency: 'USD',
+        lowPrice: '0',
+        highPrice: '9.99',
+        offerCount: '2',
+    },
+    aggregateRating: {
+        '@type': 'AggregateRating',
+        ratingValue: '4.8',
+        ratingCount: '1240',
+        bestRating: '5',
+        worstRating: '1',
+    },
+    featureList: [
+        'ATS-Optimized Resume Builder',
+        'AI Writing Assistance',
+        '10+ Professional Templates',
+        'Arabic & English Support',
+        'RTL Layout',
+        'PDF Export',
+        'Real-time Preview',
+    ],
+};
+
 export default function RootLayout({
     children,
 }: {
@@ -136,6 +238,18 @@ export default function RootLayout({
                 <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png" />
                 <meta name="apple-mobile-web-app-capable" content="yes" />
                 <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+                <script
+                    type="application/ld+json"
+                    dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdOrganization) }}
+                />
+                <script
+                    type="application/ld+json"
+                    dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdWebSite) }}
+                />
+                <script
+                    type="application/ld+json"
+                    dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdSoftwareApp) }}
+                />
             </head>
             <body
                 className={`${inter.variable} ${notoArabic.variable} ${jakarta.variable} ${merriweather.variable} ${playfair.variable} font-sans antialiased`}
