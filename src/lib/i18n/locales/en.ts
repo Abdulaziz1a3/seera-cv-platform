@@ -724,7 +724,7 @@ export const en = {
         resources: 'Resources',
         company: 'Company',
         legal: 'Legal',
-        copyright: '© 2025 Infinite Solutions. All rights reserved. C.R. 7050050025.',
+        copyright: '© 2025 Infinite Solutions Company. All rights reserved. C.R. 7050050025.',
         links: {
             templates: 'Templates',
             pricing: 'Pricing',

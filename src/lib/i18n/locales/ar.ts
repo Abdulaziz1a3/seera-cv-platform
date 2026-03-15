@@ -724,7 +724,7 @@ export const ar = {
         resources: 'الموارد',
         company: 'الشركة',
         legal: 'قانوني',
-        copyright: '© 2025 Infinite Solutions. جميع الحقوق محفوظة. س.ت. 7050050025.',
+        copyright: '© 2025 Infinite Solutions Company. جميع الحقوق محفوظة. س.ت. 7050050025.',
         links: {
             templates: 'القوالب',
             pricing: 'الأسعار',

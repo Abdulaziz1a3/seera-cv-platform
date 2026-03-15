@@ -20,6 +20,10 @@ export default function TermsPage() {
                             and provisions of this agreement. If you do not agree to abide by the above, please do not
                             use this Service.
                         </p>
+                        <p>
+                            Seera AI is operated by Infinite Solutions Company. References to "Seera AI", "we", "us",
+                            and "our" in these Terms refer to Infinite Solutions Company.
+                        </p>
 
                         <h2>2. Description of Service</h2>
                         <p>
@@ -76,15 +80,15 @@ export default function TermsPage() {
                             <li>You authorize us to charge your payment method on a recurring basis</li>
                             <li>Subscriptions auto-renew unless cancelled before the renewal date</li>
                             <li>Prices may change with 30 days notice</li>
-                            <li>All payments are final and non-refundable, except where refunds are required by applicable law</li>
-                            <li>Cancelling a subscription stops future renewals only and does not entitle you to a refund for charges already processed</li>
+                            <li>Some payments may be processed by Paddle, which acts as merchant of record for eligible transactions</li>
+                            <li>If Paddle processes your purchase, billing, invoicing, taxes, cancellations, and refunds are handled under Paddle&apos;s consumer payment terms and applicable law</li>
                         </ul>
 
-                        <h2>7. No Refund Policy</h2>
+                        <h2>7. Refunds and Cancellations</h2>
                         <p>
-                            Except where required by applicable law, Seera AI does not offer refunds, credits, or partial
-                            refunds for subscription fees, one-time purchases, unused time, unused features, or accidental
-                            purchases. You are responsible for reviewing plan details before completing payment.
+                            If your payment is processed by Paddle, refunds, cancellations, and any applicable consumer
+                            rights are governed by Paddle&apos;s Invoiced Consumer Terms and applicable law. Where payments
+                            are processed through another provider, the payment terms presented at checkout will apply.
                         </p>
 
                         <h2>8. Intellectual Property</h2>

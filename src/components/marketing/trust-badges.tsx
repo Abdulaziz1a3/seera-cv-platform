@@ -8,18 +8,9 @@ export function SecurityBadges({ className }: { className?: string }) {
     const { locale } = useLocale();
 
     const badges = [
-        {
-            icon: Lock,
-            text: locale === 'ar' ? 'SSL آمن' : 'SSL Secured',
-        },
-        {
-            icon: Shield,
-            text: locale === 'ar' ? 'متوافق مع GDPR' : 'GDPR Compliant',
-        },
-        {
-            icon: Award,
-            text: locale === 'ar' ? 'شهادة SOC 2' : 'SOC 2 Certified',
-        },
+        { icon: Lock, text: locale === 'ar' ? 'SSL آمن' : 'SSL Secured' },
+        { icon: Shield, text: locale === 'ar' ? 'متوافق مع GDPR' : 'GDPR Compliant' },
+        { icon: Award, text: locale === 'ar' ? 'شهادة SOC 2' : 'SOC 2 Certified' },
     ];
 
     return (
@@ -79,18 +70,9 @@ export function TrustBar({ className }: { className?: string }) {
     const { locale } = useLocale();
 
     const items = [
-        {
-            icon: Lock,
-            text: locale === 'ar' ? 'دفع آمن 256-bit' : '256-bit Secure Payment',
-        },
-        {
-            icon: CheckCircle,
-            text: locale === 'ar' ? 'جميع المبيعات نهائية' : 'All sales final',
-        },
-        {
-            icon: Shield,
-            text: locale === 'ar' ? 'الخصوصية محمية' : 'Privacy Protected',
-        },
+        { icon: Lock, text: locale === 'ar' ? 'دفع آمن 256-bit' : '256-bit Secure Payment' },
+        { icon: CheckCircle, text: locale === 'ar' ? 'فوترة واضحة' : 'Transparent billing' },
+        { icon: Shield, text: locale === 'ar' ? 'الخصوصية محمية' : 'Privacy Protected' },
     ];
 
     return (
@@ -148,12 +130,12 @@ export function GuaranteeBadge({ className }: { className?: string }) {
             </div>
             <div>
                 <p className="font-semibold">
-                    {locale === 'ar' ? 'سياسة عدم الاسترداد' : 'No Refund Policy'}
+                    {locale === 'ar' ? 'شروط الشراء للمستهلك' : 'Consumer Purchase Terms'}
                 </p>
                 <p className="text-sm text-muted-foreground">
                     {locale === 'ar'
-                        ? 'جميع المدفوعات نهائية وغير قابلة للاسترداد، إلا إذا كان القانون يفرض خلاف ذلك.'
-                        : 'All payments are final and non-refundable, except where required by law.'}
+                        ? 'المدفوعات والإلغاءات والاستردادات تخضع لشروط الدفع المطبقة والقانون الواجب التطبيق.'
+                        : 'Payments, cancellations, and refunds are handled under the applicable consumer payment terms and law.'}
                 </p>
             </div>
         </div>
