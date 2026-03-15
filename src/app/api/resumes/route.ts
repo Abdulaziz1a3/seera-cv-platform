@@ -12,6 +12,11 @@ const VALID_TEMPLATES = [
     'nordic-minimal',
     'classic-professional',
     'impact-modern',
+    'azure-sidebar',
+    'crimson-bold',
+    'sage-academic',
+    'terra-tech',
+    'pearl-executive',
 ] as const;
 
 const VALID_THEMES = [
