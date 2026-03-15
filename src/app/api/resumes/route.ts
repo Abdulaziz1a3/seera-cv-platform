@@ -86,19 +86,27 @@ export async function POST(request: Request) {
         });
 
         const isActive = Boolean(subscription && ['ACTIVE', 'TRIALING'].includes(subscription.status));
-        const isFreeTier = !isActive || subscription?.plan === 'FREE';
+        const normalizedPlan = isActive ? subscription?.plan ?? 'FREE' : 'FREE';
+        const maxResumes =
+            normalizedPlan === 'PRO'
+                ? 10
+                : normalizedPlan === 'ENTERPRISE'
+                    ? -1
+                    : 1;
 
-        if (isFreeTier) {
-            const resumeCount = await prisma.resume.count({
-                where: { userId: session.user.id, deletedAt: null },
-            });
+        const resumeCount = await prisma.resume.count({
+            where: { userId: session.user.id, deletedAt: null },
+        });
 
-            if (resumeCount >= 1) {
-                return NextResponse.json(
-                    { error: 'Free accounts can create only 1 resume. Subscribe to create more.' },
-                    { status: 403 }
-                );
-            }
+        if (maxResumes !== -1 && resumeCount >= maxResumes) {
+            return NextResponse.json(
+                {
+                    error: normalizedPlan === 'PRO'
+                        ? 'Pro accounts can create up to 10 resumes.'
+                        : 'Free accounts can create only 1 resume. Subscribe to create more.',
+                },
+                { status: 403 }
+            );
         }
 
         const user = await prisma.user.findUnique({

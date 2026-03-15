@@ -52,11 +52,11 @@ const templates = [
     { id: 'nordic-minimal', name: 'Nordic Minimal', nameAr: 'الشمالي البسيط', description: 'Ultra-clean Scandinavian design', descriptionAr: 'تصميم اسكندنافي نظيف بمساحات بيضاء', isPremium: false },
     { id: 'classic-professional', name: 'Classic Professional', nameAr: 'الكلاسيكي الاحترافي', description: 'Traditional ATS-optimized layout', descriptionAr: 'تنسيق تقليدي محسّن لأنظمة ATS', isPremium: false },
     { id: 'impact-modern', name: 'Impact Modern', nameAr: 'التأثير العصري', description: 'Bold hero header with skill tags', descriptionAr: 'عنوان جريء مع علامات مهارات', isPremium: false },
-    { id: 'azure-sidebar', name: 'Azure Sidebar', nameAr: 'الشريط الجانبي الأزرق', description: 'Clean right-sidebar with skills panel', descriptionAr: 'تخطيط نظيف بشريط جانبي للمهارات', isPremium: true },
-    { id: 'crimson-bold', name: 'Crimson Bold', nameAr: 'الأحمر الجريء', description: 'Full-bleed header with two-column body', descriptionAr: 'رأسية كاملة مع هيكل إبداعي بعمودين', isPremium: true },
-    { id: 'sage-academic', name: 'Sage Academic', nameAr: 'الأكاديمي الحكيم', description: 'Scholarly layout with elegant dividers', descriptionAr: 'تخطيط أكاديمي بفواصل أنيقة', isPremium: true },
-    { id: 'terra-tech', name: 'Terra Tech', nameAr: 'تيرا تك', description: 'Tech-focused with skill chips & timeline', descriptionAr: 'تصميم تقني مع رقاقات مهارات وجدول', isPremium: true },
-    { id: 'pearl-executive', name: 'Pearl Executive', nameAr: 'اللؤلؤي التنفيذي', description: 'Ultra-premium executive layout', descriptionAr: 'تخطيط تنفيذي فاخر للمستوى الرفيع', isPremium: true },
+    { id: 'azure-sidebar', name: 'Azure Sidebar', nameAr: 'الشريط الجانبي الأزرق', description: 'Clean right-sidebar with skills panel', descriptionAr: 'تخطيط نظيف بشريط جانبي للمهارات', isPremium: false },
+    { id: 'crimson-bold', name: 'Crimson Bold', nameAr: 'الأحمر الجريء', description: 'Full-bleed header with two-column body', descriptionAr: 'رأسية كاملة مع هيكل إبداعي بعمودين', isPremium: false },
+    { id: 'sage-academic', name: 'Sage Academic', nameAr: 'الأكاديمي الحكيم', description: 'Scholarly layout with elegant dividers', descriptionAr: 'تخطيط أكاديمي بفواصل أنيقة', isPremium: false },
+    { id: 'terra-tech', name: 'Terra Tech', nameAr: 'تيرا تك', description: 'Tech-focused with skill chips & timeline', descriptionAr: 'تصميم تقني مع رقاقات مهارات وجدول', isPremium: false },
+    { id: 'pearl-executive', name: 'Pearl Executive', nameAr: 'اللؤلؤي التنفيذي', description: 'Ultra-premium executive layout', descriptionAr: 'تخطيط تنفيذي فاخر للمستوى الرفيع', isPremium: false },
 ];
 
 

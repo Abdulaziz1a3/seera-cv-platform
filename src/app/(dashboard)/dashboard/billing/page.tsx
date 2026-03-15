@@ -428,8 +428,8 @@ export default function BillingGiftsPage() {
         const plan = billingStatus?.plan || 'FREE';
         if (plan === 'PRO') {
             return locale === 'ar'
-                ? '5 سير ذاتية، 50 رصيد AI شهرياً'
-                : '5 resumes, 50 AI credits/month';
+                ? '10 سير ذاتية، 50 رصيد AI شهرياً'
+                : '10 resumes, 50 AI credits/month';
         }
         if (plan === 'ENTERPRISE') {
             return locale === 'ar'

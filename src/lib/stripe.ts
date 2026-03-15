@@ -45,7 +45,7 @@ export const PLANS = {
         stripePriceIdMonthly: process.env.STRIPE_PRO_MONTHLY_PRICE_ID,
         stripePriceIdYearly: process.env.STRIPE_PRO_YEARLY_PRICE_ID,
         features: {
-            resumeLimit: 5, // 5 resumes for Pro
+            resumeLimit: 10, // 10 resumes for Pro
             downloadLimit: -1,
             aiUsageLimit: 50, // Pro plan: 50 AI credits/month
             premiumTemplates: true,

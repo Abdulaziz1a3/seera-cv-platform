@@ -162,7 +162,7 @@ export const en = {
                 description: 'For serious job seekers',
                 features: [
                     '50 AI Credits included monthly',
-                    '5 resumes + ATS-safe PDF/DOCX/TXT exports',
+                    '10 resumes + ATS-safe PDF/DOCX/TXT exports',
                     'ATS Simulator with recruiter-view scoring',
                     'AI summary & bullet generator for your target role',
                     'Job description match + keyword gap insights',
