@@ -92,6 +92,113 @@ export function TemplateThumbnail({ templateId, themeId }: { templateId: Templat
             </div>
           </div>
         );
+      case 'azure-sidebar':
+        return (
+          <div className="w-full h-full flex">
+            <div className="flex-1 p-2 flex flex-col">
+              <div className="h-1.5 w-14 rounded mb-0.5" style={{ backgroundColor: theme.text }} />
+              <div className="h-0.5 w-8 rounded mb-2" style={{ backgroundColor: theme.accent }} />
+              <div className="space-y-1">
+                <div className="h-1 w-full rounded" style={{ backgroundColor: `${theme.muted}40` }} />
+                <div className="h-1 w-3/4 rounded" style={{ backgroundColor: `${theme.muted}40` }} />
+                <div className="h-1 w-full rounded mt-1" style={{ backgroundColor: `${theme.muted}40` }} />
+              </div>
+            </div>
+            <div className="w-1/3 h-full p-1.5" style={{ backgroundColor: theme.surface }}>
+              <div className="h-0.5 w-full rounded mb-1.5" style={{ backgroundColor: theme.accent }} />
+              <div className="space-y-0.5">
+                {[1, 2, 3, 4].map((i) => (
+                  <div key={i} className="h-1 w-full rounded" style={{ backgroundColor: `${theme.muted}30` }} />
+                ))}
+              </div>
+            </div>
+          </div>
+        );
+      case 'crimson-bold':
+        return (
+          <div className="w-full h-full flex flex-col">
+            <div className="h-12 p-2 flex flex-col items-center justify-center" style={{ backgroundColor: theme.primary }}>
+              <div className="h-1.5 w-16 rounded mb-1" style={{ backgroundColor: '#ffffff' }} />
+              <div className="h-0.5 w-10 rounded" style={{ backgroundColor: theme.accent }} />
+            </div>
+            <div className="flex flex-1">
+              <div className="w-2/5 p-1.5" style={{ backgroundColor: theme.surface }}>
+                <div className="space-y-0.5">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="h-1 w-full rounded" style={{ backgroundColor: `${theme.muted}40` }} />
+                  ))}
+                </div>
+              </div>
+              <div className="flex-1 p-1.5 space-y-1">
+                <div className="h-1 w-full rounded" style={{ backgroundColor: `${theme.muted}40` }} />
+                <div className="h-1 w-3/4 rounded" style={{ backgroundColor: `${theme.muted}40` }} />
+              </div>
+            </div>
+          </div>
+        );
+      case 'sage-academic':
+        return (
+          <div className="w-full h-full p-2 flex flex-col items-center">
+            <div className="h-1.5 w-18 rounded mb-0.5" style={{ backgroundColor: theme.text }} />
+            <div className="flex items-center gap-1 mb-2 w-full justify-center">
+              <div className="flex-1 h-px" style={{ backgroundColor: theme.primary }} />
+              <div className="h-1 w-1 rounded-full" style={{ backgroundColor: theme.accent }} />
+              <div className="flex-1 h-px" style={{ backgroundColor: theme.primary }} />
+            </div>
+            <div className="w-full space-y-1">
+              <div className="h-px w-full" style={{ backgroundColor: theme.primary }} />
+              <div className="h-1 w-full rounded" style={{ backgroundColor: `${theme.muted}40` }} />
+              <div className="h-1 w-2/3 rounded" style={{ backgroundColor: `${theme.muted}40` }} />
+            </div>
+          </div>
+        );
+      case 'terra-tech':
+        return (
+          <div className="w-full h-full p-2 flex flex-col">
+            <div className="flex justify-between items-start mb-1.5 pb-1.5" style={{ borderBottom: `1px solid ${theme.accent}` }}>
+              <div>
+                <div className="h-1.5 w-12 rounded mb-0.5" style={{ backgroundColor: theme.text }} />
+                <div className="h-0.5 w-8 rounded" style={{ backgroundColor: theme.muted }} />
+              </div>
+              <div className="space-y-0.5 text-right">
+                <div className="h-0.5 w-10 rounded" style={{ backgroundColor: `${theme.muted}60` }} />
+                <div className="h-0.5 w-8 rounded" style={{ backgroundColor: `${theme.muted}60` }} />
+              </div>
+            </div>
+            <div className="flex gap-1 mb-1.5 flex-wrap">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="h-2 w-5 rounded-full border" style={{ borderColor: theme.accent, backgroundColor: `${theme.accent}18` }} />
+              ))}
+            </div>
+            <div className="flex items-start gap-1.5">
+              <div className="w-1.5 h-1.5 rounded-full mt-0.5 border" style={{ borderColor: theme.accent }} />
+              <div className="space-y-0.5 flex-1">
+                <div className="h-1 w-full rounded" style={{ backgroundColor: `${theme.muted}40` }} />
+                <div className="h-1 w-2/3 rounded" style={{ backgroundColor: `${theme.muted}40` }} />
+              </div>
+            </div>
+          </div>
+        );
+      case 'pearl-executive':
+        return (
+          <div className="w-full h-full p-2 flex flex-col">
+            <div className="flex items-center gap-1.5 mb-2 pb-1.5" style={{ borderBottom: `2px solid ${theme.primary}` }}>
+              <div className="flex-1">
+                <div className="h-1.5 w-12 rounded mb-0.5" style={{ backgroundColor: theme.primary }} />
+                <div className="h-0.5 w-8 rounded" style={{ backgroundColor: theme.accent }} />
+              </div>
+              <div className="w-px h-6 self-stretch" style={{ backgroundColor: theme.accent }} />
+              <div className="flex-1 space-y-0.5">
+                <div className="h-0.5 w-full rounded" style={{ backgroundColor: `${theme.muted}60` }} />
+                <div className="h-0.5 w-3/4 rounded" style={{ backgroundColor: `${theme.muted}60` }} />
+              </div>
+            </div>
+            <div className="space-y-1">
+              <div className="h-1 w-full rounded" style={{ backgroundColor: `${theme.muted}40` }} />
+              <div className="h-1 w-3/4 rounded" style={{ backgroundColor: `${theme.muted}40` }} />
+            </div>
+          </div>
+        );
       default:
         return null;
     }

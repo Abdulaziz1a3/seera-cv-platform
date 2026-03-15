@@ -17,6 +17,7 @@ import {
     X,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -46,11 +47,16 @@ interface BasicInfo {
 }
 
 const templates = [
-    { id: 'prestige-executive', name: 'Prestige Executive', nameAr: 'هيبة تنفيذية', description: 'Luxury corporate design with bold name header', descriptionAr: 'تصميم مؤسسي فاخر بعنوان بارز' },
-    { id: 'metropolitan-split', name: 'Metropolitan Split', nameAr: 'المتروبوليتان المقسّم', description: 'Two-column layout with dark sidebar', descriptionAr: 'تنسيق بعمودين مع شريط جانبي داكن' },
-    { id: 'nordic-minimal', name: 'Nordic Minimal', nameAr: 'الشمالي البسيط', description: 'Ultra-clean Scandinavian design', descriptionAr: 'تصميم اسكندنافي نظيف بمساحات بيضاء' },
-    { id: 'classic-professional', name: 'Classic Professional', nameAr: 'الكلاسيكي الاحترافي', description: 'Traditional ATS-optimized layout', descriptionAr: 'تنسيق تقليدي محسّن لأنظمة ATS' },
-    { id: 'impact-modern', name: 'Impact Modern', nameAr: 'التأثير العصري', description: 'Bold hero header with skill tags', descriptionAr: 'عنوان جريء مع علامات مهارات' },
+    { id: 'prestige-executive', name: 'Prestige Executive', nameAr: 'هيبة تنفيذية', description: 'Luxury corporate design with bold name header', descriptionAr: 'تصميم مؤسسي فاخر بعنوان بارز', isPremium: false },
+    { id: 'metropolitan-split', name: 'Metropolitan Split', nameAr: 'المتروبوليتان المقسّم', description: 'Two-column layout with dark sidebar', descriptionAr: 'تنسيق بعمودين مع شريط جانبي داكن', isPremium: false },
+    { id: 'nordic-minimal', name: 'Nordic Minimal', nameAr: 'الشمالي البسيط', description: 'Ultra-clean Scandinavian design', descriptionAr: 'تصميم اسكندنافي نظيف بمساحات بيضاء', isPremium: false },
+    { id: 'classic-professional', name: 'Classic Professional', nameAr: 'الكلاسيكي الاحترافي', description: 'Traditional ATS-optimized layout', descriptionAr: 'تنسيق تقليدي محسّن لأنظمة ATS', isPremium: false },
+    { id: 'impact-modern', name: 'Impact Modern', nameAr: 'التأثير العصري', description: 'Bold hero header with skill tags', descriptionAr: 'عنوان جريء مع علامات مهارات', isPremium: false },
+    { id: 'azure-sidebar', name: 'Azure Sidebar', nameAr: 'الشريط الجانبي الأزرق', description: 'Clean right-sidebar with skills panel', descriptionAr: 'تخطيط نظيف بشريط جانبي للمهارات', isPremium: true },
+    { id: 'crimson-bold', name: 'Crimson Bold', nameAr: 'الأحمر الجريء', description: 'Full-bleed header with two-column body', descriptionAr: 'رأسية كاملة مع هيكل إبداعي بعمودين', isPremium: true },
+    { id: 'sage-academic', name: 'Sage Academic', nameAr: 'الأكاديمي الحكيم', description: 'Scholarly layout with elegant dividers', descriptionAr: 'تخطيط أكاديمي بفواصل أنيقة', isPremium: true },
+    { id: 'terra-tech', name: 'Terra Tech', nameAr: 'تيرا تك', description: 'Tech-focused with skill chips & timeline', descriptionAr: 'تصميم تقني مع رقاقات مهارات وجدول', isPremium: true },
+    { id: 'pearl-executive', name: 'Pearl Executive', nameAr: 'اللؤلؤي التنفيذي', description: 'Ultra-premium executive layout', descriptionAr: 'تخطيط تنفيذي فاخر للمستوى الرفيع', isPremium: true },
 ];
 
 
@@ -532,13 +538,18 @@ export default function NewResumePage() {
                                     }
                                 >
                                     <CardContent className="p-0">
-                                        <div className="h-40 bg-muted/50 flex items-center justify-center border-b">
+                                        <div className="relative h-40 bg-muted/50 flex items-center justify-center border-b">
                                             <div className="h-full w-full p-3">
                                                 <TemplateThumbnail
                                                     templateId={template.id as TemplateId}
                                                     themeId="obsidian"
                                                 />
                                             </div>
+                                            {template.isPremium && (
+                                                <Badge className="absolute top-2 end-2 text-[10px] px-1.5 py-0.5 bg-gradient-to-r from-primary to-purple-600 text-white border-0">
+                                                    Pro
+                                                </Badge>
+                                            )}
                                         </div>
                                         <div className="p-4">
                                             <h3 className="font-semibold">{locale === 'ar' ? template.nameAr : template.name}</h3>
