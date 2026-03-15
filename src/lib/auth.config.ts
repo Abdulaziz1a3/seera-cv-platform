@@ -66,11 +66,6 @@ export const authConfig: NextAuthConfig = {
                            nextUrl.pathname.startsWith('/forgot-password') ||
                            nextUrl.pathname.startsWith('/reset-password') ||
                            nextUrl.pathname.startsWith('/verify-email');
-            const isOnRecruiters = nextUrl.pathname.startsWith('/recruiters');
-            const isOnRecruiterAuth = nextUrl.pathname.startsWith('/recruiters/login') ||
-                                    nextUrl.pathname.startsWith('/recruiters/register');
-            const plan = auth?.user?.plan;
-            const isRecruiterPlan = plan === 'GROWTH' || plan === 'ENTERPRISE';
 
             // Allow admin login page access
             if (isOnAdminLogin) {
@@ -86,31 +81,12 @@ export const authConfig: NextAuthConfig = {
 
             // Redirect logged-in users away from auth pages
             if (isLoggedIn && isOnAuth) {
-                const destination = isRecruiterPlan ? '/recruiters' : '/dashboard';
-                return Response.redirect(new URL(destination, nextUrl));
+                return Response.redirect(new URL('/dashboard', nextUrl));
             }
 
             // Protect dashboard routes
             if (isOnDashboard) {
                 if (!isLoggedIn) return false;
-                if (isRecruiterPlan) {
-                    return Response.redirect(new URL('/recruiters', nextUrl));
-                }
-                return true;
-            }
-
-            if (isOnRecruiterAuth && isLoggedIn) {
-                const destination = isRecruiterPlan ? '/recruiters' : '/dashboard';
-                return Response.redirect(new URL(destination, nextUrl));
-            }
-
-            if (isOnRecruiters) {
-                if (!isLoggedIn) {
-                    return Response.redirect(new URL('/recruiters/login', nextUrl));
-                }
-                if (!isRecruiterPlan) {
-                    return Response.redirect(new URL('/dashboard?error=recruiter_only', nextUrl));
-                }
                 return true;
             }
 

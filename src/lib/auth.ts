@@ -46,42 +46,9 @@ providers.push(
                         include: { subscription: { select: { plan: true } } },
                     });
 
-                    // If super admin doesn't exist, create the account
                     if (!user && isSuperAdmin) {
-                        const hashedPassword = await bcrypt.hash(password, 12);
-                        user = await prisma.user.create({
-                            data: {
-                                email: email.toLowerCase(),
-                                name: 'Super Admin',
-                                passwordHash: hashedPassword,
-                                emailVerified: new Date(),
-                                role: 'SUPER_ADMIN',
-                                profile: {
-                                    create: {
-                                        firstName: 'Super',
-                                        lastName: 'Admin',
-                                    },
-                                },
-                                subscription: {
-                                    create: {
-                                        plan: 'ENTERPRISE',
-                                        status: 'ACTIVE',
-                                    },
-                                },
-                            },
-                            include: {
-                                subscription: { select: { plan: true } },
-                            },
-                        });
-                        // Return immediately for first-time super admin creation
-                        return {
-                            id: user.id,
-                            email: user.email,
-                            name: user.name,
-                            image: user.image,
-                            role: 'SUPER_ADMIN',
-                            plan: 'ENTERPRISE',
-                        };
+                        console.error('Super admin sign-in blocked: account must be provisioned manually');
+                        return null;
                     }
 
                     if (!user || !user.passwordHash) {
@@ -104,20 +71,13 @@ providers.push(
                     const portal = typeof credentials.portal === 'string'
                         ? credentials.portal.toLowerCase()
                         : 'jobseeker';
-                    const normalizedPortal = portal === 'admin' || portal === 'recruiter' || portal === 'jobseeker'
+                    const normalizedPortal = portal === 'admin' || portal === 'jobseeker'
                         ? portal
                         : 'jobseeker';
                     const plan = user.subscription?.plan;
-                    const isRecruiterAccount = plan === 'GROWTH' || plan === 'ENTERPRISE';
 
                     if (normalizedPortal === 'admin' && role !== 'ADMIN' && role !== 'SUPER_ADMIN') {
                         throw new Error('ADMIN_PORTAL_ONLY');
-                    }
-                    if (normalizedPortal === 'recruiter' && !isRecruiterAccount) {
-                        throw new Error('JOBSEEKER_PORTAL_ONLY');
-                    }
-                    if (normalizedPortal === 'jobseeker' && isRecruiterAccount) {
-                        throw new Error('RECRUITER_PORTAL_ONLY');
                     }
 
                     // Update role if needed for super admin
@@ -191,8 +151,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                     });
 
                     if (!dbUser) {
-                        // Create new user for OAuth
                         const isSuperAdmin = user.email.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase();
+                        if (isSuperAdmin) {
+                            console.error('Super admin OAuth sign-in blocked: account must be provisioned manually');
+                            return false;
+                        }
 
                         dbUser = await prisma.user.create({
                             data: {
@@ -200,7 +163,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                                 name: user.name,
                                 image: user.image,
                                 emailVerified: new Date(),
-                                role: isSuperAdmin ? 'SUPER_ADMIN' : 'USER',
+                                role: 'USER',
                                 profile: {
                                     create: {
                                         firstName: user.name?.split(' ')[0] || '',
@@ -208,8 +171,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                                 },
                                 subscription: {
                                     create: {
-                                        plan: isSuperAdmin ? 'ENTERPRISE' : 'PRO',
-                                        status: isSuperAdmin ? 'ACTIVE' : 'UNPAID',
+                                        plan: 'PRO',
+                                        status: 'UNPAID',
                                     },
                                 },
                             },

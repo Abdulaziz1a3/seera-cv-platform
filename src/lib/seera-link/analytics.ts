@@ -58,12 +58,11 @@ export function getBrowser(userAgent: string): string {
 }
 
 /**
- * Get country from IP (coarse geolocation)
- * In production, use a service like MaxMind GeoLite2 or IP-API
- * This is a simple fallback implementation
+ * Country lookup is intentionally disabled here.
+ * The previous implementation sent visitor IPs to a third-party endpoint
+ * over plain HTTP, which is not acceptable for production traffic.
  */
 export async function getCountryFromIP(ip: string): Promise<string | null> {
-  // Skip for local/private IPs
   if (
     ip === 'unknown' ||
     ip === '::1' ||
@@ -73,26 +72,6 @@ export async function getCountryFromIP(ip: string): Promise<string | null> {
     ip.startsWith('172.')
   ) {
     return null;
-  }
-
-  try {
-    // Free IP geolocation API (rate limited - use cached/paid service in production)
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 1000); // 1s timeout
-
-    const response = await fetch(
-      `http://ip-api.com/json/${ip}?fields=countryCode`,
-      { signal: controller.signal }
-    );
-
-    clearTimeout(timeoutId);
-
-    if (response.ok) {
-      const data = await response.json();
-      return data.countryCode || null;
-    }
-  } catch {
-    // Silently fail - geolocation is optional
   }
 
   return null;

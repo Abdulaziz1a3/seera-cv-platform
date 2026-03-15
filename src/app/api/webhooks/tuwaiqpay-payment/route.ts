@@ -4,8 +4,6 @@ import { prisma } from '@/lib/db';
 import { logger } from '@/lib/logger';
 import { getWebhookVerificationConfig } from '@/lib/tuwaiqpay';
 import { recordAICreditTopup } from '@/lib/ai-credits';
-import { grantMonthlyCredits, purchaseCredits } from '@/lib/recruiter-credits';
-import { RECRUITER_GROWTH_PLAN } from '@/lib/recruiter-billing';
 import { sendGiftSubscriptionEmail, sendPaymentReceiptEmail } from '@/lib/email';
 
 export const dynamic = 'force-dynamic';
@@ -493,19 +491,6 @@ export async function POST(request: Request) {
             return;
         }
 
-        if (payment.purpose === 'RECRUITER_CV_CREDITS') {
-            if (payment.userId && payment.credits) {
-                await purchaseCredits({
-                    recruiterId: payment.userId,
-                    amount: Math.round(payment.credits),
-                    paymentTransactionId: payment.id,
-                    reference: transactionId || billId || payment.id,
-                    client: tx,
-                });
-            }
-            return;
-        }
-
         if (payment.purpose === 'SUBSCRIPTION') {
             if (!payment.userId) return;
             const intervalMonths = payment.interval === 'YEARLY' ? 12 : 1;
@@ -555,19 +540,6 @@ export async function POST(request: Request) {
                 console.log('[WEBHOOK] Subscription created');
             }
 
-            if (plan === 'GROWTH' && updatedSubscription) {
-                const periodCredits = payment.interval === 'YEARLY'
-                    ? RECRUITER_GROWTH_PLAN.yearlyCredits
-                    : RECRUITER_GROWTH_PLAN.monthlyCredits;
-                await grantMonthlyCredits({
-                    recruiterId: payment.userId,
-                    subscriptionId: updatedSubscription.id,
-                    periodEnd: updatedSubscription.currentPeriodEnd,
-                    amount: periodCredits,
-                    client: tx,
-                });
-            }
-
             const user = await tx.user.findUnique({
                 where: { id: payment.userId },
                 select: { email: true, name: true },
@@ -577,7 +549,7 @@ export async function POST(request: Request) {
                 receiptPayload = {
                     to: user.email,
                     name: user.name || undefined,
-                    planLabel: plan === 'ENTERPRISE' ? 'Enterprise' : plan === 'GROWTH' ? 'Growth' : 'Pro',
+                    planLabel: plan === 'ENTERPRISE' ? 'Enterprise' : 'Pro',
                     intervalLabel: payment.interval === 'YEARLY' ? 'Yearly' : 'Monthly',
                     amountSar: payment.amountSar,
                     paidAt: now,

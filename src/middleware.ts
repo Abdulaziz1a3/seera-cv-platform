@@ -12,9 +12,6 @@ const rateLimitConfig: Record<string, number> = {
     '/api/interview': 20,
     '/api/resume/parse': 5, // Strict limit for file uploads
     '/api/auth': 10,
-    '/api/recruiters/jobs': 30,
-    '/api/recruiters/search': 30,
-    '/api/recruiters/cv/unlock': 10,
     '/api': 100,
 };
 
@@ -124,9 +121,9 @@ export async function middleware(request: NextRequest) {
     const secret = process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET;
 
     // Routes configuration
-    const protectedRoutes = ['/dashboard', '/resumes', '/career', '/interview', '/settings', '/recruiters'];
+    const protectedRoutes = ['/dashboard', '/resumes', '/career', '/interview', '/settings'];
     const adminRoutes = ['/admin'];
-    const authRoutes = ['/login', '/register', '/forgot-password', '/recruiters/login', '/recruiters/register', '/recruiters/forgot-password'];
+    const authRoutes = ['/login', '/register', '/forgot-password'];
 
     const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route));
     const isAuthRoute = authRoutes.some(route => pathname.startsWith(route));
@@ -162,8 +159,7 @@ export async function middleware(request: NextRequest) {
 
         // Redirect unauthenticated users to login
         if (isProtectedRoute && !token && !isAuthRoute) {
-            const isRecruiterRoute = pathname.startsWith('/recruiters');
-            const loginUrl = new URL(isRecruiterRoute ? '/recruiters/login' : '/login', request.url);
+            const loginUrl = new URL('/login', request.url);
             loginUrl.searchParams.set('callbackUrl', pathname);
             return NextResponse.redirect(loginUrl);
         }

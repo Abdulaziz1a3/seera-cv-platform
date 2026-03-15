@@ -166,7 +166,7 @@ export const en = {
                     'ATS Simulator with recruiter-view scoring',
                     'AI summary & bullet generator for your target role',
                     'Job description match + keyword gap insights',
-                    'Career GPS with paths, skill gaps, and Saudi salary ranges',
+                    'Career GPS with paths, skill gaps, and salary insights',
                     'Live Interview Prep with AI interviewer',
                     'Seera Link shareable profile for recruiters',
                     'LinkedIn optimizer',
@@ -180,7 +180,7 @@ export const en = {
                 yearlyPrice: '1990',
                 description: 'For recruiters and teams',
                 features: [
-                    'Talent Pool access to discover and shortlist candidates',
+                    'Recruiter workflows with jobs, matches, and shortlists',
                     'Saved searches + recruiter shortlists',
                     'Unlimited AI screening and outreach content',
                     'Advanced analytics for pipeline performance',

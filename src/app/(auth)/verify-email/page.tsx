@@ -13,7 +13,7 @@ function VerifyEmailForm() {
     const token = searchParams.get('token');
     const [status, setStatus] = useState<VerificationStatus>('loading');
     const [errorMessage, setErrorMessage] = useState<string>('');
-    const [loginHref, setLoginHref] = useState('/login');
+    const loginHref = '/login';
 
     useEffect(() => {
         if (!token) {
@@ -36,10 +36,6 @@ function VerifyEmailForm() {
                     setStatus('error');
                     setErrorMessage(data.error || 'Verification failed');
                     return;
-                }
-
-                if (data?.portal === 'recruiter') {
-                    setLoginHref('/recruiters/login');
                 }
 
                 if (data.alreadyVerified) {

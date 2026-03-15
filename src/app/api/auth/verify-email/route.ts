@@ -59,11 +59,6 @@ export async function POST(request: Request) {
             );
         }
 
-        // Check if already verified
-        const portal = user.subscription?.plan === 'GROWTH' || user.subscription?.plan === 'ENTERPRISE'
-            ? 'recruiter'
-            : 'jobseeker';
-
         if (user.emailVerified) {
             // Clean up token
             await prisma.verificationToken.delete({
@@ -71,7 +66,7 @@ export async function POST(request: Request) {
             });
 
             return NextResponse.json(
-                { message: 'Email already verified', alreadyVerified: true, portal },
+                { message: 'Email already verified', alreadyVerified: true, portal: 'jobseeker' },
                 { status: 200 }
             );
         }
@@ -103,7 +98,7 @@ export async function POST(request: Request) {
         logger.info('Email verified successfully', { userId: user.id, email: user.email });
 
         return NextResponse.json(
-            { message: 'Email verified successfully', portal },
+            { message: 'Email verified successfully', portal: 'jobseeker' },
             { status: 200 }
         );
     } catch (error) {
@@ -165,9 +160,7 @@ export async function GET(request: Request) {
             );
         }
 
-        const loginPath = user.subscription?.plan === 'GROWTH' || user.subscription?.plan === 'ENTERPRISE'
-            ? '/recruiters/login'
-            : '/login';
+        const loginPath = '/login';
 
         // Check if already verified
         if (user.emailVerified) {

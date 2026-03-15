@@ -114,7 +114,7 @@ function AdminSubscriptionsContent() {
     const [activateDialog, setActivateDialog] = useState<{
         open: boolean;
         subscription: Subscription | null;
-        plan: 'PRO' | 'GROWTH';
+        plan: 'PRO';
         duration: string;
         note: string;
     }>({
@@ -420,7 +420,7 @@ function AdminSubscriptionsContent() {
                                                             onClick={() => setActivateDialog({
                                                                 open: true,
                                                                 subscription: sub,
-                                                                plan: sub.plan === 'GROWTH' ? 'GROWTH' : 'PRO',
+                                                                plan: 'PRO',
                                                                 duration: '1_month',
                                                                 note: '',
                                                             })}
@@ -567,7 +567,7 @@ function AdminSubscriptionsContent() {
                         {/* Plan Selection */}
                         <div className="space-y-2">
                             <Label>{locale === 'ar' ? 'الخطة' : 'Plan'}</Label>
-                            <div className="grid grid-cols-2 gap-3">
+                            <div className="grid grid-cols-1 gap-3">
                                 <button
                                     type="button"
                                     onClick={() => setActivateDialog(prev => ({ ...prev, plan: 'PRO' }))}
@@ -583,24 +583,6 @@ function AdminSubscriptionsContent() {
                                     <p className="text-sm text-muted-foreground mt-1">39 SAR/mo</p>
                                     {activateDialog.plan === 'PRO' && (
                                         <CheckCircle className="absolute top-2 right-2 h-4 w-4 text-primary" />
-                                    )}
-                                </button>
-
-                                <button
-                                    type="button"
-                                    onClick={() => setActivateDialog(prev => ({ ...prev, plan: 'GROWTH' }))}
-                                    className={`relative p-4 rounded-xl border-2 transition-all ${activateDialog.plan === 'GROWTH'
-                                            ? 'border-amber-500 bg-amber-500/5 ring-2 ring-amber-500/20'
-                                            : 'border-border hover:border-amber-500/50'
-                                        }`}
-                                >
-                                    <div className="flex items-center gap-2">
-                                        <Search className="h-5 w-5 text-amber-500" />
-                                        <span className="font-semibold">GROWTH</span>
-                                    </div>
-                                    <p className="text-sm text-muted-foreground mt-1">199 SAR/mo</p>
-                                    {activateDialog.plan === 'GROWTH' && (
-                                        <CheckCircle className="absolute top-2 right-2 h-4 w-4 text-amber-500" />
                                     )}
                                 </button>
                             </div>
