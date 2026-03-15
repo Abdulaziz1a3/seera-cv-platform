@@ -12,9 +12,6 @@ import {
     Users,
     Compass,
     Brain,
-    Building2,
-    Zap,
-    Award,
     PenTool,
     ScanSearch,
 } from 'lucide-react';
@@ -32,59 +29,60 @@ import type { TemplateId, ThemeId } from '@/lib/resume-types';
 export default function Home() {
     const { t, locale, dir } = useLocale();
 
-    // New premium features
+    const isArabic = locale === 'ar';
+
     const premiumFeatures = [
         {
             icon: FileText,
-            title: locale === 'ar' ? 'منشئ السيرة الذاتية' : 'Smart Resume Builder',
-            description: locale === 'ar'
-                ? 'أنشئ سيرة ذاتية احترافية في دقائق مع قوالب جاهزة ومحتوى ذكي يتجاوز أنظمة ATS بنجاح'
-                : 'Create a professional resume in minutes with ready-to-use templates and AI-powered content that beats ATS systems',
+            title: isArabic ? 'منشئ السيرة الذكية' : 'Smart Resume Builder',
+            description: isArabic
+                ? 'أنشئ سيرة احترافية بسرعة مع قوالب واضحة ومحتوى محسّن لأنظمة ATS.'
+                : 'Create polished resumes quickly with clean templates and ATS-friendly content.',
             color: 'from-amber-500 to-orange-500',
             badge: 'CORE',
         },
         {
             icon: Compass,
-            title: locale === 'ar' ? 'GPS المهني' : 'Career GPS',
-            description: locale === 'ar'
-                ? 'خارطة طريق شخصية تظهر مسارات مهنية واقعية مع توقعات الراتب وفجوات المهارات'
-                : 'Personal roadmap showing realistic career paths with salary projections and skill gaps',
+            title: isArabic ? 'GPS المهني' : 'Career GPS',
+            description: isArabic
+                ? 'اكتشف مسارات مهنية واقعية مع فجوات المهارات وخطوات التطوير التالية.'
+                : 'Explore realistic career paths with skill-gap insights and next-step planning.',
             color: 'from-blue-500 to-cyan-500',
             badge: 'NEW',
         },
         {
             icon: Brain,
-            title: locale === 'ar' ? 'تحضير المقابلة بالذكاء الاصطناعي' : 'AI Interview Prep',
-            description: locale === 'ar'
-                ? 'تدرب على المقابلات مع محاور ذكي صوتي يقدم تقييم STAR وملاحظات فورية'
-                : 'Practice interviews with a voice AI interviewer that provides STAR scoring and instant feedback',
+            title: isArabic ? 'تحضير المقابلات بالذكاء الاصطناعي' : 'AI Interview Prep',
+            description: isArabic
+                ? 'تدرّب على المقابلات مع ملاحظات فورية وتحسينات عملية.'
+                : 'Practice interviews with instant feedback and sharper preparation loops.',
             color: 'from-purple-500 to-pink-500',
             badge: 'VOICE AI',
         },
         {
             icon: Users,
-            title: locale === 'ar' ? 'محسن LinkedIn' : 'LinkedIn Optimizer',
-            description: locale === 'ar'
-                ? 'حول سيرتك الذاتية إلى ملف LinkedIn مثالي مع عناوين جذابة وملخص احترافي'
-                : 'Transform your resume into the perfect LinkedIn profile with compelling headlines and summary',
+            title: isArabic ? 'محسّن LinkedIn' : 'LinkedIn Optimizer',
+            description: isArabic
+                ? 'حوّل سيرتك إلى ملف LinkedIn جاهز للنشر بطريقة أكثر احترافية.'
+                : 'Turn your resume into a stronger LinkedIn profile with cleaner positioning.',
             color: 'from-blue-600 to-blue-400',
             badge: 'AI POWERED',
         },
         {
             icon: PenTool,
-            title: locale === 'ar' ? 'سيرة لينك' : 'Seera Link',
-            description: locale === 'ar'
-                ? 'أنشئ صفحة ملف مهني قابلة للمشاركة مع وسائل تواصل مباشرة والوصول للسيرة الذاتية.'
-                : 'Create a shareable career profile page with direct contact actions and CV access.',
+            title: isArabic ? 'سيرة لينك' : 'Seera Link',
+            description: isArabic
+                ? 'أنشئ صفحة مهنية قابلة للمشاركة تعرض خبرتك وروابطك بشكل منظم.'
+                : 'Create a shareable professional page that presents your profile clearly.',
             color: 'from-fuchsia-500 to-rose-500',
             badge: 'PUBLIC PROFILE',
         },
         {
             icon: ScanSearch,
-            title: locale === 'ar' ? 'محاكي ATS' : 'ATS Simulator',
-            description: locale === 'ar'
-                ? 'شاهد سيرتك كما يراها مسؤولو التوظيف وأنظمة ATS مع تحليل فوري ونصائح للتحسين'
-                : 'See your resume exactly as recruiters and ATS systems see it with instant analysis and improvement tips',
+            title: isArabic ? 'محاكي ATS' : 'ATS Simulator',
+            description: isArabic
+                ? 'شاهد كيف تُقرأ سيرتك في أنظمة التتبع مع ملاحظات واضحة للتحسين.'
+                : 'See how your resume performs in ATS-style reviews with actionable guidance.',
             color: 'from-indigo-500 to-violet-500',
             badge: 'RECRUITER VIEW',
         },
@@ -124,201 +122,173 @@ export default function Home() {
     ];
 
     const stats = [
-        { value: locale === 'ar' ? 'آلاف' : 'Thousands', label: locale === 'ar' ? 'سير ذاتية منشأة' : 'Resumes Created' },
-        { value: locale === 'ar' ? 'مئات' : 'Hundreds', label: locale === 'ar' ? 'شركات توظف' : 'Companies Hiring' },
-        { value: locale === 'ar' ? 'قوي' : 'Strong', label: locale === 'ar' ? 'معدل النجاح' : 'Success Rate' },
-        { value: locale === 'ar' ? 'تقييم عالٍ' : 'Top-rated', label: locale === 'ar' ? 'تقييم المستخدمين' : 'User Rating' },
+        { value: isArabic ? 'آلاف' : 'Thousands', label: isArabic ? 'سير ذاتية منشأة' : 'Resumes Created' },
+        { value: isArabic ? 'مئات' : 'Hundreds', label: isArabic ? 'فرص وشركات' : 'Opportunities Tracked' },
+        { value: isArabic ? 'قوي' : 'Strong', label: isArabic ? 'معدل الجاهزية' : 'Readiness Score' },
+        { value: isArabic ? 'عالي' : 'Top-rated', label: isArabic ? 'رضا المستخدمين' : 'User Rating' },
     ];
 
-    const templatePreviewBase = getTemplatePreviewData(locale === 'ar' ? 'ar' : 'en');
+    const templatePreviewBase = getTemplatePreviewData(isArabic ? 'ar' : 'en');
     const templateShowcase: { id: TemplateId; name: string; theme: ThemeId }[] = [
-        { id: 'prestige-executive', name: locale === 'ar' ? 'هيبة تنفيذية' : 'Prestige Executive', theme: 'obsidian' },
-        { id: 'metropolitan-split', name: locale === 'ar' ? 'المتروبوليتان المقسّم' : 'Metropolitan Split', theme: 'sapphire' },
-        { id: 'nordic-minimal', name: locale === 'ar' ? 'الشمالي البسيط' : 'Nordic Minimal', theme: 'ivory' },
-        { id: 'classic-professional', name: locale === 'ar' ? 'الكلاسيكي الاحترافي' : 'Classic Professional', theme: 'emerald' },
-        { id: 'impact-modern', name: locale === 'ar' ? 'التأثير العصري' : 'Impact Modern', theme: 'graphite' },
+        { id: 'prestige-executive', name: isArabic ? 'هيبة تنفيذية' : 'Prestige Executive', theme: 'obsidian' },
+        { id: 'metropolitan-split', name: isArabic ? 'المتروبوليتان المقسّم' : 'Metropolitan Split', theme: 'sapphire' },
+        { id: 'nordic-minimal', name: isArabic ? 'الشمالي البسيط' : 'Nordic Minimal', theme: 'ivory' },
+        { id: 'classic-professional', name: isArabic ? 'الكلاسيكي الاحترافي' : 'Classic Professional', theme: 'emerald' },
+        { id: 'impact-modern', name: isArabic ? 'التأثير العصري' : 'Impact Modern', theme: 'graphite' },
     ];
 
     const faq = [
         {
-            q: locale === 'ar' ? 'ما هي الخطط المتاحة؟' : 'What plans are available?',
-            a: locale === 'ar'
-                ? 'نقدم خطة برو للباحثين عن عمل مع أدوات ذكية لبناء السيرة الذاتية، الاستهداف، وتحضير المقابلات.'
-                : 'We offer a Pro plan for job seekers with AI tools for resumes, job targeting, and interview prep.',
+            q: isArabic ? 'ما هي الخطط المتاحة؟' : 'What plans are available?',
+            a: isArabic
+                ? 'نقدم خطة Pro للباحثين عن عمل مع أدوات الذكاء الاصطناعي لبناء السيرة، الاستهداف، وتحضير المقابلات.'
+                : 'We offer a Pro plan for job seekers with AI tools for resumes, targeting, and interview prep.',
         },
         {
-            q: locale === 'ar' ? 'لمن تناسب منصة Seera AI؟' : 'Who is Seera AI built for?',
-            a: locale === 'ar'
-                ? 'المنصة مناسبة للباحثين عن عمل، والمهنيين الراغبين في تطوير مسارهم، وكل من يريد تجربة أكثر احترافية في بناء السيرة الذاتية والتقديم للوظائف.'
-                : 'Seera AI is built for job seekers, career switchers, and professionals who want a sharper workflow for resumes, applications, and interview prep.',
+            q: isArabic ? 'لمن صُممت Seera AI؟' : 'Who is Seera AI built for?',
+            a: isArabic
+                ? 'المنصة مناسبة للباحثين عن عمل، من يغيّرون مسارهم المهني، وكل من يريد طريقة أوضح لبناء السيرة والتقديم.'
+                : 'Seera AI is built for job seekers, career switchers, and professionals who want a sharper workflow.',
         },
         {
-            q: locale === 'ar' ? 'ما هو GPS المهني؟' : 'What is Career GPS?',
-            a: locale === 'ar'
-                ? 'GPS المهني يحلل سيرتك الذاتية ويظهر لك 4 مسارات مهنية واقعية مع توقعات الراتب، فجوات المهارات، وخطة عمل أسبوعية لتحقيق أهدافك.'
-                : 'Career GPS analyzes your resume and shows you 4 realistic career paths with salary projections, skill gaps, and a weekly action plan to achieve your goals.',
+            q: isArabic ? 'ما هو Career GPS؟' : 'What is Career GPS?',
+            a: isArabic
+                ? 'ميزة تحلل سيرتك وتعرض لك مسارات محتملة، فجوات المهارات، وخطوات عملية للتقدم.'
+                : 'Career GPS analyzes your resume and shows likely paths, skill gaps, and next actions.',
         },
     ];
 
+    const heroPillars = [
+        {
+            icon: Globe2,
+            title: isArabic ? 'تجربة عالمية' : 'Global-ready experience',
+            text: isArabic
+                ? 'دعم متعدد اللغات وقوالب احترافية واضحة.'
+                : 'Multi-language support and polished professional templates.',
+            tone: 'bg-blue-50 text-blue-700',
+        },
+        {
+            icon: Target,
+            title: isArabic ? 'جاهزية ATS' : 'ATS-ready output',
+            text: isArabic
+                ? 'تنسيق نظيف ومحتوى منظم للتقديم بثقة.'
+                : 'Clean structure and exports built for real applications.',
+            tone: 'bg-emerald-50 text-emerald-700',
+        },
+        {
+            icon: Brain,
+            title: isArabic ? 'تحضير أذكى' : 'Smarter preparation',
+            text: isArabic
+                ? 'محاكاة ATS وتحضير مقابلات في تجربة واحدة.'
+                : 'ATS simulation and interview prep in one focused workflow.',
+            tone: 'bg-violet-50 text-violet-700',
+        },
+    ];
+
+    const heroSignals = [
+        { label: isArabic ? 'جاهزية ATS' : 'ATS readiness', value: '95%+' },
+        { label: isArabic ? 'الأسواق' : 'Markets', value: 'Global' },
+        { label: isArabic ? 'اللغات' : 'Languages', value: 'EN + AR' },
+    ];
+
     return (
-        <div className="flex flex-col min-h-screen" dir={dir}>
-            {/* Hero Section */}
+        <div className="flex min-h-screen flex-col" dir={dir}>
             <section className="relative overflow-hidden bg-gradient-to-br from-primary/5 via-background to-primary/10 pt-20 pb-32">
-                {/* Background Effects */}
                 <div className="absolute inset-0 bg-grid-pattern opacity-5" />
-                <div className="absolute top-20 start-10 w-72 h-72 bg-primary/20 rounded-full blur-3xl" />
-                <div className="absolute bottom-10 end-10 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl" />
+                <div className="absolute top-20 start-10 h-72 w-72 rounded-full bg-primary/20 blur-3xl" />
+                <div className="absolute bottom-10 end-10 h-96 w-96 rounded-full bg-purple-500/10 blur-3xl" />
 
-                <div className="container mx-auto px-4 relative">
-                    <div className="pointer-events-none absolute inset-x-0 top-8 hidden lg:block">
-                        <div className="mx-auto grid max-w-6xl grid-cols-[1fr_auto_1fr] items-start">
-                            <div className="flex justify-start">
-                                <div className="w-72 rounded-3xl border border-white/60 bg-white/75 p-5 shadow-2xl shadow-blue-200/40 backdrop-blur">
-                                    <div className="mb-4 flex items-center justify-between">
-                                        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-600/10 text-blue-700">
-                                            <Globe2 className="h-5 w-5" />
-                                        </div>
-                                        <Badge variant="outline" className="border-blue-200 bg-blue-50 text-blue-700">
-                                            Global
-                                        </Badge>
-                                    </div>
-                                    <p className="text-sm font-semibold text-foreground">
-                                        {locale === 'ar' ? 'مسارات مهنية مرنة عبر أسواق متعددة' : 'Career momentum across multiple markets'}
-                                    </p>
-                                    <div className="mt-4 space-y-3">
-                                        {[
-                                            locale === 'ar' ? 'سير ذاتية جاهزة لفرق التوظيف الدولية' : 'Recruiter-ready resumes',
-                                            locale === 'ar' ? 'تخطيط مهني يعتمد على المهارات' : 'Skill-based career mapping',
-                                            locale === 'ar' ? 'دعم متعدد اللغات' : 'Multi-language workflows',
-                                        ].map((item) => (
-                                            <div key={item} className="flex items-center gap-2 text-sm text-muted-foreground">
-                                                <div className="h-2 w-2 rounded-full bg-emerald-500" />
-                                                <span>{item}</span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
+                <div className="container relative mx-auto px-4">
+                    <div className="mx-auto grid max-w-6xl items-center gap-14 lg:grid-cols-[minmax(0,1.05fr)_minmax(360px,0.95fr)]">
+                        <div className="max-w-4xl text-center lg:text-left">
+                            <Badge className="mb-6 bg-gradient-to-r from-primary to-purple-600 px-4 py-1.5 text-sm text-white">
+                                {isArabic ? 'الآن مع Career GPS وتحضير المقابلات' : 'Now with Career GPS & Interview Prep'}
+                            </Badge>
+
+                            <h1 className="mb-6 bg-gradient-to-r from-gray-900 via-primary to-purple-600 bg-clip-text text-5xl font-bold leading-tight text-transparent md:text-7xl dark:from-white dark:via-primary dark:to-purple-400">
+                                {isArabic ? 'مسيرتك المهنية تبدأ هنا' : 'Your Career Journey Starts Here'}
+                            </h1>
+
+                            <p className="mb-8 max-w-3xl text-xl text-muted-foreground md:text-2xl">
+                                {isArabic
+                                    ? 'أكثر من مجرد سيرة ذاتية. منصة واضحة للتخطيط المهني، تحضير المقابلات، والتقديم لفرص عالمية بثقة.'
+                                    : 'More than just a resume. A focused platform for career planning, interview prep, and applying with confidence across global markets.'}
+                            </p>
+
+                            <div className="mb-8 flex flex-col justify-center gap-4 sm:flex-row lg:justify-start">
+                                <Link href="/register">
+                                    <Button size="lg" className="h-14 gap-2 bg-gradient-to-r from-primary to-purple-600 px-8 text-lg hover:from-primary/90 hover:to-purple-600/90">
+                                        {isArabic ? 'اصنع سيرتك' : 'Build your Career'}
+                                        <ArrowRight className="h-5 w-5" />
+                                    </Button>
+                                </Link>
                             </div>
 
-                            <div className="relative h-[460px] w-[440px]">
-                                <div className="absolute inset-x-12 top-6 h-24 rounded-full bg-primary/20 blur-3xl" />
-                                <div className="absolute left-1/2 top-10 h-64 w-64 -translate-x-1/2 rounded-full border border-primary/15 bg-gradient-to-br from-primary/10 via-white/80 to-cyan-200/40 shadow-2xl shadow-primary/10 backdrop-blur">
-                                    <div className="absolute inset-6 rounded-full border border-dashed border-primary/20" />
-                                    <div className="absolute inset-16 rounded-full border border-primary/15" />
-                                    <div className="absolute left-1/2 top-1/2 flex h-16 w-16 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-purple-600 text-white shadow-lg">
-                                        <Compass className="h-7 w-7" />
-                                    </div>
-                                    <div className="absolute left-8 top-16 flex h-10 w-10 items-center justify-center rounded-xl bg-white text-sky-600 shadow-md">
-                                        <Target className="h-5 w-5" />
-                                    </div>
-                                    <div className="absolute bottom-12 right-10 flex h-10 w-10 items-center justify-center rounded-xl bg-white text-violet-600 shadow-md">
-                                        <Brain className="h-5 w-5" />
-                                    </div>
-                                </div>
-                                <div className="absolute left-4 top-56 w-44 rounded-2xl border border-white/60 bg-white/80 p-4 shadow-xl backdrop-blur">
-                                    <div className="mb-3 flex items-center gap-2">
-                                        <Building2 className="h-4 w-4 text-primary" />
-                                        <span className="text-sm font-semibold">
-                                            {locale === 'ar' ? 'جاهز للتوظيف' : 'Hiring-ready'}
-                                        </span>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <div className="h-2 rounded-full bg-slate-200" />
-                                        <div className="h-2 w-4/5 rounded-full bg-slate-200" />
-                                        <div className="h-2 w-3/5 rounded-full bg-primary/30" />
-                                    </div>
-                                </div>
-                                <div className="absolute right-0 top-52 w-44 rounded-2xl border border-white/60 bg-white/80 p-4 shadow-xl backdrop-blur">
-                                    <div className="mb-3 flex items-center gap-2">
-                                        <Award className="h-4 w-4 text-amber-500" />
-                                        <span className="text-sm font-semibold">
-                                            {locale === 'ar' ? 'جاهزية مهنية' : 'Career readiness'}
-                                        </span>
-                                    </div>
-                                    <p className="text-xs leading-5 text-muted-foreground">
-                                        {locale === 'ar' ? 'قوالب واضحة، محتوى ذكي، وتجربة مناسبة لسوق عالمي.' : 'Clean templates, smarter content, and a platform designed for international careers.'}
-                                    </p>
-                                </div>
-                                <div className="absolute bottom-8 left-1/2 w-64 -translate-x-1/2 rounded-2xl border border-white/60 bg-slate-950 px-4 py-3 text-white shadow-2xl">
-                                    <div className="flex items-center justify-between text-xs uppercase tracking-[0.2em] text-white/60">
-                                        <span>Seera AI</span>
-                                        <span>Live</span>
-                                    </div>
-                                    <div className="mt-3 flex items-center gap-3">
-                                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10">
-                                            <Zap className="h-5 w-5 text-cyan-300" />
-                                        </div>
-                                        <div>
-                                            <p className="text-sm font-semibold">
-                                                {locale === 'ar' ? 'سير عمل مهني عالمي' : 'International career workflows'}
-                                            </p>
-                                            <p className="text-xs text-white/70">
-                                                {locale === 'ar' ? 'من البناء إلى التقديم والتحضير' : 'From resume building to prep and applications'}
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+                            <p className="text-sm text-muted-foreground">
+                                {isArabic ? 'Pro للباحثين عن عمل' : 'Pro for job seekers'}
+                            </p>
+                        </div>
 
-                            <div className="flex justify-end">
-                                <div className="mt-10 w-72 rounded-3xl border border-white/60 bg-slate-950/90 p-5 text-white shadow-2xl shadow-slate-900/20 backdrop-blur">
-                                    <div className="mb-4 flex items-center justify-between">
-                                        <p className="text-sm font-semibold">
-                                            {locale === 'ar' ? 'مؤشرات المنصة' : 'Platform signals'}
+                        <div className="relative mx-auto w-full max-w-xl">
+                            <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-transparent to-cyan-400/10 blur-3xl" />
+                            <div className="relative rounded-[2rem] border border-white/60 bg-white/80 p-6 shadow-2xl shadow-primary/10 backdrop-blur">
+                                <div className="mb-6 flex items-center justify-between">
+                                    <div>
+                                        <p className="text-sm font-semibold text-foreground">
+                                            {isArabic ? 'منظومة Seera AI المهنية' : 'Seera AI Career Stack'}
                                         </p>
-                                        <span className="h-2.5 w-2.5 rounded-full bg-emerald-400" />
+                                        <p className="text-sm text-muted-foreground">
+                                            {isArabic ? 'سيرة أقوى، تقديم أنظف، تحضير أذكى' : 'Stronger resumes, smarter applications, better prep'}
+                                        </p>
                                     </div>
-                                    <div className="space-y-3">
-                                        {[
-                                            { label: locale === 'ar' ? 'جاهزية ATS' : 'ATS readiness', value: '95%+' },
-                                            { label: locale === 'ar' ? 'أسواق مستهدفة' : 'Supported markets', value: 'Global' },
-                                            { label: locale === 'ar' ? 'تجربة متعددة اللغات' : 'Multi-language UX', value: 'EN + AR' },
-                                        ].map((item) => (
-                                            <div key={item.label} className="flex items-center justify-between rounded-2xl bg-white/5 px-3 py-2">
-                                                <span className="text-sm text-white/70">{item.label}</span>
-                                                <span className="text-sm font-semibold">{item.value}</span>
+                                    <Badge variant="outline" className="border-blue-200 bg-blue-50 text-blue-700">
+                                        Global
+                                    </Badge>
+                                </div>
+
+                                <div className="grid gap-4 sm:grid-cols-2">
+                                    <div className="rounded-3xl bg-slate-950 p-5 text-white">
+                                        <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10">
+                                            <Compass className="h-6 w-6 text-cyan-300" />
+                                        </div>
+                                        <p className="text-lg font-semibold">
+                                            {isArabic ? 'مسار مهني واضح' : 'Focused career workflow'}
+                                        </p>
+                                        <p className="mt-2 text-sm text-white/70">
+                                            {isArabic
+                                                ? 'من بناء السيرة الذاتية إلى تحضير المقابلات في تجربة واحدة واضحة.'
+                                                : 'Move from resume building to interview prep in one clear product flow.'}
+                                        </p>
+                                    </div>
+
+                                    <div className="space-y-4 rounded-3xl border border-slate-200 bg-white p-5">
+                                        {heroPillars.map((item) => (
+                                            <div key={item.title} className="flex items-start gap-3 rounded-2xl bg-slate-50 p-3">
+                                                <div className={`flex h-10 w-10 items-center justify-center rounded-2xl ${item.tone}`}>
+                                                    <item.icon className="h-5 w-5" />
+                                                </div>
+                                                <div>
+                                                    <p className="text-sm font-semibold text-foreground">{item.title}</p>
+                                                    <p className="mt-1 text-sm text-muted-foreground">{item.text}</p>
+                                                </div>
                                             </div>
                                         ))}
                                     </div>
+                                </div>
+
+                                <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                                    {heroSignals.map((item) => (
+                                        <div key={item.label} className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+                                            <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">{item.label}</p>
+                                            <p className="mt-2 text-lg font-semibold text-foreground">{item.value}</p>
+                                        </div>
+                                    ))}
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <div className="max-w-4xl mx-auto text-center">
-                        <Badge className="mb-6 bg-gradient-to-r from-primary to-purple-600 text-white px-4 py-1.5 text-sm">
-                            🚀 {locale === 'ar' ? 'الآن مع GPS المهني وتحضير المقابلات' : 'Now with Career GPS & Interview Prep'}
-                        </Badge>
-
-                        <h1 className="text-5xl md:text-7xl font-bold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-gray-900 via-primary to-purple-600 dark:from-white dark:via-primary dark:to-purple-400">
-                            {locale === 'ar' ? 'مسيرتك المهنية تبدأ هنا' : 'Your Career Journey Starts Here'}
-                        </h1>
-
-                        <p className="text-xl md:text-2xl text-muted-foreground mb-8 max-w-3xl mx-auto">
-                            {locale === 'ar'
-                                ? 'أكثر من مجرد سيرة ذاتية — منصة شاملة للتخطيط المهني، تحضير المقابلات، والتواصل مع أفضل الشركات حول العالم.'
-                                : 'More than just a resume — a complete platform for career planning, interview prep, and connecting with top companies worldwide.'}
-                        </p>
-
-                        {/* Dual CTA - Job Seekers vs Recruiters */}
-                        <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
-                            <Link href="/register">
-                                <Button size="lg" className="h-14 px-8 text-lg gap-2 bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-600/90">
-                                    {locale === 'ar' ? 'اصنع سيرتك' : 'Build your Career'}
-                                    <ArrowRight className="h-5 w-5" />
-                                </Button>
-                            </Link>
-                        </div>
-
-                        <p className="text-sm text-muted-foreground">
-                            {locale === 'ar'
-                                ? 'برو للباحثين عن عمل'
-                                : 'Pro for job seekers'}
-                        </p>
-                    </div>
-
-                    {/* Stats */}
-                    <div className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-8 max-w-4xl mx-auto">
+                    <div className="mx-auto mt-16 grid max-w-4xl grid-cols-2 gap-8 md:grid-cols-4">
                         {stats.map((stat) => (
                             <div key={stat.label} className="text-center">
                                 <p className="text-4xl font-bold text-primary">{stat.value}</p>
@@ -329,36 +299,35 @@ export default function Home() {
                 </div>
             </section>
 
-            {/* Premium Features - NEW */}
-            <section className="py-20 bg-gradient-to-b from-background to-muted/30">
+            <section className="bg-gradient-to-b from-background to-muted/30 py-20">
                 <div className="container mx-auto px-4">
-                    <div className="text-center mb-12">
+                    <div className="mb-12 text-center">
                         <Badge variant="outline" className="mb-4">
-                            {locale === 'ar' ? 'ميزات متقدمة' : 'Premium Features'}
+                            {isArabic ? 'ميزات متقدمة' : 'Premium Features'}
                         </Badge>
-                        <h2 className="text-4xl font-bold mb-4">
-                            {locale === 'ar' ? 'أدوات مهنية مميزة' : 'Premium Career Tools'}
+                        <h2 className="mb-4 text-4xl font-bold">
+                            {isArabic ? 'أدوات مهنية مميزة' : 'Premium Career Tools'}
                         </h2>
-                        <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-                            {locale === 'ar'
-                                ? 'ميزات متقدمة مدعومة بالذكاء الاصطناعي لتسريع مسيرتك المهنية'
-                                : 'Advanced AI-powered features to accelerate your career journey'}
+                        <p className="mx-auto max-w-2xl text-lg text-muted-foreground">
+                            {isArabic
+                                ? 'ميزات مدعومة بالذكاء الاصطناعي لتسريع مسيرتك المهنية.'
+                                : 'Advanced AI-powered features to accelerate your career journey.'}
                         </p>
                     </div>
 
-                    <div className="grid md:grid-cols-2 gap-6 max-w-5xl mx-auto">
+                    <div className="mx-auto grid max-w-5xl gap-6 md:grid-cols-2">
                         {premiumFeatures.map((feature) => (
-                            <Card key={feature.title} className="relative overflow-hidden border-2 hover:border-primary/50 transition-all group">
-                                <div className={`absolute inset-0 bg-gradient-to-br ${feature.color} opacity-5 group-hover:opacity-10 transition-opacity`} />
-                                <CardContent className="p-6 relative">
+                            <Card key={feature.title} className="group relative overflow-hidden border-2 transition-all hover:border-primary/50">
+                                <div className={`absolute inset-0 bg-gradient-to-br ${feature.color} opacity-5 transition-opacity group-hover:opacity-10`} />
+                                <CardContent className="relative p-6">
                                     <div className="flex items-start gap-4">
-                                        <div className={`h-14 w-14 rounded-2xl bg-gradient-to-br ${feature.color} flex items-center justify-center flex-shrink-0`}>
+                                        <div className={`h-14 w-14 flex-shrink-0 rounded-2xl bg-gradient-to-br ${feature.color} flex items-center justify-center`}>
                                             <feature.icon className="h-7 w-7 text-white" />
                                         </div>
                                         <div className="flex-1">
-                                            <div className="flex items-center gap-2 mb-2">
+                                            <div className="mb-2 flex items-center gap-2">
                                                 <h3 className="text-xl font-semibold">{feature.title}</h3>
-                                                <Badge className={`bg-gradient-to-r ${feature.color} text-white text-xs`}>
+                                                <Badge className={`bg-gradient-to-r ${feature.color} text-xs text-white`}>
                                                     {feature.badge}
                                                 </Badge>
                                             </div>
@@ -370,10 +339,10 @@ export default function Home() {
                         ))}
                     </div>
 
-                    <div className="text-center mt-10">
+                    <div className="mt-10 text-center">
                         <Link href="/register">
                             <Button size="lg" className="gap-2">
-                                {locale === 'ar' ? 'ابدأ الآن' : 'Get Started'}
+                                {isArabic ? 'ابدأ الآن' : 'Get Started'}
                                 <ArrowRight className="h-5 w-5" />
                             </Button>
                         </Link>
@@ -381,26 +350,25 @@ export default function Home() {
                 </div>
             </section>
 
-            {/* Core Features */}
             <section className="py-20">
                 <div className="container mx-auto px-4">
-                    <div className="text-center mb-12">
-                        <h2 className="text-3xl font-bold mb-4">{t.landing.features.title}</h2>
-                        <p className="text-muted-foreground max-w-2xl mx-auto">
-                            {locale === 'ar'
-                                ? 'كل ما تحتاجه لإنشاء سيرة ذاتية احترافية تتجاوز أنظمة ATS'
-                                : 'Everything you need to create a professional resume that passes ATS systems'}
+                    <div className="mb-12 text-center">
+                        <h2 className="mb-4 text-3xl font-bold">{t.landing.features.title}</h2>
+                        <p className="mx-auto max-w-2xl text-muted-foreground">
+                            {isArabic
+                                ? 'كل ما تحتاجه لإنشاء سيرة ذاتية احترافية تتجاوز أنظمة ATS.'
+                                : 'Everything you need to create a professional resume that passes ATS systems.'}
                         </p>
                     </div>
 
-                    <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+                    <div className="mx-auto grid max-w-5xl gap-6 md:grid-cols-3">
                         {features.map((feature) => (
                             <Card key={feature.title} className="text-center">
                                 <CardContent className="pt-6">
-                                    <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
+                                    <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
                                         <feature.icon className="h-6 w-6 text-primary" />
                                     </div>
-                                    <h3 className="font-semibold mb-2">{feature.title}</h3>
+                                    <h3 className="mb-2 font-semibold">{feature.title}</h3>
                                     <p className="text-sm text-muted-foreground">{feature.description}</p>
                                 </CardContent>
                             </Card>
@@ -409,18 +377,17 @@ export default function Home() {
                 </div>
             </section>
 
-            {/* Template Preview */}
-            <section className="py-20 bg-muted/20">
+            <section className="bg-muted/20 py-20">
                 <div className="container mx-auto px-4">
-                    <div className="text-center mb-12">
+                    <div className="mb-12 text-center">
                         <Badge variant="outline" className="mb-4">
-                            {locale === 'ar' ? 'قوالب السيرة' : 'Resume Templates'}
+                            {isArabic ? 'قوالب السيرة' : 'Resume Templates'}
                         </Badge>
-                        <h2 className="text-3xl font-bold mb-4">
-                            {locale === 'ar' ? 'معاينة فعلية للقوالب' : 'Real Template Previews'}
+                        <h2 className="mb-4 text-3xl font-bold">
+                            {isArabic ? 'معاينة فعلية للقوالب' : 'Real Template Previews'}
                         </h2>
-                        <p className="text-muted-foreground max-w-2xl mx-auto">
-                            {locale === 'ar'
+                        <p className="mx-auto max-w-2xl text-muted-foreground">
+                            {isArabic
                                 ? 'شاهد القوالب الحقيقية قبل اختيار القالب المناسب.'
                                 : 'See the actual templates you can use before you choose.'}
                         </p>
@@ -446,8 +413,8 @@ export default function Home() {
                                     <CardContent className="p-4">
                                         <h3 className="font-semibold">{template.name}</h3>
                                         <p className="text-sm text-muted-foreground">
-                                            {locale === 'ar'
-                                                ? 'منسق بشكل واضح ومتوافق مع أنظمة التتبع.'
+                                            {isArabic
+                                                ? 'تنسيق واضح ومتوافق مع أنظمة التتبع.'
                                                 : 'Clean layout with ATS-ready formatting.'}
                                         </p>
                                     </CardContent>
@@ -456,10 +423,10 @@ export default function Home() {
                         })}
                     </div>
 
-                    <div className="text-center mt-10">
+                    <div className="mt-10 text-center">
                         <Link href="/register">
                             <Button size="lg" variant="outline" className="gap-2">
-                                {locale === 'ar' ? 'ابدأ الآن' : 'Get Started'}
+                                {isArabic ? 'ابدأ الآن' : 'Get Started'}
                                 <ArrowRight className="h-4 w-4" />
                             </Button>
                         </Link>
@@ -467,19 +434,18 @@ export default function Home() {
                 </div>
             </section>
 
-            {/* FAQ */}
             <section className="py-20">
                 <div className="container mx-auto px-4">
-                    <div className="max-w-3xl mx-auto">
-                        <div className="text-center mb-12">
-                            <h2 className="text-3xl font-bold mb-4">
-                                {locale === 'ar' ? 'الأسئلة الشائعة' : 'Frequently Asked Questions'}
+                    <div className="mx-auto max-w-3xl">
+                        <div className="mb-12 text-center">
+                            <h2 className="mb-4 text-3xl font-bold">
+                                {isArabic ? 'الأسئلة الشائعة' : 'Frequently Asked Questions'}
                             </h2>
                         </div>
 
                         <Accordion type="single" collapsible className="space-y-4">
                             {faq.map((item, i) => (
-                                <AccordionItem key={i} value={`item-${i}`} className="border rounded-lg px-4">
+                                <AccordionItem key={i} value={`item-${i}`} className="rounded-lg border px-4">
                                     <AccordionTrigger className="text-start font-semibold">
                                         {item.q}
                                     </AccordionTrigger>
@@ -493,34 +459,32 @@ export default function Home() {
                 </div>
             </section>
 
-            {/* Final CTA */}
-            <section className="py-20 bg-gradient-to-r from-primary/10 via-purple-500/10 to-primary/10">
+            <section className="bg-gradient-to-r from-primary/10 via-purple-500/10 to-primary/10 py-20">
                 <div className="container mx-auto px-4">
-                    <div className="max-w-3xl mx-auto text-center">
-                        <h2 className="text-4xl font-bold mb-6">
-                            {locale === 'ar' ? 'ابدأ مسيرتك المهنية اليوم' : 'Start Your Career Journey Today'}
+                    <div className="mx-auto max-w-3xl text-center">
+                        <h2 className="mb-6 text-4xl font-bold">
+                            {isArabic ? 'ابدأ مسيرتك المهنية اليوم' : 'Start Your Career Journey Today'}
                         </h2>
-                        <p className="text-xl text-muted-foreground mb-8">
-                            {locale === 'ar'
-                                ? 'انضم إلى مجتمع مهني متنامٍ يستخدم Seera AI لتحقيق أهدافهم'
-                                : 'Join a growing community using Seera AI to achieve their goals'}
+                        <p className="mb-8 text-xl text-muted-foreground">
+                            {isArabic
+                                ? 'انضم إلى مجتمع مهني متنامٍ يستخدم Seera AI لتحقيق أهدافه.'
+                                : 'Join a growing community using Seera AI to move faster with confidence.'}
                         </p>
 
-                        <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                        <div className="flex flex-col justify-center gap-4 sm:flex-row">
                             <Link href="/register">
-                                <Button size="lg" className="h-14 px-8 text-lg gap-2">
-                                    {locale === 'ar' ? 'أنشئ سيرتك الذاتية' : 'Create Your Resume'}
+                                <Button size="lg" className="h-14 gap-2 px-8 text-lg">
+                                    {isArabic ? 'أنشئ سيرتك الذاتية' : 'Create Your Resume'}
                                     <ArrowRight className="h-5 w-5" />
                                 </Button>
                             </Link>
                         </div>
-                        {/* Trust Elements */}
+
                         <SecurityBadges className="mt-8" />
                     </div>
                 </div>
             </section>
 
-            {/* Social Proof Notification */}
             <SocialProofNotification />
         </div>
     );
