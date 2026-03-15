@@ -11,7 +11,7 @@ export default function TermsPage() {
             <div className="container mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="mx-auto max-w-3xl">
                     <h1 className="text-4xl font-bold">Terms of Service</h1>
-                    <p className="mt-4 text-muted-foreground">Last updated: January 11, 2026</p>
+                    <p className="mt-4 text-muted-foreground">Last updated: March 15, 2026</p>
 
                     <div className="mt-12 prose prose-neutral dark:prose-invert max-w-none">
                         <h2>1. Acceptance of Terms</h2>
@@ -76,29 +76,38 @@ export default function TermsPage() {
                             <li>You authorize us to charge your payment method on a recurring basis</li>
                             <li>Subscriptions auto-renew unless cancelled before the renewal date</li>
                             <li>Prices may change with 30 days notice</li>
+                            <li>All payments are final and non-refundable, except where refunds are required by applicable law</li>
+                            <li>Cancelling a subscription stops future renewals only and does not entitle you to a refund for charges already processed</li>
                         </ul>
 
-                        <h2>7. Intellectual Property</h2>
+                        <h2>7. No Refund Policy</h2>
+                        <p>
+                            Except where required by applicable law, Seera AI does not offer refunds, credits, or partial
+                            refunds for subscription fees, one-time purchases, unused time, unused features, or accidental
+                            purchases. You are responsible for reviewing plan details before completing payment.
+                        </p>
+
+                        <h2>8. Intellectual Property</h2>
                         <p>
                             The Service and its original content (excluding user content), features, and functionality
                             are owned by Seera AI and are protected by international copyright, trademark, patent,
                             trade secret, and other intellectual property laws.
                         </p>
 
-                        <h2>8. Privacy</h2>
+                        <h2>9. Privacy</h2>
                         <p>
                             Your use of the Service is also governed by our Privacy Policy, which is incorporated
                             into these Terms by reference. Please review our Privacy Policy to understand our practices.
                         </p>
 
-                        <h2>9. Termination</h2>
+                        <h2>10. Termination</h2>
                         <p>
                             We may terminate or suspend your account and access to the Service immediately, without
                             prior notice or liability, for any reason, including breach of these Terms. Upon termination,
                             your right to use the Service will cease immediately.
                         </p>
 
-                        <h2>10. Disclaimer of Warranties</h2>
+                        <h2>11. Disclaimer of Warranties</h2>
                         <p>
                             The Service is provided "AS IS" without warranties of any kind. We do not guarantee that:
                         </p>
@@ -109,27 +118,27 @@ export default function TermsPage() {
                             <li>Using the Service will guarantee job interviews or employment</li>
                         </ul>
 
-                        <h2>11. Limitation of Liability</h2>
+                        <h2>12. Limitation of Liability</h2>
                         <p>
                             To the maximum extent permitted by law, Seera AI shall not be liable for any indirect,
                             incidental, special, consequential, or punitive damages resulting from your use of or
                             inability to use the Service.
                         </p>
 
-                        <h2>12. Changes to Terms</h2>
+                        <h2>13. Changes to Terms</h2>
                         <p>
                             We reserve the right to modify these Terms at any time. We will provide notice of
                             significant changes by posting the new Terms on this page and updating the "Last updated"
                             date. Your continued use of the Service after changes constitutes acceptance of the new Terms.
                         </p>
 
-                        <h2>13. Governing Law</h2>
+                        <h2>14. Governing Law</h2>
                         <p>
                             These Terms shall be governed by and construed in accordance with the laws of the
                             jurisdiction in which Seera AI operates, without regard to its conflict of law provisions.
                         </p>
 
-                        <h2>14. Contact Us</h2>
+                        <h2>15. Contact Us</h2>
                         <p>
                             If you have any questions about these Terms, please contact us through the support form
                             in the app.
