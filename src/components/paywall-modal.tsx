@@ -14,6 +14,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Check, Crown, Sparkles, Zap, FileText, Download, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { formatOfficialPrice, getOfficialPlanPriceUsd } from '@/lib/billing-config';
 
 interface PaywallModalProps {
     isOpen: boolean;
@@ -57,6 +58,8 @@ export function PaywallModal({ isOpen, onClose, feature }: PaywallModalProps) {
 
     const currentFeature = featureMessages[feature];
     const FeatureIcon = currentFeature.icon;
+    const monthlyPrice = getOfficialPlanPriceUsd('pro', 'monthly');
+    const yearlyPrice = getOfficialPlanPriceUsd('pro', 'yearly');
 
     const handleUpgrade = async () => {
         setLoading(true);
@@ -105,7 +108,7 @@ export function PaywallModal({ isOpen, onClose, feature }: PaywallModalProps) {
         locale === 'ar' ? 'محاكي ATS مع عرض مسؤول التوظيف ونتيجة القراءة' : 'ATS Simulator with recruiter-view scoring',
         locale === 'ar' ? 'تلخيص ونقاط خبرة بالذكاء الاصطناعي وفق الوظيفة المستهدفة' : 'AI summary & bullet generator for your target role',
         locale === 'ar' ? 'مطابقة الوصف الوظيفي وفجوات الكلمات المفتاحية' : 'Job description match + keyword gap insights',
-        locale === 'ar' ? 'GPS مهني لمسارات وظيفية وفجوات مهارات ورواتب السعودية' : 'Career GPS with paths, skill gaps, and Saudi salary ranges',
+        locale === 'ar' ? 'GPS مهني لمسارات وظيفية وفجوات مهارات ورؤى للرواتب' : 'Career GPS with paths, skill gaps, and salary insights',
         locale === 'ar' ? 'تحضير مقابلات مباشر مع مُحاور ذكي' : 'Live Interview Prep with AI interviewer',
         locale === 'ar' ? 'سيرة لينك لصفحة مشاركة احترافية للرابط' : 'Seera Link shareable profile for recruiters',
         locale === 'ar' ? 'تحسين LinkedIn' : 'LinkedIn optimizer',
@@ -153,9 +156,9 @@ export function PaywallModal({ isOpen, onClose, feature }: PaywallModalProps) {
                     {/* Price */}
                     <div className="text-center">
                         <div className="text-4xl font-bold">
-                            {billing === 'monthly' ? '39' : '299'}{' '}
+                            {formatOfficialPrice(billing === 'monthly' ? monthlyPrice : yearlyPrice, locale)}{' '}
                             <span className="text-lg font-normal text-muted-foreground">
-                                {locale === 'ar' ? 'ر.س' : 'SAR'}/{billing === 'monthly'
+                                /{billing === 'monthly'
                                     ? (locale === 'ar' ? 'شهر' : 'mo')
                                     : (locale === 'ar' ? 'سنة' : 'yr')
                                 }

@@ -15,6 +15,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Loader2, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
+import { formatOfficialPrice } from '@/lib/billing-config';
 
 type CreditSummary = {
     baseCredits: number;
@@ -26,6 +27,10 @@ type CreditSummary = {
     minRechargeSar: number;
     maxRechargeSar: number;
     sarPerCredit: number;
+    minRechargeUsd: number;
+    maxRechargeUsd: number;
+    usdPerCredit: number;
+    creditsPerUsd: number;
 };
 
 interface CreditsModalProps {
@@ -38,7 +43,7 @@ export function CreditsModal({ isOpen, onClose, initialCredits }: CreditsModalPr
     const { locale } = useLocale();
     const router = useRouter();
     const [summary, setSummary] = useState<CreditSummary | null>(initialCredits as CreditSummary | null);
-    const [amountSar, setAmountSar] = useState<number>(initialCredits?.minRechargeSar ?? 5);
+    const [amountUsd, setAmountUsd] = useState<number>(initialCredits?.minRechargeUsd ?? 1.33);
     const [loading, setLoading] = useState(false);
     const [fetching, setFetching] = useState(false);
 
@@ -62,8 +67,8 @@ export function CreditsModal({ isOpen, onClose, initialCredits }: CreditsModalPr
                 const data = await res.json();
                 if (!mounted) return;
                 setSummary(data);
-                const min = data?.minRechargeSar || 5;
-                setAmountSar((prev) => (prev < min ? min : prev));
+                const min = data?.minRechargeUsd || 1.33;
+                setAmountUsd((prev) => (prev < min ? min : prev));
             } catch {
                 // Ignore - modal still shows
             } finally {
@@ -77,14 +82,18 @@ export function CreditsModal({ isOpen, onClose, initialCredits }: CreditsModalPr
     }, [isOpen]);
 
     const handleCheckout = async () => {
-        const min = summary?.minRechargeSar || 5;
-        const max = summary?.maxRechargeSar || 10;
-        if (!amountSar || Number.isNaN(amountSar) || amountSar < min) {
-            toast.error(locale === 'ar' ? `الحد الأدنى ${min} ر.س` : `Minimum recharge is ${min} SAR`);
+        const min = summary?.minRechargeUsd || 1.33;
+        const max = summary?.maxRechargeUsd || 2.67;
+        if (!amountUsd || Number.isNaN(amountUsd) || amountUsd < min) {
+            toast.error(locale === 'ar'
+                ? `الحد الأدنى ${formatOfficialPrice(min, locale)}`
+                : `Minimum recharge is ${formatOfficialPrice(min, locale)}`);
             return;
         }
-        if (amountSar > max) {
-            toast.error(locale === 'ar' ? `الحد الأقصى ${max} ر.س` : `Maximum recharge is ${max} SAR`);
+        if (amountUsd > max) {
+            toast.error(locale === 'ar'
+                ? `الحد الأقصى ${formatOfficialPrice(max, locale)}`
+                : `Maximum recharge is ${formatOfficialPrice(max, locale)}`);
             return;
         }
 
@@ -104,7 +113,7 @@ export function CreditsModal({ isOpen, onClose, initialCredits }: CreditsModalPr
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    amountSar,
+                    amountUsd,
                     returnUrl: window.location.href,
                 }),
             });
@@ -123,10 +132,12 @@ export function CreditsModal({ isOpen, onClose, initialCredits }: CreditsModalPr
         }
     };
 
-    const minRecharge = summary?.minRechargeSar || 5;
-    const maxRecharge = summary?.maxRechargeSar || 10;
+    const minRecharge = summary?.minRechargeUsd || 1.33;
+    const maxRecharge = summary?.maxRechargeUsd || 2.67;
     const displayRemaining = summary ? summary.remainingCredits : 0;
     const displayBase = summary ? summary.baseCredits : 50;
+    const estimatedCredits = summary ? Math.round(amountUsd * summary.creditsPerUsd) : 0;
+    const presetAmounts = [minRecharge, maxRecharge];
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
@@ -177,33 +188,38 @@ export function CreditsModal({ isOpen, onClose, initialCredits }: CreditsModalPr
 
                     <div className="space-y-2">
                         <label className="text-sm font-medium">
-                            {locale === 'ar' ? 'مبلغ الشحن (ر.س)' : 'Recharge amount (SAR)'}
+                            {locale === 'ar' ? 'مبلغ الشحن (USD)' : 'Recharge amount (USD)'}
                         </label>
                         <Input
                             type="number"
                             min={minRecharge}
                             max={maxRecharge}
-                            step="1"
-                            value={amountSar}
-                            onChange={(e) => setAmountSar(Number(e.target.value))}
+                            step="0.01"
+                            value={amountUsd}
+                            onChange={(e) => setAmountUsd(Number(e.target.value))}
                         />
                         <div className="flex gap-2">
-                            {[5, 10].map((amount) => (
+                            {presetAmounts.map((amount) => (
                                 <Button
                                     key={amount}
                                     type="button"
                                     variant="outline"
                                     size="sm"
-                                    onClick={() => setAmountSar(amount)}
+                                    onClick={() => setAmountUsd(amount)}
                                 >
-                                    {amount} SAR
+                                    {formatOfficialPrice(amount, locale)}
                                 </Button>
                             ))}
                         </div>
                         <p className="text-xs text-muted-foreground">
                             {locale === 'ar'
-                                ? `الحد الأدنى ${minRecharge} ر.س - الحد الأقصى ${maxRecharge} ر.س`
-                                : `Min ${minRecharge} SAR - Max ${maxRecharge} SAR`}
+                                ? `شحن تقريبي ${estimatedCredits} رصيد`
+                                : `Approximately ${estimatedCredits} credits`}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                            {locale === 'ar'
+                                ? `الحد الأدنى ${formatOfficialPrice(minRecharge, locale)} - الحد الأقصى ${formatOfficialPrice(maxRecharge, locale)}`
+                                : `Min ${formatOfficialPrice(minRecharge, locale)} - Max ${formatOfficialPrice(maxRecharge, locale)}`}
                         </p>
                     </div>
 

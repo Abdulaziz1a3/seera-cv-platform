@@ -9,6 +9,7 @@ import { createTuwaiqPayBill } from '@/lib/tuwaiqpay';
 import { getUserPaymentProfile } from '@/lib/payments';
 import { prisma } from '@/lib/db';
 import { logger } from '@/lib/logger';
+import { getGatewayPlanPriceSar, getOfficialPlanPriceUsd } from '@/lib/billing-config';
 
 const checkoutSchema = z.object({
     plan: z.enum(['pro', 'enterprise']),
@@ -41,7 +42,8 @@ export async function POST(request: Request) {
             );
         }
 
-        const amountSar = interval === 'yearly' ? planConfig.priceYearly : planConfig.priceMonthly;
+        const amountSar = getGatewayPlanPriceSar(plan, interval);
+        const officialAmountUsd = getOfficialPlanPriceUsd(plan, interval);
         const customer = await getUserPaymentProfile(session.user.id);
 
         // Get base URL for redirects
@@ -51,7 +53,7 @@ export async function POST(request: Request) {
         const intervalLabel = interval === 'yearly' ? 'Annual' : 'Monthly';
         const bill = await createTuwaiqPayBill({
             amountSar,
-            description: `Seera AI - ${planConfig.name.en} Plan (${intervalLabel}) - ${amountSar} SAR`,
+            description: `Seera AI - ${planConfig.name.en} Plan (${intervalLabel}) - Official price $${officialAmountUsd.toFixed(2)} USD (charged ${amountSar} SAR at checkout)`,
             customerName: customer.customerName,
             customerMobilePhone: customer.customerPhone,
             returnUrl,
@@ -73,6 +75,8 @@ export async function POST(request: Request) {
                 metadata: {
                     interval,
                     planId: plan,
+                    officialAmountUsd,
+                    officialCurrency: 'USD',
                     billExpiresAt: bill.expireDate,
                 },
             },

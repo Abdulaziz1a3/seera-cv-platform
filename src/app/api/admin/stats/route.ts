@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db';
+import { getOfficialPlanPriceUsd } from '@/lib/billing-config';
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
@@ -92,8 +93,9 @@ export async function GET() {
             where: { status: 'ACTIVE', plan: 'ENTERPRISE' }
         });
 
-        // Assuming PRO = SAR 39/mo, ENTERPRISE = SAR 249/mo
-        const monthlyRevenue = (proSubscriptions * 39) + (enterpriseSubscriptions * 249);
+        const monthlyRevenue =
+            (proSubscriptions * getOfficialPlanPriceUsd('pro', 'monthly')) +
+            (enterpriseSubscriptions * getOfficialPlanPriceUsd('enterprise', 'monthly'));
 
         // Recent users (last 5)
         const recentUsers = await prisma.user.findMany({

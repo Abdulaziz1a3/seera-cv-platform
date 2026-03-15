@@ -423,6 +423,7 @@ export async function POST(request: Request) {
         planLabel: string;
         intervalLabel: string;
         amountSar: number;
+        amountUsd?: number;
         paidAt: Date;
         receiptId?: string;
         description?: string;
@@ -436,6 +437,16 @@ export async function POST(request: Request) {
             payment.metadata && typeof payment.metadata === 'object'
                 ? (payment.metadata as Record<string, unknown>)
                 : {};
+        const officialAmountUsdValue =
+            typeof existingMetadata.officialAmountUsd === 'number'
+                ? existingMetadata.officialAmountUsd
+                : typeof existingMetadata.officialAmountUsd === 'string'
+                    ? Number(existingMetadata.officialAmountUsd)
+                    : undefined;
+        const officialAmountUsd =
+            typeof officialAmountUsdValue === 'number' && Number.isFinite(officialAmountUsdValue)
+                ? officialAmountUsdValue
+                : undefined;
         const updated = await tx.paymentTransaction.updateMany({
             where: { id: payment.id, status: 'PENDING' },
             data: {
@@ -482,6 +493,7 @@ export async function POST(request: Request) {
                         planLabel: 'AI Credits',
                         intervalLabel: 'One-time',
                         amountSar: payment.amountSar,
+                        amountUsd: officialAmountUsd,
                         paidAt: now,
                         receiptId: billId || transactionId || payment.id,
                         description: `AI credits top-up${creditsLabel}`,
@@ -552,6 +564,7 @@ export async function POST(request: Request) {
                     planLabel: plan === 'ENTERPRISE' ? 'Enterprise' : 'Pro',
                     intervalLabel: payment.interval === 'YEARLY' ? 'Yearly' : 'Monthly',
                     amountSar: payment.amountSar,
+                    amountUsd: officialAmountUsd,
                     paidAt: now,
                     receiptId: billId || transactionId || payment.id,
                 };
@@ -619,6 +632,7 @@ export async function POST(request: Request) {
                     planLabel: `Gift ${plan === 'ENTERPRISE' ? 'Enterprise' : 'Pro'}`,
                     intervalLabel: interval === 'YEARLY' ? 'Yearly' : 'Monthly',
                     amountSar: payment.amountSar,
+                    amountUsd: officialAmountUsd,
                     paidAt: now,
                     receiptId: billId || transactionId || payment.id,
                     recipientEmail: gift.recipientEmail || undefined,

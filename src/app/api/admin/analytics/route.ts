@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/db';
+import { getOfficialPlanPriceUsd } from '@/lib/billing-config';
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
@@ -216,9 +217,15 @@ export async function GET(request: NextRequest) {
         const toGrowth = (current: number, previous: number) =>
             previous > 0 ? ((current - previous) / previous) * 100 : current > 0 ? 100 : 0;
 
-        const totalRevenue = (activeProCount * 39) + (activeEnterpriseCount * 249);
-        const revenueThisPeriod = (newProThisPeriod * 39) + (newEnterpriseThisPeriod * 249);
-        const revenuePrevPeriod = (newProPrevPeriod * 39) + (newEnterprisePrevPeriod * 249);
+        const totalRevenue =
+            (activeProCount * getOfficialPlanPriceUsd('pro', 'monthly')) +
+            (activeEnterpriseCount * getOfficialPlanPriceUsd('enterprise', 'monthly'));
+        const revenueThisPeriod =
+            (newProThisPeriod * getOfficialPlanPriceUsd('pro', 'monthly')) +
+            (newEnterpriseThisPeriod * getOfficialPlanPriceUsd('enterprise', 'monthly'));
+        const revenuePrevPeriod =
+            (newProPrevPeriod * getOfficialPlanPriceUsd('pro', 'monthly')) +
+            (newEnterprisePrevPeriod * getOfficialPlanPriceUsd('enterprise', 'monthly'));
 
         const aiTotals = aiUsageSummary[0] || { total_requests: 0, total_tokens: 0 };
         const aiTotalRequests = Number(aiTotals.total_requests || 0);

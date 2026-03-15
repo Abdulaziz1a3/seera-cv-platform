@@ -61,23 +61,23 @@ function LoginForm() {
     };
 
     return (
-        <div className="w-full max-w-md mx-auto">
+        <div className="w-full">
             <div className="text-center mb-8">
                 <h1 className="text-2xl font-bold mb-2">{t.auth.login.title}</h1>
-                <p className="text-muted-foreground">{t.auth.login.subtitle}</p>
+                <p className="text-muted-foreground text-sm">{t.auth.login.subtitle}</p>
             </div>
 
             {/* Email/Password Form */}
             <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
-                    <Label htmlFor="email">{t.auth.login.email}</Label>
+                    <Label htmlFor="email" className="text-sm font-medium">{t.auth.login.email}</Label>
                     <div className="relative">
                         <Mail className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                         <Input
                             id="email"
                             type="email"
                             placeholder="name@example.com"
-                            className="ps-10 h-12"
+                            className="ps-10 h-11 bg-muted/30 border-border focus:bg-background transition-colors"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                             required
@@ -88,10 +88,10 @@ function LoginForm() {
 
                 <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                        <Label htmlFor="password">{t.auth.login.password}</Label>
+                        <Label htmlFor="password" className="text-sm font-medium">{t.auth.login.password}</Label>
                         <Link
                             href="/forgot-password"
-                            className="text-sm text-primary hover:underline"
+                            className="text-xs text-primary hover:underline font-medium"
                         >
                             {t.auth.login.forgotPassword}
                         </Link>
@@ -102,7 +102,7 @@ function LoginForm() {
                             id="password"
                             type={showPassword ? 'text' : 'password'}
                             placeholder="••••••••"
-                            className="ps-10 pe-10 h-12"
+                            className="ps-10 pe-10 h-11 bg-muted/30 border-border focus:bg-background transition-colors"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             required
@@ -111,7 +111,8 @@ function LoginForm() {
                         <button
                             type="button"
                             onClick={() => setShowPassword(!showPassword)}
-                            className="absolute end-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                            className="absolute end-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                            aria-label={showPassword ? 'Hide password' : 'Show password'}
                         >
                             {showPassword ? (
                                 <EyeOff className="h-4 w-4" />
@@ -122,15 +123,25 @@ function LoginForm() {
                     </div>
                 </div>
 
-                <Button type="submit" className="w-full h-12 text-base" disabled={isLoading}>
-                    {isLoading && <Loader2 className="h-5 w-5 me-2 animate-spin" />}
+                <Button
+                    type="submit"
+                    className="w-full h-11 text-sm font-medium bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-600/90 shadow-md shadow-primary/20 mt-2"
+                    disabled={isLoading}
+                >
+                    {isLoading && <Loader2 className="h-4 w-4 me-2 animate-spin" />}
                     {t.auth.login.signIn}
                 </Button>
             </form>
 
-            <p className="text-center text-sm text-muted-foreground mt-6">
+            <div className="relative my-6">
+                <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t" />
+                </div>
+            </div>
+
+            <p className="text-center text-sm text-muted-foreground">
                 {t.auth.login.noAccount}{' '}
-                <Link href="/register" className="text-primary hover:underline font-medium">
+                <Link href="/register" className="text-primary hover:underline font-semibold">
                     {t.auth.login.signUpLink}
                 </Link>
             </p>

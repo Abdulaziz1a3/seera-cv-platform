@@ -1,8 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import Image from 'next/image';
-import { Twitter, Linkedin, Instagram } from 'lucide-react';
+import { Twitter, Linkedin, Instagram, Sparkles } from 'lucide-react';
 import { useLocale } from '@/components/providers/locale-provider';
 
 const WhatsappIcon = ({ className }: { className?: string }) => (
@@ -47,25 +46,33 @@ export function MarketingFooter() {
     ];
 
     return (
-        <footer className="bg-muted/30 border-t">
+        <footer className="relative bg-muted/30 border-t overflow-hidden">
+            {/* Subtle top gradient accent */}
+            <div className="absolute top-0 start-0 end-0 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
+
             <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-16">
                 <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-8 lg:gap-12">
                     {/* Brand */}
                     <div className="col-span-2">
-                        <Link href="/" className="flex items-center gap-2 group mb-4">
-                            <span className="text-2xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+                        <Link href="/" className="flex items-center gap-2.5 group mb-4">
+                            <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center shadow-sm">
+                                <Sparkles className="h-4 w-4 text-white" />
+                            </div>
+                            <span className="text-xl font-bold bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
                                 Seera AI
                             </span>
                         </Link>
                         <p className="text-sm text-muted-foreground max-w-xs mb-6">
                             {t.footer.description}
                         </p>
-                        <div className="flex gap-3">
+                        <div className="flex gap-2.5">
                             {socialLinks.map((social) => (
                                 <a
                                     key={social.label}
                                     href={social.href}
-                                    className="h-10 w-10 rounded-full bg-muted flex items-center justify-center text-muted-foreground hover:bg-primary hover:text-primary-foreground transition-colors"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="h-9 w-9 rounded-xl bg-muted flex items-center justify-center text-muted-foreground hover:bg-primary hover:text-primary-foreground transition-all duration-200 hover:scale-105 hover:shadow-md"
                                     aria-label={social.label}
                                 >
                                     <social.icon className="h-4 w-4" />

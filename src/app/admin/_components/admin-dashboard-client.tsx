@@ -20,6 +20,7 @@ import { Button } from '@/components/ui/button';
 import { formatDistanceToNow } from 'date-fns';
 import { ar, enUS } from 'date-fns/locale';
 import Link from 'next/link';
+import { formatCurrencyAmount } from '@/lib/billing-config';
 
 interface DashboardStats {
     stats: {
@@ -82,11 +83,7 @@ export function AdminDashboardClient() {
     };
 
     const formatCurrency = (value: number) => {
-        return new Intl.NumberFormat(locale === 'ar' ? 'ar-SA' : 'en-US', {
-            style: 'currency',
-            currency: 'SAR',
-            maximumFractionDigits: 0,
-        }).format(value);
+        return formatCurrencyAmount(value, locale, 'USD');
     };
 
     const statCards = [

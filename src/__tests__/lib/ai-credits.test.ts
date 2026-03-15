@@ -196,6 +196,10 @@ describe('buildCreditErrorPayload', () => {
             minRechargeSar: 5,
             maxRechargeSar: 10,
             sarPerCredit: 0.2,
+            minRechargeUsd: 1.33,
+            maxRechargeUsd: 2.67,
+            usdPerCredit: 0.05,
+            creditsPerUsd: 18.75,
         };
 
         const payload = buildCreditErrorPayload(summary);

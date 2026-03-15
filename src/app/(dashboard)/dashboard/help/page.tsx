@@ -147,8 +147,8 @@ export default function DashboardHelpPage() {
                                 </li>
                                 <li>
                                     {isArabic
-                                        ? 'كل رصيد يعادل تقريباً 0.2 ريال سعودي من تكلفة الذكاء الاصطناعي.'
-                                        : 'Each credit roughly equals 0.2 SAR of AI usage cost.'}
+                                        ? 'كل رصيد يعادل تقريباً 0.05 دولار من تكلفة الذكاء الاصطناعي.'
+                                        : 'Each credit roughly equals $0.05 of AI usage cost.'}
                                 </li>
                                 <li>
                                     {isArabic

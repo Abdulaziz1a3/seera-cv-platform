@@ -140,7 +140,7 @@ export const ar = {
             subtitle: 'اختر الخطة المناسبة لك',
             monthly: 'شهري',
             yearly: 'سنوي',
-            savePercent: 'وفّر 30%',
+            savePercent: 'وفّر 17%',
 
             free: {
                 name: 'مجاني',
@@ -157,8 +157,8 @@ export const ar = {
             },
             pro: {
                 name: 'احترافي',
-                price: '39',
-                yearlyPrice: '299',
+                price: '4.99',
+                yearlyPrice: '49.99',
                 description: 'للباحثين الجادين عن عمل',
                 features: [
                     '50 رصيد AI شهرياً',
@@ -680,7 +680,7 @@ export const ar = {
             resumes: 'السير الذاتية',
             aiGenerations: 'توليدات AI',
             paymentMethod: 'طريقة الدفع',
-            paymentMethodDesc: 'يتم الدفع عبر TuwaiqPay ولا يتم حفظ البطاقات.',
+            paymentMethodDesc: 'تتم المدفوعات عبر صفحة دفع آمنة ولا يتم حفظ البطاقات على Seera AI.',
             noPaymentMethod: 'لا توجد طريقة دفع مسجلة',
             billingHistory: 'سجل الفواتير',
             noBillingHistory: 'لا يوجد سجل فواتير',

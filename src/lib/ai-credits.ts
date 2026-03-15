@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/db';
 import { logger } from '@/lib/logger';
+import { convertSarToUsd, convertUsdToSar } from '@/lib/billing-config';
 
 export const BASE_MONTHLY_CREDITS = 10; // Free plan gets 10 credits
 export const PRO_MONTHLY_CREDITS = 50;  // Pro plan gets 50 credits
@@ -7,7 +8,10 @@ export const SAR_PER_CREDIT = 0.2; // 10 SAR / 50 credits
 export const CREDITS_PER_SAR = 1 / SAR_PER_CREDIT;
 export const MIN_RECHARGE_SAR = 5;
 export const MAX_RECHARGE_SAR = 10;
-const USD_TO_SAR = 3.75;
+export const USD_PER_CREDIT = SAR_PER_CREDIT / 3.75;
+export const CREDITS_PER_USD = CREDITS_PER_SAR * 3.75;
+export const MIN_RECHARGE_USD = convertSarToUsd(MIN_RECHARGE_SAR);
+export const MAX_RECHARGE_USD = convertSarToUsd(MAX_RECHARGE_SAR);
 
 type ChatPricing = {
     inputUsdPer1k: number;
@@ -34,6 +38,10 @@ type CreditSummary = {
     minRechargeSar: number;
     maxRechargeSar: number;
     sarPerCredit: number;
+    minRechargeUsd: number;
+    maxRechargeUsd: number;
+    usdPerCredit: number;
+    creditsPerUsd: number;
 };
 
 function roundTwo(value: number): number {
@@ -48,16 +56,16 @@ function getPeriodEnd(date = new Date()): Date {
     return new Date(date.getFullYear(), date.getMonth() + 1, 1);
 }
 
-function usdToSar(usd: number): number {
-    return usd * USD_TO_SAR;
-}
-
 export function sarToCredits(amountSar: number): number {
     return roundTwo(amountSar * CREDITS_PER_SAR);
 }
 
 export function creditsToSar(credits: number): number {
     return roundTwo(credits * SAR_PER_CREDIT);
+}
+
+export function usdToCredits(amountUsd: number): number {
+    return sarToCredits(convertUsdToSar(amountUsd));
 }
 
 export function calculateChatCostUsd(params: {
@@ -78,7 +86,7 @@ export function calculateTtsCostUsd(params: { model: string; text: string }): nu
 }
 
 export function calculateCreditsFromUsd(costUsd: number): { costSar: number; credits: number } {
-    const costSar = usdToSar(costUsd);
+    const costSar = convertUsdToSar(costUsd);
     const credits = sarToCredits(costSar);
     return { costSar: roundTwo(costSar), credits };
 }
@@ -131,6 +139,10 @@ export async function getCreditSummary(userId: string, now = new Date()): Promis
         minRechargeSar: MIN_RECHARGE_SAR,
         maxRechargeSar: MAX_RECHARGE_SAR,
         sarPerCredit: SAR_PER_CREDIT,
+        minRechargeUsd: MIN_RECHARGE_USD,
+        maxRechargeUsd: MAX_RECHARGE_USD,
+        usdPerCredit: roundTwo(USD_PER_CREDIT),
+        creditsPerUsd: roundTwo(CREDITS_PER_USD),
     };
 }
 

@@ -91,6 +91,11 @@ function formatSar(amount: number): string {
     return `${safeAmount.toFixed(2)} SAR`;
 }
 
+function formatUsd(amount: number): string {
+    const safeAmount = Number.isFinite(amount) ? amount : 0;
+    return `$${safeAmount.toFixed(2)} USD`;
+}
+
 // Email sending functions
 interface EmailResult {
     success: boolean;
@@ -390,6 +395,7 @@ export async function sendPaymentReceiptEmail(params: {
     planLabel: string;
     intervalLabel?: string;
     amountSar: number;
+    amountUsd?: number;
     paidAt?: Date;
     receiptId?: string;
     description?: string;
@@ -433,7 +439,7 @@ export async function sendPaymentReceiptEmail(params: {
                 </tr>
                 <tr>
                     <td style="padding: 6px 0; font-weight: 600;">Amount paid</td>
-                    <td style="padding: 6px 0; text-align: right;">${formatSar(params.amountSar)}</td>
+                    <td style="padding: 6px 0; text-align: right;">${typeof params.amountUsd === 'number' ? formatUsd(params.amountUsd) : formatSar(params.amountSar)}</td>
                 </tr>
                 ${recipientEmail ? `
                 <tr>

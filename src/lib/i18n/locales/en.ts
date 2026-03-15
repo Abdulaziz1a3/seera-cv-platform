@@ -140,7 +140,7 @@ export const en = {
             subtitle: 'Choose the plan that works for you',
             monthly: 'Monthly',
             yearly: 'Yearly',
-            savePercent: 'Save 30%',
+            savePercent: 'Save 17%',
 
             free: {
                 name: 'Free',
@@ -157,8 +157,8 @@ export const en = {
             },
             pro: {
                 name: 'Pro',
-                price: '39',
-                yearlyPrice: '299',
+                price: '4.99',
+                yearlyPrice: '49.99',
                 description: 'For serious job seekers',
                 features: [
                     '50 AI Credits included monthly',
@@ -680,7 +680,7 @@ export const en = {
             resumes: 'Resumes',
             aiGenerations: 'AI Generations',
             paymentMethod: 'Payment Method',
-            paymentMethodDesc: 'Payments are handled via TuwaiqPay. No cards are stored.',
+            paymentMethodDesc: 'Payments are handled through secure checkout. No cards are stored on Seera AI.',
             noPaymentMethod: 'No payment method on file',
             billingHistory: 'Billing History',
             noBillingHistory: 'No billing history available',

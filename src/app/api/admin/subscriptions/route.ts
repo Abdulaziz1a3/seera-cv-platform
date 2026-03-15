@@ -5,6 +5,7 @@ import { PLANS } from '@/lib/stripe';
 import { createTuwaiqPayBill } from '@/lib/tuwaiqpay';
 import { getUserPaymentProfile } from '@/lib/payments';
 import { isEmailConfigured, sendPaymentLinkEmail } from '@/lib/email';
+import { getGatewayPlanPriceSar, getOfficialPlanPriceUsd } from '@/lib/billing-config';
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
@@ -100,7 +101,9 @@ export async function GET(request: NextRequest) {
         ]);
 
         // Calculate revenue
-        const monthlyRevenue = (proCount * 39) + (enterpriseCount * 249);
+        const monthlyRevenue =
+            (proCount * getOfficialPlanPriceUsd('pro', 'monthly')) +
+            (enterpriseCount * getOfficialPlanPriceUsd('enterprise', 'monthly'));
         const arpu = activeCount > 0 ? monthlyRevenue / activeCount : 0;
         const churnRate = activeCount > 0 ? ((canceledThisMonth / activeCount) * 100) : 0;
 
@@ -115,7 +118,11 @@ export async function GET(request: NextRequest) {
             },
             plan: sub.plan,
             status: sub.status,
-            amount: sub.plan === 'PRO' ? 39 : sub.plan === 'ENTERPRISE' ? 249 : 0,
+            amount: sub.plan === 'PRO'
+                ? getOfficialPlanPriceUsd('pro', 'monthly')
+                : sub.plan === 'ENTERPRISE'
+                    ? getOfficialPlanPriceUsd('enterprise', 'monthly')
+                    : 0,
             currentPeriodStart: sub.currentPeriodStart,
             currentPeriodEnd: sub.currentPeriodEnd,
             cancelAtPeriodEnd: sub.cancelAtPeriodEnd,
@@ -301,12 +308,13 @@ export async function PUT(request: NextRequest) {
                             : 'pro';
                 const planConfig = PLANS[planKey];
                 const interval = data?.interval === 'yearly' ? 'yearly' : 'monthly';
-                const amountSar = interval === 'yearly' ? planConfig.priceYearly : planConfig.priceMonthly;
+                const amountSar = getGatewayPlanPriceSar(planKey, interval);
+                const officialAmountUsd = getOfficialPlanPriceUsd(planKey, interval);
                 const customer = await getUserPaymentProfile(subscription.userId);
 
                 const bill = await createTuwaiqPayBill({
                     amountSar,
-                    description: `Seera AI ${planConfig.name.en} (${interval})`,
+                    description: `Seera AI ${planConfig.name.en} (${interval}) - Official price $${officialAmountUsd.toFixed(2)} USD (charged ${amountSar} SAR at checkout)`,
                     customerName: customer.customerName,
                     customerMobilePhone: customer.customerPhone,
                 });
@@ -327,6 +335,8 @@ export async function PUT(request: NextRequest) {
                         metadata: {
                             interval,
                             planId: planKey,
+                            officialAmountUsd,
+                            officialCurrency: 'USD',
                             billExpiresAt: bill.expireDate,
                             issuedByAdmin: true,
                         },

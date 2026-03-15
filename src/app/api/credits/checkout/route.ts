@@ -1,15 +1,19 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { auth } from '@/lib/auth';
-import { MIN_RECHARGE_SAR, MAX_RECHARGE_SAR, sarToCredits } from '@/lib/ai-credits';
+import { MAX_RECHARGE_SAR, MAX_RECHARGE_USD, MIN_RECHARGE_SAR, MIN_RECHARGE_USD, sarToCredits } from '@/lib/ai-credits';
 import { createTuwaiqPayBill } from '@/lib/tuwaiqpay';
 import { getUserPaymentProfile } from '@/lib/payments';
 import { prisma } from '@/lib/db';
 import { logger } from '@/lib/logger';
+import { convertSarToUsd, convertUsdToSar } from '@/lib/billing-config';
 
 const requestSchema = z.object({
-    amountSar: z.number().min(MIN_RECHARGE_SAR).max(MAX_RECHARGE_SAR),
+    amountUsd: z.number().min(MIN_RECHARGE_USD).max(MAX_RECHARGE_USD).optional(),
+    amountSar: z.number().min(MIN_RECHARGE_SAR).max(MAX_RECHARGE_SAR).optional(),
     returnUrl: z.string().url().optional(),
+}).refine((value) => typeof value.amountUsd === 'number' || typeof value.amountSar === 'number', {
+    message: 'amountUsd or amountSar is required',
 });
 
 export async function POST(request: Request) {
@@ -20,7 +24,15 @@ export async function POST(request: Request) {
         }
 
         const body = await request.json();
-        const { amountSar } = requestSchema.parse(body);
+        const { amountUsd, amountSar: legacyAmountSar } = requestSchema.parse(body);
+        const effectiveAmountUsd = typeof amountUsd === 'number'
+            ? amountUsd
+            : legacyAmountSar
+                ? convertSarToUsd(legacyAmountSar)
+                : MIN_RECHARGE_USD;
+        const amountSar = typeof legacyAmountSar === 'number'
+            ? legacyAmountSar
+            : convertUsdToSar(effectiveAmountUsd);
 
         const customer = await getUserPaymentProfile(session.user.id);
         const credits = sarToCredits(amountSar);
@@ -31,7 +43,7 @@ export async function POST(request: Request) {
 
         const bill = await createTuwaiqPayBill({
             amountSar,
-            description: `Seera AI - AI Credits Top-up (${credits} credits) - ${amountSar} SAR`,
+            description: `Seera AI - AI Credits Top-up (${credits} credits) - Official price $${effectiveAmountUsd.toFixed(2)} USD (charged ${amountSar} SAR at checkout)`,
             customerName: customer.customerName,
             customerMobilePhone: customer.customerPhone,
             returnUrl,
@@ -51,6 +63,8 @@ export async function POST(request: Request) {
                 paymentLink: bill.link,
                 metadata: {
                     credits,
+                    officialAmountUsd: Number(effectiveAmountUsd.toFixed(2)),
+                    officialCurrency: 'USD',
                     billExpiresAt: bill.expireDate,
                 },
             },

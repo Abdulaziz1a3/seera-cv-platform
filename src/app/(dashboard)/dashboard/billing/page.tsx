@@ -862,8 +862,8 @@ export default function BillingGiftsPage() {
                         <CreditCard className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
                         <p className="text-sm text-muted-foreground mb-1">
                             {locale === 'ar'
-                                ? 'يتم الدفع عبر روابط TuwaiqPay الآمنة ولا توجد بطاقات محفوظة.'
-                                : 'Payments use secure TuwaiqPay links; no cards are stored.'}
+                                ? 'تتم المدفوعات عبر صفحة دفع آمنة ولا يتم حفظ البطاقات على Seera AI.'
+                                : 'Payments use a secure checkout page and no cards are stored on Seera AI.'}
                         </p>
                         <p className="text-xs text-muted-foreground">
                             {locale === 'ar'

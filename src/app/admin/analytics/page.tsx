@@ -29,6 +29,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import { formatCurrencyAmount } from '@/lib/billing-config';
 
 interface AnalyticsData {
     overview: {
@@ -101,11 +102,7 @@ export default function AdminAnalyticsPage() {
     };
 
     const formatCurrency = (num: number) => {
-        return new Intl.NumberFormat(locale === 'ar' ? 'ar-SA' : 'en-US', {
-            style: 'currency',
-            currency: 'SAR',
-            maximumFractionDigits: 0,
-        }).format(num);
+        return formatCurrencyAmount(num, locale, 'USD');
     };
 
     const formatPercentage = (num: number) => {

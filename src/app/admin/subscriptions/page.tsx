@@ -59,6 +59,7 @@ import {
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ar, enUS } from 'date-fns/locale';
+import { formatOfficialPrice, getOfficialPlanPriceUsd } from '@/lib/billing-config';
 
 interface Subscription {
     id: string;
@@ -197,7 +198,7 @@ function AdminSubscriptionsContent() {
     const stats = data?.stats ? [
         {
             label: locale === 'ar' ? 'الإيرادات الشهرية' : 'Monthly Revenue',
-            value: `${Number(data.stats.monthlyRevenue).toLocaleString()} SAR`,
+            value: formatOfficialPrice(Number(data.stats.monthlyRevenue), locale),
             change: '+15.2%',
             trend: 'up',
             icon: DollarSign,
@@ -218,7 +219,7 @@ function AdminSubscriptionsContent() {
         },
         {
             label: locale === 'ar' ? 'متوسط العائد' : 'ARPU',
-            value: `${data.stats.arpu} SAR`,
+            value: formatOfficialPrice(Number(data.stats.arpu), locale),
             change: '+3.2%',
             trend: 'up',
             icon: TrendingUp,
@@ -384,7 +385,7 @@ function AdminSubscriptionsContent() {
                                             </Badge>
                                         </TableCell>
                                         <TableCell>{getStatusBadge(sub.status)}</TableCell>
-                                        <TableCell>{sub.amount} SAR/mo</TableCell>
+                                        <TableCell>{formatOfficialPrice(sub.amount, locale)}/mo</TableCell>
                                         <TableCell>{formatDate(sub.currentPeriodStart)}</TableCell>
                                         <TableCell>
                                             {sub.cancelAtPeriodEnd ? (
@@ -514,7 +515,7 @@ function AdminSubscriptionsContent() {
                             </div>
                             <div className="flex items-center justify-between">
                                 <span>{locale === 'ar' ? 'المبلغ' : 'Amount'}</span>
-                                <span className="font-medium">{detailsDialog.subscription.amount} SAR/mo</span>
+                                <span className="font-medium">{formatOfficialPrice(detailsDialog.subscription.amount, locale)}/mo</span>
                             </div>
                             <div className="flex items-center justify-between">
                                 <span>{locale === 'ar' ? 'بداية الفترة' : 'Period Start'}</span>
@@ -580,7 +581,7 @@ function AdminSubscriptionsContent() {
                                         <Zap className="h-5 w-5 text-primary" />
                                         <span className="font-semibold">PRO</span>
                                     </div>
-                                    <p className="text-sm text-muted-foreground mt-1">39 SAR/mo</p>
+                                    <p className="text-sm text-muted-foreground mt-1">{formatOfficialPrice(getOfficialPlanPriceUsd('pro', 'monthly'), locale)}/mo</p>
                                     {activateDialog.plan === 'PRO' && (
                                         <CheckCircle className="absolute top-2 right-2 h-4 w-4 text-primary" />
                                     )}
