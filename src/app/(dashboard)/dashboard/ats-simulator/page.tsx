@@ -61,6 +61,16 @@ export default function AtsSimulatorPage() {
     const [jobDescription, setJobDescription] = useState('');
     const [analysis, setAnalysis] = useState<MatchAnalysis | null>(null);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
+    const [isSubscriptionActive, setIsSubscriptionActive] = useState(true);
+
+    useEffect(() => {
+        let isMounted = true;
+        fetch('/api/billing/status')
+            .then((res) => res.ok ? res.json() : null)
+            .then((data) => { if (isMounted && data) setIsSubscriptionActive(Boolean(data.isActive)); })
+            .catch(() => { if (isMounted) setIsSubscriptionActive(false); });
+        return () => { isMounted = false; };
+    }, []);
 
     const resumeLanguage = resume?.language === 'ar' ? 'ar' : 'en';
     const previewResume = useMemo(
@@ -459,7 +469,7 @@ export default function AtsSimulatorPage() {
                                         <div className="rounded-lg border bg-muted/30 p-4 xl:col-span-2">
                                             {previewResume ? (
                                                 <div className="flex justify-center overflow-auto">
-                                                    <LivePreview resume={previewResume} scale={0.6} />
+                                                    <LivePreview resume={previewResume} scale={0.6} showWatermark={!isSubscriptionActive} />
                                                 </div>
                                             ) : (
                                                 <div className="text-sm text-muted-foreground">

@@ -118,9 +118,46 @@ export function LivePreview({
       )}
 
       {showWatermark && (
-        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-          <div className="text-2xl font-semibold uppercase tracking-widest text-slate-300/70 rotate-[-20deg]">
-            {finalWatermarkText}
+        <div className="pointer-events-none absolute inset-0 overflow-hidden select-none">
+          {/* Tiled diagonal watermark grid */}
+          <div className="absolute inset-0 flex flex-col" style={{ gap: '10%' }}>
+            {[0, 1, 2, 3, 4, 5, 6].map((row) => (
+              <div key={row} className="flex items-center" style={{ gap: '8%', paddingLeft: row % 2 === 0 ? '0%' : '12%' }}>
+                {[0, 1, 2, 3].map((col) => (
+                  <div
+                    key={col}
+                    className="shrink-0 font-bold uppercase tracking-[0.2em]"
+                    style={{
+                      fontSize: `${Math.max(7, 11 * scale)}px`,
+                      color: 'rgba(100, 100, 120, 0.13)',
+                      transform: 'rotate(-30deg)',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    Seera AI
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+
+          {/* Bottom banner */}
+          <div
+            className="absolute bottom-0 inset-x-0 flex items-center justify-center gap-2"
+            style={{
+              backgroundColor: 'rgba(245, 245, 250, 0.92)',
+              borderTop: '1px solid rgba(200, 200, 220, 0.6)',
+              padding: `${Math.max(3, 5 * scale)}px ${Math.max(8, 12 * scale)}px`,
+            }}
+          >
+            <span
+              className="font-semibold text-slate-500"
+              style={{ fontSize: `${Math.max(6, 9 * scale)}px`, letterSpacing: '0.05em' }}
+            >
+              {locale === 'ar'
+                ? '✦ نسخة مجانية — قم بالترقية على seera-ai.com لإزالة العلامة المائية'
+                : '✦ Free Preview — Upgrade at seera-ai.com to remove watermark'}
+            </span>
           </div>
         </div>
       )}
