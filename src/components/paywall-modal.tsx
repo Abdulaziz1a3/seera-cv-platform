@@ -66,7 +66,7 @@ export function PaywallModal({ isOpen, onClose, feature }: PaywallModalProps) {
         try {
             const profileRes = await fetch('/api/profile');
             const profile = profileRes.ok ? await profileRes.json() : null;
-            if (!profile?.phone) {
+            if (false && !profile?.phone) {
                 toast.error(locale === 'ar'
                     ? 'يرجى إضافة رقم الهاتف لإتمام الدفع.'
                     : 'Please add your phone number to complete payments.');

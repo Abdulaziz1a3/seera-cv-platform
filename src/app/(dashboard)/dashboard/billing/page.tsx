@@ -81,6 +81,9 @@ export default function BillingGiftsPage() {
     // Auto-verify pending payments when user returns to billing page
     useEffect(() => {
         if (paymentVerified.current) return;
+        if (typeof window === 'undefined') return;
+        const params = new URLSearchParams(window.location.search);
+        if (!params.get('paymentComplete')) return;
 
         const verifyPendingPayment = async () => {
             setVerifyingPayment(true);
@@ -120,6 +123,70 @@ export default function BillingGiftsPage() {
         // Small delay to let page load
         const timer = setTimeout(verifyPendingPayment, 1000);
         return () => clearTimeout(timer);
+    }, [locale]);
+
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+
+        const params = new URLSearchParams(window.location.search);
+        if (!params.get('fastspringCheckout')) return;
+
+        let active = true;
+        let attempts = 0;
+
+        const pollStatus = async () => {
+            while (active && attempts < 10) {
+                attempts += 1;
+                try {
+                    const response = await fetch('/api/billing/status', { cache: 'no-store' });
+                    const data = response.ok ? await response.json() : null;
+                    if (data) {
+                        setBillingStatus({
+                            plan: data.plan || 'FREE',
+                            status: data.status || 'UNPAID',
+                            isActive: Boolean(data.isActive),
+                            currentPeriodEnd: data.currentPeriodEnd || null,
+                        });
+                    }
+
+                    if (data?.isActive && data?.plan === 'PRO') {
+                        toast.success(
+                            locale === 'ar'
+                                ? 'تم تفعيل اشتراكك بنجاح!'
+                                : 'Your subscription is now active!'
+                        );
+                        window.history.replaceState({}, '', '/dashboard/billing');
+                        return;
+                    }
+                } catch {
+                    // Ignore transient polling errors
+                }
+
+                await new Promise((resolve) => setTimeout(resolve, 2000));
+            }
+
+            if (active) {
+                toast.info(
+                    locale === 'ar'
+                        ? 'تم استلام طلب الدفع. قد يستغرق التفعيل لحظات قليلة.'
+                        : 'Payment received. Activation may take a few moments.'
+                );
+                window.history.replaceState({}, '', '/dashboard/billing');
+            }
+        };
+
+        toast.info(
+            locale === 'ar'
+                ? 'جاري تأكيد الاشتراك مع FastSpring...'
+                : 'Confirming your subscription with FastSpring...',
+            { duration: 5000 }
+        );
+
+        void pollStatus();
+
+        return () => {
+            active = false;
+        };
     }, [locale]);
 
     useEffect(() => {
@@ -232,7 +299,7 @@ export default function BillingGiftsPage() {
     };
 
     const handleUpgrade = async (plan: 'pro' | 'enterprise', interval: 'monthly' | 'yearly') => {
-        if (paymentProfileMissing) {
+        if (false && paymentProfileMissing) {
             toast.error(locale === 'ar'
                 ? 'يرجى إضافة رقم الهاتف لإتمام الدفع.'
                 : 'Please add your phone number to complete payments.');

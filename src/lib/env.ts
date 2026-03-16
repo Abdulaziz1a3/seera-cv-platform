@@ -38,6 +38,17 @@ const envSchema = z.object({
     TUWAIQPAY_WEBHOOK_HEADER_VALUE: z.string().optional(),
     TUWAIQPAY_LANGUAGE: z.enum(['ar', 'en']).optional(),
 
+    // FastSpring
+    FASTSPRING_STORE_PATH: z.string().optional(),
+    FASTSPRING_WEBHOOK_SECRET: z.string().optional(),
+    FASTSPRING_PRODUCT_PRO_MONTHLY: z.string().optional(),
+    FASTSPRING_PRODUCT_PRO_YEARLY: z.string().optional(),
+    FASTSPRING_USERNAME: z.string().optional(),
+    FASTSPRING_PASSWORD: z.string().optional(),
+    FASTSPRING_CHECKOUT_URL: z.string().optional(),
+    FASTSPRING_ACCESS_KEY: z.string().optional(),
+    FASTSPRING_PRIVATE_KEY: z.string().optional(),
+
     // Email
     RESEND_API_KEY: z.string().optional(),
     EMAIL_FROM: z.string().default('Seera AI <noreply@seera-ai.com>'),
@@ -169,6 +180,22 @@ export const env = {
         };
     },
 
+    get fastspring() {
+        return {
+            storePath: process.env.FASTSPRING_STORE_PATH,
+            webhookSecret: process.env.FASTSPRING_WEBHOOK_SECRET,
+            products: {
+                proMonthly: process.env.FASTSPRING_PRODUCT_PRO_MONTHLY,
+                proYearly: process.env.FASTSPRING_PRODUCT_PRO_YEARLY,
+            },
+            username: process.env.FASTSPRING_USERNAME,
+            password: process.env.FASTSPRING_PASSWORD,
+            checkoutUrl: process.env.FASTSPRING_CHECKOUT_URL,
+            accessKey: process.env.FASTSPRING_ACCESS_KEY,
+            privateKey: process.env.FASTSPRING_PRIVATE_KEY,
+        };
+    },
+
     get email() {
         return {
             resendApiKey: process.env.RESEND_API_KEY,
@@ -243,8 +270,17 @@ export function checkRequiredServices() {
     if (!process.env.OPENAI_API_KEY) {
         warnings.push('OPENAI_API_KEY is not configured - AI features will be disabled');
     }
-    if (!process.env.TUWAIQPAY_USERNAME || !process.env.TUWAIQPAY_PASSWORD) {
-        warnings.push('TUWAIQPAY credentials are not configured - payments will be disabled');
+    const hasTuwaiqPay = Boolean(process.env.TUWAIQPAY_USERNAME && process.env.TUWAIQPAY_PASSWORD);
+    const hasFastSpring = Boolean(
+        process.env.FASTSPRING_STORE_PATH
+        && process.env.FASTSPRING_USERNAME
+        && process.env.FASTSPRING_PASSWORD
+        && process.env.FASTSPRING_WEBHOOK_SECRET
+        && process.env.FASTSPRING_PRODUCT_PRO_MONTHLY
+        && process.env.FASTSPRING_PRODUCT_PRO_YEARLY
+    );
+    if (!hasTuwaiqPay && !hasFastSpring) {
+        warnings.push('No payment provider is fully configured - billing will be disabled');
     }
     if (!process.env.RESEND_API_KEY) {
         warnings.push('RESEND_API_KEY is not configured - emails will not be sent');

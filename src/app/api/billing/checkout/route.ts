@@ -10,6 +10,7 @@ import { getUserPaymentProfile } from '@/lib/payments';
 import { prisma } from '@/lib/db';
 import { logger } from '@/lib/logger';
 import { getGatewayPlanPriceSar, getOfficialPlanPriceUsd } from '@/lib/billing-config';
+import { createFastSpringCheckoutSession, getFastSpringProductPath, isFastSpringConfigured } from '@/lib/fastspring';
 
 const checkoutSchema = z.object({
     plan: z.enum(['pro', 'enterprise']),
@@ -42,13 +43,31 @@ export async function POST(request: Request) {
             );
         }
 
+        // Get base URL for redirects
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://seera-ai.com';
+        const returnUrl = `${baseUrl}/dashboard/billing?fastspringCheckout=1`;
+
+        if (plan === 'pro' && isFastSpringConfigured()) {
+            const checkout = await createFastSpringCheckoutSession({
+                productPath: getFastSpringProductPath(interval),
+                userId: session.user.id,
+                userEmail: session.user.email || '',
+                userName: session.user.name,
+                returnUrl,
+            });
+
+            logger.paymentEvent('fastspring_checkout_created', session.user.id, getOfficialPlanPriceUsd(plan, interval), {
+                plan,
+                interval,
+                sessionId: checkout.sessionId,
+            });
+
+            return NextResponse.json({ url: checkout.url });
+        }
+
         const amountSar = getGatewayPlanPriceSar(plan, interval);
         const officialAmountUsd = getOfficialPlanPriceUsd(plan, interval);
         const customer = await getUserPaymentProfile(session.user.id);
-
-        // Get base URL for redirects
-        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://seera-ai.com';
-        const returnUrl = `${baseUrl}/dashboard/billing?paymentComplete=1`;
 
         const intervalLabel = interval === 'yearly' ? 'Annual' : 'Monthly';
         const bill = await createTuwaiqPayBill({
