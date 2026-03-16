@@ -3,7 +3,7 @@ import { prisma } from '@/lib/db';
 import { logger } from '@/lib/logger';
 import { convertUsdToSar, getOfficialPlanPriceUsd } from '@/lib/billing-config';
 import { sendPaymentReceiptEmail } from '@/lib/email';
-import { verifyFastSpringWebhookSignature } from '@/lib/fastspring';
+import { extractFastSpringAccountId, verifyFastSpringWebhookSignature } from '@/lib/fastspring';
 
 export const dynamic = 'force-dynamic';
 
@@ -35,11 +35,14 @@ function extractObject(value: unknown): Record<string, unknown> | undefined {
 function extractEventType(payload: FastSpringPayload) {
     const state = toStringValue(payload.state)?.toLowerCase();
     const status = toStringValue(payload.status)?.toLowerCase();
+    const autoRenew = payload.autoRenew;
+    const manualRenew = payload.manualRenew;
 
     if (status === 'successful') return 'subscription.charge.completed';
     if (status === 'failed') return 'subscription.charge.failed';
     if (state === 'canceled' || state === 'cancelled') return 'subscription.canceled';
     if (state === 'deactivated') return 'subscription.deactivated';
+    if (autoRenew === false || manualRenew === true) return 'subscription.manual_renew_enabled';
     if (state === 'active' || payload.active === true) return 'subscription.activated';
     if (payload.return || payload.refund || payload.refunded === true) return 'return.created';
     return 'order.completed';
@@ -127,6 +130,18 @@ function extractUserId(payload: FastSpringPayload) {
     return toStringValue(tags?.userId);
 }
 
+function extractAccountId(payload: FastSpringPayload) {
+    const directAccountId = extractFastSpringAccountId(payload.account);
+    if (directAccountId) return directAccountId;
+
+    const order = extractObject(payload.order);
+    const orderAccountId = extractFastSpringAccountId(order?.account);
+    if (orderAccountId) return orderAccountId;
+
+    const customer = extractObject(order?.customer);
+    return extractFastSpringAccountId(customer?.account);
+}
+
 function extractAmountUsd(payload: FastSpringPayload, interval: PlanInterval) {
     const candidateValues = [
         payload.total,
@@ -201,6 +216,7 @@ async function findUserForPayload(payload: FastSpringPayload) {
 async function createOrUpdatePaymentTransaction(params: {
     orderId?: string;
     subscriptionId?: string;
+    accountId?: string;
     userId: string;
     amountUsd: number;
     interval: PlanInterval;
@@ -233,6 +249,8 @@ async function createOrUpdatePaymentTransaction(params: {
             metadata: {
                 officialAmountUsd: params.amountUsd,
                 officialCurrency: 'USD',
+                fastspringAccountId: params.accountId,
+                fastspringSubscriptionId: params.subscriptionId,
                 fastspringEventType: params.eventType,
                 fastspringPayload: JSON.stringify(params.payload).substring(0, 4000),
             },
@@ -315,6 +333,7 @@ export async function POST(request: Request) {
 
     const interval = resolveInterval(productPath);
     const subscriptionId = extractSubscriptionId(payload);
+    const accountId = extractAccountId(payload);
     const orderId = extractOrderId(payload);
     const now = new Date();
     const user = await findUserForPayload(payload);
@@ -333,6 +352,7 @@ export async function POST(request: Request) {
         const createdPayment = await createOrUpdatePaymentTransaction({
             orderId,
             subscriptionId,
+            accountId,
             userId: user.id,
             amountUsd,
             interval,
@@ -373,7 +393,7 @@ export async function POST(request: Request) {
             cancelAtPeriodEnd: false,
             status: 'ACTIVE',
         });
-    } else if (eventType === 'subscription.canceled') {
+    } else if (eventType === 'subscription.canceled' || eventType === 'subscription.manual_renew_enabled') {
         const existingSubscription = await prisma.subscription.findUnique({
             where: { userId: user.id },
             select: { currentPeriodEnd: true },

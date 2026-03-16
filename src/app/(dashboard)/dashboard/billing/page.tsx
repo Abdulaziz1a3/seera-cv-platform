@@ -63,6 +63,7 @@ export default function BillingGiftsPage() {
     const [giftsLoading, setGiftsLoading] = useState(false);
     const [gifts, setGifts] = useState<GiftListItem[]>([]);
     const [upgradeLoading, setUpgradeLoading] = useState(false);
+    const [manageLoading, setManageLoading] = useState(false);
     const [paymentProfileMissing, setPaymentProfileMissing] = useState(false);
     const [billingInterval, setBillingInterval] = useState<'monthly' | 'yearly'>('monthly');
     const [billingStatus, setBillingStatus] = useState<{
@@ -70,6 +71,8 @@ export default function BillingGiftsPage() {
         status: string;
         isActive: boolean;
         currentPeriodEnd: string | null;
+        cancelAtPeriodEnd: boolean;
+        provider: 'FASTSPRING' | 'TUWAIQPAY' | 'STRIPE' | null;
     } | null>(null);
     const [pendingGifts, setPendingGifts] = useState<PendingGift[]>([]);
     const [pendingGiftsLoading, setPendingGiftsLoading] = useState(false);
@@ -110,6 +113,8 @@ export default function BillingGiftsPage() {
                             status: statusData.status || 'UNPAID',
                             isActive: Boolean(statusData.isActive),
                             currentPeriodEnd: statusData.currentPeriodEnd || null,
+                            cancelAtPeriodEnd: Boolean(statusData.cancelAtPeriodEnd),
+                            provider: statusData.provider || null,
                         });
                     }
                 }
@@ -146,6 +151,8 @@ export default function BillingGiftsPage() {
                             status: data.status || 'UNPAID',
                             isActive: Boolean(data.isActive),
                             currentPeriodEnd: data.currentPeriodEnd || null,
+                            cancelAtPeriodEnd: Boolean(data.cancelAtPeriodEnd),
+                            provider: data.provider || null,
                         });
                     }
 
@@ -253,6 +260,8 @@ export default function BillingGiftsPage() {
                     status: data.status || 'UNPAID',
                     isActive: Boolean(data.isActive),
                     currentPeriodEnd: data.currentPeriodEnd || null,
+                    cancelAtPeriodEnd: Boolean(data.cancelAtPeriodEnd),
+                    provider: data.provider || null,
                 });
             })
             .catch(() => null);
@@ -327,6 +336,29 @@ export default function BillingGiftsPage() {
             toast.error(error?.message || (locale === 'ar' ? 'تعذر بدء الدفع' : 'Failed to start payment'));
         } finally {
             setUpgradeLoading(false);
+        }
+    };
+
+    const handleManageSubscription = async () => {
+        setManageLoading(true);
+        try {
+            const response = await fetch('/api/billing/manage', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+            });
+            const payload = await response.json().catch(() => ({}));
+            if (!response.ok) {
+                throw new Error(payload?.error || 'Failed to open subscription management');
+            }
+            if (!payload?.url) {
+                throw new Error(locale === 'ar' ? 'رابط إدارة الاشتراك غير متوفر' : 'Subscription management URL missing');
+            }
+            window.open(payload.url, '_blank');
+            toast.success(locale === 'ar' ? 'تم فتح إدارة الاشتراك في تبويب جديد' : 'Subscription management opened in a new tab');
+        } catch (error: any) {
+            toast.error(error?.message || (locale === 'ar' ? 'تعذر فتح إدارة الاشتراك' : 'Failed to open subscription management'));
+        } finally {
+            setManageLoading(false);
         }
     };
 
@@ -452,6 +484,8 @@ export default function BillingGiftsPage() {
                         status: data.status || 'UNPAID',
                         isActive: Boolean(data.isActive),
                         currentPeriodEnd: data.currentPeriodEnd || null,
+                        cancelAtPeriodEnd: Boolean(data.cancelAtPeriodEnd),
+                        provider: data.provider || null,
                     });
                 }
                 // Force page reload after 2 seconds to ensure all components update
@@ -508,13 +542,21 @@ export default function BillingGiftsPage() {
             : '1 resume, 10 AI credits/month';
     })();
     const upgradeTargetPlan = 'pro';
+    const canManageFastSpringSubscription = billingStatus?.plan === 'PRO'
+        && billingStatus?.isActive
+        && billingStatus?.provider === 'FASTSPRING';
+    const autoRenewEnabled = canManageFastSpringSubscription && !billingStatus?.cancelAtPeriodEnd;
     const upgradeLabel = (() => {
         const plan = billingStatus?.plan || 'FREE';
-        if (plan === 'PRO') return locale === 'ar' ? 'تمديد الاشتراك' : 'Extend subscription';
+        if (canManageFastSpringSubscription) return locale === 'ar' ? 'إدارة الاشتراك' : 'Manage subscription';
+        if (plan === 'PRO') return locale === 'ar' ? 'الاشتراك نشط' : 'Subscription active';
         if (plan === 'ENTERPRISE') return locale === 'ar' ? 'خطة المؤسسات موقوفة مؤقتاً' : 'Enterprise paused';
         return t.settings.billing.upgrade;
     })();
     const upgradeDisabled = billingStatus?.plan === 'ENTERPRISE';
+    const periodEndLabel = autoRenewEnabled
+        ? (locale === 'ar' ? 'يتجدد في' : 'Renews on')
+        : (locale === 'ar' ? 'ينتهي في' : 'Ends on');
 
     return (
         <div className="max-w-4xl mx-auto space-y-6">
@@ -581,40 +623,74 @@ export default function BillingGiftsPage() {
                             {billingStatus?.plan !== 'FREE' && billingStatus?.currentPeriodEnd && (
                                 <p className="text-sm font-medium text-amber-600 dark:text-amber-400 mt-2 flex items-center gap-1">
                                     ⚠️ {locale === 'ar'
-                                        ? `ينتهي في: ${new Date(billingStatus.currentPeriodEnd).toLocaleDateString('ar-SA', { year: 'numeric', month: 'long', day: 'numeric' })}`
-                                        : `Expires: ${new Date(billingStatus.currentPeriodEnd).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`}
+                                        ? `${periodEndLabel}: ${new Date(billingStatus.currentPeriodEnd).toLocaleDateString('ar-SA', { year: 'numeric', month: 'long', day: 'numeric' })}`
+                                        : `${periodEndLabel}: ${new Date(billingStatus.currentPeriodEnd).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`}
                                 </p>
                             )}
                         </div>
                         <div className="flex flex-col gap-3 sm:items-end">
-                            <Select
-                                value={billingInterval}
-                                onValueChange={(value) => setBillingInterval(value as 'monthly' | 'yearly')}
-                            >
-                                <SelectTrigger className="w-[170px]">
-                                    <SelectValue placeholder={locale === 'ar' ? 'المدة' : 'Billing period'} />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="monthly">{locale === 'ar' ? 'شهري' : 'Monthly'}</SelectItem>
-                                    <SelectItem value="yearly">{locale === 'ar' ? 'سنوي' : 'Yearly'}</SelectItem>
-                                </SelectContent>
-                            </Select>
-                            <Button
-                                size="lg"
-                                className="shadow-lg"
-                                onClick={() => handleUpgrade(upgradeTargetPlan as 'pro' | 'enterprise', billingInterval)}
-                                disabled={upgradeLoading || upgradeDisabled}
-                            >
-                                {upgradeLoading ? (
-                                    <Loader2 className="h-4 w-4 me-2 animate-spin" />
-                                ) : null}
-                                {upgradeLabel}
-                            </Button>
-                            <p className="text-xs text-muted-foreground">
-                                {locale === 'ar'
-                                    ? 'الاشتراكات غير متجددة تلقائياً. قم بالتمديد للحفاظ على الوصول.'
-                                    : 'Subscriptions are prepaid and do not auto-renew. Extend to keep access active.'}
-                            </p>
+                            {canManageFastSpringSubscription ? (
+                                <>
+                                    <div className="rounded-lg border bg-background/70 px-4 py-3 text-sm sm:max-w-xs">
+                                        <p className="font-medium">
+                                            {autoRenewEnabled
+                                                ? (locale === 'ar' ? 'التجديد التلقائي مفعل' : 'Auto-renew is on')
+                                                : (locale === 'ar' ? 'التجديد التلقائي متوقف' : 'Auto-renew is off')}
+                                        </p>
+                                        <p className="mt-1 text-xs text-muted-foreground">
+                                            {autoRenewEnabled
+                                                ? (locale === 'ar'
+                                                    ? 'سيتجدد اشتراكك تلقائياً ما لم يتم إلغاؤه قبل نهاية الفترة الحالية.'
+                                                    : 'Your subscription renews automatically unless you cancel before the current billing period ends.')
+                                                : (locale === 'ar'
+                                                    ? 'لن يتم تجديد اشتراكك تلقائياً. يمكنك إدارة إعدادات الاشتراك من FastSpring.'
+                                                    : 'Your subscription will not renew automatically. You can manage renewal settings in FastSpring.')}
+                                        </p>
+                                    </div>
+                                    <Button
+                                        size="lg"
+                                        className="shadow-lg"
+                                        onClick={handleManageSubscription}
+                                        disabled={manageLoading}
+                                    >
+                                        {manageLoading ? (
+                                            <Loader2 className="h-4 w-4 me-2 animate-spin" />
+                                        ) : null}
+                                        {upgradeLabel}
+                                    </Button>
+                                </>
+                            ) : (
+                                <>
+                                    <Select
+                                        value={billingInterval}
+                                        onValueChange={(value) => setBillingInterval(value as 'monthly' | 'yearly')}
+                                    >
+                                        <SelectTrigger className="w-[170px]">
+                                            <SelectValue placeholder={locale === 'ar' ? 'المدة' : 'Billing period'} />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="monthly">{locale === 'ar' ? 'شهري' : 'Monthly'}</SelectItem>
+                                            <SelectItem value="yearly">{locale === 'ar' ? 'سنوي' : 'Yearly'}</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                    <Button
+                                        size="lg"
+                                        className="shadow-lg"
+                                        onClick={() => handleUpgrade(upgradeTargetPlan as 'pro' | 'enterprise', billingInterval)}
+                                        disabled={upgradeLoading || upgradeDisabled}
+                                    >
+                                        {upgradeLoading ? (
+                                            <Loader2 className="h-4 w-4 me-2 animate-spin" />
+                                        ) : null}
+                                        {upgradeLabel}
+                                    </Button>
+                                    <p className="text-xs text-muted-foreground">
+                                        {locale === 'ar'
+                                            ? 'تتجدد الاشتراكات تلقائياً ما لم يتم إلغاؤها قبل نهاية الفترة الحالية.'
+                                            : 'Subscriptions renew automatically unless canceled before the current billing period ends.'}
+                                    </p>
+                                </>
+                            )}
                         </div>
                     </div>
 
@@ -628,12 +704,12 @@ export default function BillingGiftsPage() {
                                         {billingStatus?.plan === 'ENTERPRISE'
                                             ? (locale === 'ar' ? 'غير محدود' : 'Unlimited')
                                             : billingStatus?.plan === 'PRO'
-                                                ? '1 / 5'
+                                                ? '1 / 10'
                                                 : '1 / 1'}
                                     </span>
                                 </div>
                                 <Progress
-                                    value={billingStatus?.plan === 'ENTERPRISE' ? 0 : billingStatus?.plan === 'PRO' ? 20 : 100}
+                                    value={billingStatus?.plan === 'ENTERPRISE' ? 0 : billingStatus?.plan === 'PRO' ? 10 : 100}
                                     className="h-2"
                                 />
                             </div>

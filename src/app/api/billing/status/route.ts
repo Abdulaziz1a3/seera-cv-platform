@@ -60,6 +60,20 @@ export async function GET() {
     const status = subscription?.status || 'UNPAID';
     const isActive = (status === 'ACTIVE' || status === 'TRIALING')
         && (!subscription?.currentPeriodEnd || subscription.currentPeriodEnd >= now);
+    const latestSubscriptionPayment = await prisma.paymentTransaction.findFirst({
+        where: {
+            userId: session.user.id,
+            purpose: 'SUBSCRIPTION',
+            status: 'PAID',
+        },
+        orderBy: [
+            { paidAt: 'desc' },
+            { createdAt: 'desc' },
+        ],
+        select: {
+            provider: true,
+        },
+    });
 
     return NextResponse.json({
         plan: subscription?.plan || 'FREE',
@@ -67,5 +81,6 @@ export async function GET() {
         isActive,
         currentPeriodEnd: subscription?.currentPeriodEnd,
         cancelAtPeriodEnd: subscription?.cancelAtPeriodEnd,
+        provider: latestSubscriptionPayment?.provider || null,
     });
 }

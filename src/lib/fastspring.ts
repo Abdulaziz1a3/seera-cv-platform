@@ -16,6 +16,8 @@ interface FastSpringSessionResponse {
     id: string;
 }
 
+type FastSpringApiResponse = Record<string, unknown> | null;
+
 function getBasicAuthHeader(username: string, password: string) {
     return `Basic ${Buffer.from(`${username}:${password}`).toString('base64')}`;
 }
@@ -50,6 +52,67 @@ export function getFastSpringProductPath(interval: 'monthly' | 'yearly'): FastSp
     }
 
     return productPath as FastSpringPlanPath;
+}
+
+async function fastSpringApiRequest(path: string) {
+    const config = env.fastspring;
+    if (!config.username || !config.password) {
+        throw new Error('FastSpring API credentials are not configured');
+    }
+
+    const response = await fetch(`https://api.fastspring.com${path}`, {
+        method: 'GET',
+        headers: {
+            Authorization: getBasicAuthHeader(config.username, config.password),
+            Accept: 'application/json',
+        },
+        cache: 'no-store',
+    });
+
+    const payload = await response.json().catch(() => null) as FastSpringApiResponse;
+    if (!response.ok) {
+        logger.error('FastSpring API request failed', {
+            path,
+            statusCode: response.status,
+            payload: payload || undefined,
+        });
+        throw new Error('FastSpring API request failed');
+    }
+
+    return payload;
+}
+
+function toStringValue(value: unknown): string | undefined {
+    return typeof value === 'string' && value.trim().length > 0 ? value.trim() : undefined;
+}
+
+function extractObject(value: unknown): Record<string, unknown> | undefined {
+    return value && typeof value === 'object' && !Array.isArray(value)
+        ? (value as Record<string, unknown>)
+        : undefined;
+}
+
+export async function getFastSpringSubscription(subscriptionId: string) {
+    return fastSpringApiRequest(`/subscriptions/${encodeURIComponent(subscriptionId)}`);
+}
+
+export async function createFastSpringAccountManagementUrl(accountId: string) {
+    const payload = await fastSpringApiRequest(`/accounts/${encodeURIComponent(accountId)}/authenticate`);
+    const url = toStringValue(payload?.url)
+        || toStringValue(extractObject(payload?.account)?.url)
+        || toStringValue(payload?.href);
+
+    if (!url) {
+        throw new Error('FastSpring account management URL missing');
+    }
+
+    return `${url.replace(/#.*$/, '')}#/subscriptions`;
+}
+
+export function extractFastSpringAccountId(value: unknown) {
+    const object = extractObject(value);
+    if (!object) return undefined;
+    return toStringValue(object.id) || toStringValue(object.account);
 }
 
 export async function createFastSpringCheckoutSession(params: CreateFastSpringCheckoutParams) {
